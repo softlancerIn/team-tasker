@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Task extends Model
+{
+    use HasFactory;
+    protected $table = 'tasks';
+    protected $guarded = ['id'];
+
+    protected $casts = [
+        'deadline' => 'datetime',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function assignedTo()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(TaskLog::class)->orderBy('created_at', 'desc');
+    }
+
+    public function timeLogs()
+    {
+        return $this->hasMany(TimeLog::class)->orderBy('created_at', 'desc');
+    }
+}

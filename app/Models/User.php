@@ -20,6 +20,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role_id',
+        'is_approved',
+        'profile_image',
     ];
 
     /**
@@ -42,8 +45,18 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    public function todoRecords()
+    public function tasks()
     {
-        return $this->hasMany(Todo::class);
+        return $this->hasMany(Task::class);
+    }
+
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
     }
 }

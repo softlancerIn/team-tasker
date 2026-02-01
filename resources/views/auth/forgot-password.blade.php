@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Team Tasker</title>
+    <title>Forgot Password | Team Tasker</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
@@ -170,14 +170,6 @@
         .auth-link:hover {
             color: var(--accent);
         }
-
-        .alert-premium {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-            border-radius: 12px;
-            font-size: 0.85rem;
-        }
     </style>
 </head>
 
@@ -188,49 +180,37 @@
         <div class="auth-card">
             <div class="logo-area">
                 <div class="logo-icon">
-                    <i class="fas fa-layer-group"></i>
+                    <i class="fas fa-key"></i>
                 </div>
-                <h1 class="auth-title">Welcome Back</h1>
-                <p class="auth-subtitle">Log in to manage your tasks effectively</p>
+                <h1 class="auth-title">Forgot Password</h1>
+                <p class="auth-subtitle">Enter your email and we'll send you a reset link</p>
             </div>
 
             @if (session('error'))
-                <div class="alert alert-premium mb-4">
+                <div class="alert alert-danger mb-4 bg-danger bg-opacity-10 border-danger border-opacity-20 text-danger"
+                    style="border-radius: 12px; font-size: 0.85rem;">
                     <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
                 </div>
             @endif
 
-            @if (session('success'))
-                <div class="alert alert-success mb-4 bg-success bg-opacity-10 border-success border-opacity-20 text-success"
-                    style="border-radius: 12px; font-size: 0.85rem;">
-                    <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-                </div>
-            @endif
-
-            <form action="{{ route('login') }}" method="POST">
+            <form action="{{ route('forgotPassword') }}" method="POST">
                 @csrf
                 <div class="mb-4">
                     <label for="email" class="form-label">Email Address</label>
                     <input type="email" id="email" name="email" class="form-control"
                         placeholder="name@example.com" required>
-                </div>
-
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between">
-                        <label for="password" class="form-label">Password</label>
-                        <a href="{{ route('forgotPassword') }}" class="auth-link small">Forgot?</a>
-                    </div>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
-                        required>
+                    @error('email')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <button type="submit" class="btn btn-auth">
-                    Sign In <i class="fas fa-arrow-right ms-2"></i>
+                    Send Reset Link <i class="fas fa-paper-plane ms-2"></i>
                 </button>
             </form>
 
             <div class="auth-footer">
-                Don't have an account? <a href="{{ route('registerPage') }}" class="auth-link">Create one</a>
+                Remember your password? <a href="{{ route('loginPage') }}" class="auth-link">Sign In</a>
             </div>
         </div>
     </div>
