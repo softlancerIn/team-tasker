@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\TimeLog;
+use App\Models\Status;
 
 class TaskController extends Controller
 {
@@ -15,7 +16,7 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $tasks = Task::with(['user', 'assignedTo'])->where('user_id', Auth::user()->id)
+        $tasks = Task::with(['user', 'assignedTo', 'status'])->where('user_id', Auth::user()->id)
             ->orWhere('assigned_to', Auth::user()->id)
             ->get();
 
@@ -27,7 +28,7 @@ class TaskController extends Controller
     public function dashboard()
     {
         $userId = Auth::user()->id;
-        $tasks = Task::with(['user', 'assignedTo'])
+        $tasks = Task::with(['user', 'assignedTo', 'status'])
             ->where('user_id', $userId)
             ->orWhere('assigned_to', $userId)
             ->orderBy('created_at', 'desc')
@@ -53,10 +54,14 @@ class TaskController extends Controller
     /**
      * Show the form for creating a new resource.
      */
+    /**
+     * Show the form for creating a new resource.
+     */
     public function create()
     {
         $users = User::all();
-        return view('create', compact('users'));
+        $statuses = Status::orderBy('order')->get();
+        return view('admin.tasks.create', compact('users', 'statuses'));
     }
 
     /**
@@ -67,13 +72,16 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title'       => 'required|max:255',
             'description' => 'required',
+            'status_id'   => 'nullable|exists:statuses,id',
         ]);
+
+        $defaultStatus = Status::where('is_default', true)->first();
 
         $task = Task::create([
             'user_id'     => Auth::user()->id,
             'title'       => $request->title,
             'description' => $request->description,
-            'status'      => $request->status ?? 'pending',
+            'status_id'   => $request->status_id ?? $defaultStatus?->id,
             'assigned_to' => $request->assigned_to
         ]);
 
@@ -93,16 +101,17 @@ class TaskController extends Controller
             })
             ->first();
 
-        if (!$todo) {
+        if (!$task) {
             return redirect()->intended('dashboard');
         }
 
-        $activeTimer = TimeLog::where('todo_id', $task->id)
+        $activeTimer = TimeLog::where('task_id', $task->id)
             ->where('user_id', Auth::id())
             ->whereNull('end_time')
             ->first();
+        $statuses = Status::orderBy('order')->get();
 
-        return view('admin.tasks.details', compact('task', 'activeTimer'));
+        return view('admin.tasks.details', compact('task', 'activeTimer', 'statuses'));
     }
 
     /**
@@ -110,14 +119,19 @@ class TaskController extends Controller
      */
     public function edit(Request $request)
     {
-        $task = Task::where('id', $request->id)->where('user_id', Auth::user()->id)->first();
+        $task = Task::where('id', $request->id)
+            ->where(function($query) {
+                $query->where('user_id', Auth::user()->id)
+                    ->orWhere('assigned_to', Auth::user()->id);
+            })->first();
 
-        if (!$todo) {
-            return redirect()->intended('dashboard');
+        if (!$task) {
+             return redirect()->intended('dashboard');
         }
 
         $users = User::all();
-        return view('admin.tasks.edit', compact('task', 'users'));
+        $statuses = Status::orderBy('order')->get();
+        return view('admin.tasks.edit', compact('task', 'users', 'statuses'));
     }
 
     /**
@@ -128,12 +142,13 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title'       => 'required|max:255',
             'description' => 'required',
+            'status_id'   => 'nullable|exists:statuses,id',
         ]);
 
         $task = Task::where('id', $request->id)->update([
             'title'       => $request->title,
             'description' => $request->description,
-            'status'      => $request->status ?? 'pending',
+            'status_id'   => $request->status_id,
             'assigned_to' => $request->assigned_to
         ]);
 

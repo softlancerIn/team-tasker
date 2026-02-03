@@ -44,27 +44,25 @@
             <div class="glass-card mb-4">
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <h2 class="mb-0">{{ $task->title }}</h2>
-                    @if ($task->status == 'completed')
+                    @if ($task->status)
                         <span
-                            class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill">Completed</span>
-                    @elseif($task->status == 'in_progress')
-                        <span
-                            class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill">In
-                            Progress</span>
+                            class="badge bg-{{ $task->status->color }} bg-opacity-10 text-{{ $task->status->color }} border border-{{ $task->status->color }} border-opacity-25 px-3 py-2 rounded-pill">
+                            {{ $task->status->name }}
+                        </span>
                     @else
                         <span
-                            class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill">Pending</span>
+                            class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2 rounded-pill">Unknown</span>
                     @endif
                 </div>
 
                 <h6 class="text-muted uppercase extra-small mb-3">Description</h6>
-                <div class="text-white-50 lh-lg mb-5 ck-content" style="white-space: pre-wrap;">{!! $task->description !!}
+                <div class="text-main-50 lh-lg mb-5 ck-content" style="white-space: pre-wrap;">{!! $task->description !!}
                 </div>
 
                 <div class="mb-5">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="text-muted uppercase extra-small mb-0">Progress</h6>
-                        <span class="text-white small fw-bold">{{ $task->progress }}%</span>
+                        <span class="text-main small fw-bold">{{ $task->progress }}%</span>
                     </div>
                     <div class="progress bg-white bg-opacity-10" style="height: 8px; border-radius: 4px;">
                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
@@ -131,7 +129,7 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="fw-medium text-white small">{{ $log->user->name }}</span>
+                                            <span class="fw-medium text-main small">{{ $log->user->name }}</span>
                                             <span
                                                 class="text-muted extra-small">{{ $log->created_at->diffForHumans() }}</span>
                                         </div>
@@ -140,7 +138,7 @@
                                                 class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 extra-small mb-1">Admin
                                                 Message</span>
                                         @endif
-                                        <div class="text-white-50 small ck-content">{!! $log->note !!}</div>
+                                        <div class="text-main-50 small ck-content">{!! $log->note !!}</div>
                                     </div>
                                 </div>
                             @empty
@@ -153,41 +151,66 @@
 
                     <!-- Timeline Tab -->
                     <div class="tab-pane fade" id="timeline" role="tabpanel">
-                        <div class="timeline-logs">
-                            @php $totalSeconds = 0; @endphp
-                            @forelse($task->timeLogs as $timeLog)
-                                @php $totalSeconds += $timeLog->duration; @endphp
-                                <div class="glass-card mb-3 p-3">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                                {{ substr($timeLog->user->name, 0, 1) }}
-                                            </div>
-                                            <div>
-                                                <div class="text-white small fw-bold">{{ $timeLog->user->name }}</div>
-                                                <div class="text-muted extra-small">
-                                                    {{ $timeLog->start_time->format('M d, H:i') }} —
-                                                    {{ $timeLog->end_time ? $timeLog->end_time->format('H:i') : 'In Progress' }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-end">
-                                            <div class="text-primary small fw-bold">
-                                                {{ $timeLog->end_time ? gmdate('H:i:s', $timeLog->duration) : 'Active' }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="text-center py-4 text-muted small">
-                                    No time logged yet.
-                                </div>
-                            @endforelse
+                        <div class="glass-card table-responsive">
+                            <table class="table text-main align-middle mb-0">
+                                <thead>
+                                    <tr class="text-muted small uppercase">
+                                        <th class="border-0 bg-transparent">Date</th>
+                                        <th class="border-0 bg-transparent">User</th>
+                                        <th class="border-0 bg-transparent">Description</th>
+                                        <th class="border-0 bg-transparent">Duration</th>
+                                        <th class="border-0 bg-transparent">Mode</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php $totalSeconds = 0; @endphp
+                                    @forelse($task->timeLogs as $timeLog)
+                                        @php $totalSeconds += $timeLog->duration; @endphp
+                                        <tr class="border-bottom border-secondary border-opacity-10">
+                                            <td class="bg-transparent py-3 text-main">
+                                                {{ $timeLog->start_time->format('d/m/Y') }}
+                                            </td>
+                                            <td class="bg-transparent py-3">
+                                                <span class="text-main">{{ $timeLog->user->name }}</span>
+                                            </td>
+                                            <td class="bg-transparent py-3">
+                                                <span class="text-main-50 small">
+                                                    Worked on {{ $timeLog->start_time->format('d-F-Y') }}
+                                                    ({{ $timeLog->start_time->format('H:i:s') }} To
+                                                    {{ $timeLog->end_time ? $timeLog->end_time->format('H:i:s') : 'Now' }})
+                                                </span>
+                                                @if ($timeLog->description)
+                                                    <div class="text-main small mt-1">
+                                                        {{ $timeLog->description }}</div>
+                                                @endif
+                                            </td>
+                                            <td class="bg-transparent py-3">
+                                                <span class="fw-bold text-primary small">
+                                                    {{ $timeLog->end_time ? gmdate('H:i', $timeLog->duration) : 'Active' }}
+                                                </span>
+                                            </td>
+                                            <td class="bg-transparent py-3">
+                                                <span class="text-main small">
+                                                    {{ $timeLog->mode ?? 'inside office' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5"
+                                                class="text-center py-5 text-muted small bg-transparent">
+                                                No time logged yet.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
 
                             @if ($totalSeconds > 0)
-                                <div class="alert alert-primary bg-opacity-5 border-primary border-opacity-25 mt-4">
+                                <div
+                                    class="alert alert-primary bg-opacity-5 border-primary border-opacity-25 mt-4 mb-0">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="text-white small">Total Time Invested</span>
+                                        <span class="text-main small">Total Time Invested</span>
                                         <span class="text-primary fw-bold">{{ floor($totalSeconds / 3600) }}h
                                             {{ floor(($totalSeconds % 3600) / 60) }}m {{ $totalSeconds % 60 }}s</span>
                                     </div>
@@ -204,18 +227,18 @@
                 <h5 class="mb-4">Meta Information</h5>
                 <div class="mb-3">
                     <div class="text-muted small">Created at</div>
-                    <div class="text-white small">{{ $task->created_at->format('M d, Y h:i A') }}</div>
+                    <div class="text-main small">{{ $task->created_at->format('M d, Y h:i A') }}</div>
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Last updated</div>
-                    <div class="text-white small">{{ $task->updated_at->format('M d, Y h:i A') }}</div>
+                    <div class="text-main small">{{ $task->updated_at->format('M d, Y h:i A') }}</div>
                 </div>
                 <div class="mb-0">
                     <div class="text-muted small">Owner</div>
                     <div class="d-flex align-items-center gap-2 mt-1">
                         <div class="avatar" style="width: 24px; height: 24px; font-size: 0.6rem;">
                             {{ substr(Auth::user()->name, 0, 1) }}</div>
-                        <span class="text-white small">{{ Auth::user()->name }}</span>
+                        <span class="text-main small">{{ Auth::user()->name }}</span>
                     </div>
                 </div>
             </div>
@@ -226,14 +249,14 @@
                     @csrf
                     <div class="mb-3">
                         <label class="form-label text-muted small">Task Status</label>
-                        <select name="status"
+                        <select name="status_id"
                             class="form-select bg-dark text-white border-secondary border-opacity-25">
-                            <option value="pending" {{ $task->status == 'pending' ? 'selected' : '' }}>Pending
-                            </option>
-                            <option value="in_progress" {{ $task->status == 'in_progress' ? 'selected' : '' }}>In
-                                Progress</option>
-                            <option value="completed" {{ $task->status == 'completed' ? 'selected' : '' }}>Completed
-                            </option>
+                            @foreach ($statuses as $status)
+                                <option value="{{ $status->id }}"
+                                    {{ isset($task->status_id) && $task->status_id == $status->id ? 'selected' : '' }}>
+                                    {{ $status->name }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="mb-4">
@@ -251,7 +274,7 @@
                 </form>
             </div>
 
-            <div class="glass-card">
+            {{-- <div class="glass-card">
                 <h5 class="mb-3">Message Admin</h5>
                 <p class="text-muted small mb-4">Send a direct message to the administrator regarding this task.</p>
                 <form action="{{ route('tasks.message', $task->id) }}" method="POST">
@@ -266,7 +289,7 @@
                         </button>
                     </div>
                 </form>
-            </div>
+            </div> --}}
         </div>
     </div>
 

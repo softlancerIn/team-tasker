@@ -45,16 +45,14 @@
                                 @endif
                             </td>
                             <td>
-                                @if ($task->status == 'completed')
+                                @if ($task->status)
                                     <span
-                                        class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill">Completed</span>
-                                @elseif($task->status == 'in_progress')
-                                    <span
-                                        class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill">In
-                                        Progress</span>
+                                        class="badge bg-{{ $task->status->color }} bg-opacity-10 text-{{ $task->status->color }} border border-{{ $task->status->color }} border-opacity-25 px-3 py-2 rounded-pill">
+                                        {{ $task->status->name }}
+                                    </span>
                                 @else
                                     <span
-                                        class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill">Pending</span>
+                                        class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2 rounded-pill">Unknown</span>
                                 @endif
                             </td>
                             <td class="text-muted"><span class="small text-white">

@@ -39,10 +39,12 @@
 
             <div class="mb-4">
                 <label for="status" class="form-label">Status</label>
-                <select name="status" class="form-select bg-transparent text-white border-secondary">
-                    <option value="pending" class="bg-dark">Pending</option>
-                    <option value="in_progress" class="bg-dark">In Progress</option>
-                    <option value="completed" class="bg-dark">Completed</option>
+                <select name="status_id" class="form-select bg-transparent text-white border-secondary">
+                    @foreach ($statuses as $status)
+                        <option value="{{ $status->id }}" {{ $status->is_default ? 'selected' : '' }} class="bg-dark">
+                            {{ $status->name }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
 

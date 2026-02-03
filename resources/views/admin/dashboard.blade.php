@@ -22,7 +22,8 @@
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Completed</div>
-                <div style="font-size: 1.8rem; font-weight: 700;">{{ count($tasks->where('status', 'completed')) }}
+                <div style="font-size: 1.8rem; font-weight: 700;">
+                    {{ $tasks->filter(fn($t) => $t->status?->slug === 'completed')->count() }}
                 </div>
                 <div style="font-size: 0.8rem; color: var(--accent); margin-top: 0.5rem;">
                     <i class="fas fa-arrow-up"></i> 5% increase
@@ -36,7 +37,7 @@
                 </div>
                 <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Pending</div>
                 <div style="font-size: 1.8rem; font-weight: 700;">
-                    {{ count($tasks->where('status', '!=', 'completed')) }}</div>
+                    {{ $tasks->filter(fn($t) => $t->status?->slug !== 'completed')->count() }}</div>
                 <div style="font-size: 0.8rem; color: #f59e0b; margin-top: 0.5rem;">
                     Attention required
                 </div>

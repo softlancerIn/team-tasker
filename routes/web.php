@@ -48,6 +48,14 @@ Route::middleware('web')->controller(TeamController::class)->prefix('admin')->gr
     Route::delete('/roles/{id}/delete', 'deleteRole')->name('admin.roles.delete');
 });
 
+// Settings (Statuses, etc.)
+Route::middleware('web')->controller(App\Http\Controllers\StatusController::class)->prefix('admin/settings')->group(function () {
+    Route::get('/statuses', 'index')->name('admin.statuses.index');
+    Route::post('/statuses/store', 'store')->name('admin.statuses.store');
+    Route::post('/statuses/{id}/update', 'update')->name('admin.statuses.update');
+    Route::delete('/statuses/{id}/delete', 'destroy')->name('admin.statuses.delete');
+});
+
 // Task Logs & Messaging & Time Tracking
 Route::middleware(['web', 'auth'])->controller(TaskLogController::class)->group(function () {
     Route::post('/tasks/{id}/log', 'storeLog')->name('tasks.log');
