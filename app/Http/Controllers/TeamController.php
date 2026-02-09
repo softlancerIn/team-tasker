@@ -111,6 +111,7 @@ class TeamController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'slug' => 'required|string|max:255|unique:roles',
+            'permissions' => 'nullable|array',
         ]);
 
         Role::create($request->all());
@@ -124,6 +125,7 @@ class TeamController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'slug' => 'required|string|max:255|unique:roles,slug,'.$role->id,
+            'permissions' => 'nullable|array',
         ]);
 
         $role->update($request->all());

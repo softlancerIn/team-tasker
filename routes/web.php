@@ -20,36 +20,55 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('/profile/update', 'updateProfile')->name('profile.update');
 });
 
+// Search Controller
+Route::middleware(['web', 'auth'])->get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.global');
+
 // Task Controller
 Route::middleware('web')->controller(TaskController::class)->group(function () {
-    Route::get('/dashboard', 'dashboard')->name('dashboard');
-    Route::get('/index', 'index')->name('index');
-    Route::get('create', 'create')->name('create');
-    Route::post('store', 'store')->name('store');
-    Route::get('details/{id}', 'show')->name('details');
-    Route::get('edit/{id}', 'edit')->name('edit');
-    Route::post('update', 'update')->name('update');
-    Route::get('delete/{id}', 'destroy')->name('delete');
+    Route::get('/dashboard', 'dashboard')->name('dashboard')->middleware('permission:dashboard');
+    Route::get('/index', 'index')->name('index')->middleware('permission:tasks.view');
+    Route::get('create', 'create')->name('create')->middleware('permission:tasks.create');
+    Route::post('store', 'store')->name('store')->middleware('permission:tasks.create');
+    Route::get('details/{id}', 'show')->name('details')->middleware('permission:tasks.view');
+    Route::get('edit/{id}', 'edit')->name('edit')->middleware('permission:tasks.create'); // Usually permission to edit is tied to create or separate
+    Route::post('update', 'update')->name('update')->middleware('permission:tasks.create');
+    Route::get('delete/{id}', 'destroy')->name('delete')->middleware('permission:tasks.create'); // Usually permission to delete
 });
 
 // Team Management
 Route::middleware('web')->controller(TeamController::class)->prefix('admin')->group(function () {
     // Users
-    Route::get('/users', 'index')->name('admin.users.index');
-    Route::post('/users/store', 'storeUser')->name('admin.users.store');
-    Route::post('/users/{id}/update', 'updateUser')->name('admin.users.update');
-    Route::post('/users/{id}/toggle-approval', 'toggleApproval')->name('admin.users.toggleApproval');
-    Route::delete('/users/{id}/delete', 'deleteUser')->name('admin.users.delete');
+    Route::group(['middleware' => 'permission:users.view'], function () {
+        Route::get('/users', 'index')->name('admin.users.index');
+    });
+    Route::group(['middleware' => 'permission:users.create'], function () {
+        Route::post('/users/store', 'storeUser')->name('admin.users.store');
+    });
+    Route::group(['middleware' => 'permission:users.edit'], function () {
+        Route::post('/users/{id}/update', 'updateUser')->name('admin.users.update');
+        Route::post('/users/{id}/toggle-approval', 'toggleApproval')->name('admin.users.toggleApproval'); // Using edit for approval
+    });
+    Route::group(['middleware' => 'permission:users.delete'], function () {
+        Route::delete('/users/{id}/delete', 'deleteUser')->name('admin.users.delete');
+    });
     
     // Roles
-    Route::get('/roles', 'roles')->name('admin.roles.index');
-    Route::post('/roles/store', 'storeRole')->name('admin.roles.store');
-    Route::post('/roles/{id}/update', 'updateRole')->name('admin.roles.update');
-    Route::delete('/roles/{id}/delete', 'deleteRole')->name('admin.roles.delete');
+    Route::group(['middleware' => 'permission:roles.view'], function () {
+        Route::get('/roles', 'roles')->name('admin.roles.index');
+    });
+    Route::group(['middleware' => 'permission:roles.create'], function () {
+        Route::post('/roles/store', 'storeRole')->name('admin.roles.store');
+    });
+    Route::group(['middleware' => 'permission:roles.edit'], function () {
+        Route::post('/roles/{id}/update', 'updateRole')->name('admin.roles.update');
+    });
+    Route::group(['middleware' => 'permission:roles.delete'], function () {
+        Route::delete('/roles/{id}/delete', 'deleteRole')->name('admin.roles.delete');
+    });
 });
 
 // Settings (Statuses, etc.)
-Route::middleware('web')->controller(App\Http\Controllers\StatusController::class)->prefix('admin/settings')->group(function () {
+Route::middleware(['web', 'permission:settings'])->controller(App\Http\Controllers\StatusController::class)->prefix('admin/settings')->group(function () {
     Route::get('/statuses', 'index')->name('admin.statuses.index');
     Route::post('/statuses/store', 'store')->name('admin.statuses.store');
     Route::post('/statuses/{id}/update', 'update')->name('admin.statuses.update');

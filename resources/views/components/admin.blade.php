@@ -304,6 +304,62 @@
             border: 1px solid var(--border-color);
         }
 
+        .user-profile {
+            transition: all 0.3s ease;
+            padding: 5px 10px;
+            border-radius: 12px;
+        }
+
+        .user-profile:hover {
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+        }
+
+        [data-theme="light"] .user-profile:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Light Mode Overrides */
+        [data-theme="light"] .text-white,
+        [data-theme="light"] .text-white-50 {
+            color: var(--text-main) !important;
+        }
+
+        [data-theme="light"] .bg-dark {
+            background-color: #ffffff !important;
+            color: var(--text-main) !important;
+        }
+
+        [data-theme="light"] .table-dark {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--text-main);
+            color: var(--text-main);
+            background-color: transparent;
+        }
+
+        [data-theme="light"] .table-dark th,
+        [data-theme="light"] .table-dark td {
+            color: var(--text-main);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="light"] .form-control,
+        [data-theme="light"] .form-select {
+            background-color: #ffffff;
+            color: var(--text-main);
+            border-color: #ced4da;
+        }
+
+        [data-theme="light"] .table tbody tr:hover td {
+            background-color: rgba(0, 0, 0, 0.03) !important;
+        }
+
+        [data-theme="light"] .form-control::placeholder {
+            color: #6c757d !important;
+            /* Bootstrap text-muted color for visibility */
+            opacity: 1;
+        }
+
         .theme-toggle:hover {
             background: rgba(99, 102, 241, 0.1);
             color: var(--primary);
@@ -320,41 +376,58 @@
         </div>
 
         <nav>
-            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}">
-                <i class="fas fa-chart-line"></i> Dashboard
-            </a>
-            <a href="{{ route('index') }}" class="nav-link {{ request()->is('index') ? 'active' : '' }}">
-                <i class="fas fa-tasks"></i> My Tasks
-            </a>
-            <a href="{{ route('create') }}" class="nav-link {{ request()->is('create') ? 'active' : '' }}">
-                <i class="fas fa-plus-circle"></i> New Task
-            </a>
-            <div class="nav-item">
-                <a href="{{ route('admin.users.index') }}"
-                    class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                    <i class="fas fa-users"></i> Users
+            @if (Auth::user()->hasPermission('dashboard'))
+                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line"></i> Dashboard
                 </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.roles.index') }}"
-                    class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
-                    <i class="fas fa-shield-halved"></i> Roles
+            @endif
+
+            @if (Auth::user()->hasPermission('tasks.view'))
+                <a href="{{ route('index') }}" class="nav-link {{ request()->is('index') ? 'active' : '' }}">
+                    <i class="fas fa-tasks"></i> My Tasks
                 </a>
-            </div>
-            <div class="nav-link" data-bs-toggle="collapse" href="#settingsSubmenu" role="button" aria-expanded="false"
-                aria-controls="settingsSubmenu">
-                <i class="fas fa-cog"></i> Settings
-            </div>
-            <div class="collapse {{ request()->routeIs('admin.statuses.*') ? 'show' : '' }}" id="settingsSubmenu">
-                <ul class="list-unstyled ps-3">
-                    <li>
-                        <a href="{{ route('admin.statuses.index') }}"
-                            class="nav-link {{ request()->routeIs('admin.statuses.*') ? 'active' : '' }}">
-                            <i class="fas fa-tags"></i> Task Statuses
-                        </a>
-                    </li>
-                </ul>
-            </div>
+            @endif
+
+            @if (Auth::user()->hasPermission('tasks.create'))
+                <a href="{{ route('create') }}" class="nav-link {{ request()->is('create') ? 'active' : '' }}">
+                    <i class="fas fa-plus-circle"></i> New Task
+                </a>
+            @endif
+
+            @if (Auth::user()->hasPermission('users.view'))
+                <div class="nav-item">
+                    <a href="{{ route('admin.users.index') }}"
+                        class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                        <i class="fas fa-users"></i> Users
+                    </a>
+                </div>
+            @endif
+
+            @if (Auth::user()->hasPermission('roles.view'))
+                <div class="nav-item">
+                    <a href="{{ route('admin.roles.index') }}"
+                        class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+                        <i class="fas fa-shield-halved"></i> Roles
+                    </a>
+                </div>
+            @endif
+
+            @if (Auth::user()->hasPermission('settings'))
+                <div class="nav-link" data-bs-toggle="collapse" href="#settingsSubmenu" role="button"
+                    aria-expanded="false" aria-controls="settingsSubmenu">
+                    <i class="fas fa-cog"></i> Settings
+                </div>
+                <div class="collapse {{ request()->routeIs('admin.statuses.*') ? 'show' : '' }}" id="settingsSubmenu">
+                    <ul class="list-unstyled ps-3">
+                        <li>
+                            <a href="{{ route('admin.statuses.index') }}"
+                                class="nav-link {{ request()->routeIs('admin.statuses.*') ? 'active' : '' }}">
+                                <i class="fas fa-tags"></i> Task Statuses
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            @endif
 
             <div style="margin-top: auto; padding-top: 2rem;">
                 <a href="{{ route('logout') }}" class="nav-link text-danger">
@@ -366,10 +439,10 @@
 
     <main class="main-content">
         <div class="top-bar">
-            <div class="search-container">
+            <form action="{{ route('search.global') }}" method="GET" class="search-container">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search tasks...">
-            </div>
+                <input type="text" name="q" placeholder="Search tasks..." value="{{ request('q') }}">
+            </form>
 
             <div class="d-flex align-items-center gap-3">
                 <button class="theme-toggle" id="themeToggle" title="Toggle Theme">

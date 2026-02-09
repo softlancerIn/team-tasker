@@ -154,7 +154,7 @@
                         <div class="glass-card table-responsive">
                             <table class="table text-main align-middle mb-0">
                                 <thead>
-                                    <tr class="text-muted small uppercase">
+                                    <tr class="text-white small uppercase">
                                         <th class="border-0 bg-transparent">Date</th>
                                         <th class="border-0 bg-transparent">User</th>
                                         <th class="border-0 bg-transparent">Description</th>
@@ -186,7 +186,12 @@
                                             </td>
                                             <td class="bg-transparent py-3">
                                                 <span class="fw-bold text-primary small">
-                                                    {{ $timeLog->end_time ? gmdate('H:i', $timeLog->duration) : 'Active' }}
+                                                    @if ($timeLog->end_time)
+                                                        {{ floor($timeLog->duration / 3600) }}h
+                                                        {{ floor(($timeLog->duration % 3600) / 60) }}m
+                                                    @else
+                                                        Active
+                                                    @endif
                                                 </span>
                                             </td>
                                             <td class="bg-transparent py-3">
@@ -309,6 +314,15 @@
             transition: all 0.3s ease;
         }
 
+        [data-theme="light"] .glass-pills .nav-link {
+            color: var(--text-muted);
+        }
+
+        [data-theme="light"] .glass-pills {
+            background: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
         .glass-pills .nav-link.active {
             background: var(--primary) !important;
             color: white !important;
@@ -317,6 +331,20 @@
         .glass-pills .nav-link:not(.active):hover {
             background: rgba(255, 255, 255, 0.08);
             color: white;
+        }
+
+        [data-theme="light"] .glass-pills .nav-link:not(.active):hover {
+            background: rgba(0, 0, 0, 0.08);
+            color: var(--primary);
+        }
+
+        /* Dark Mode Specific Fixes */
+        [data-theme="dark"] .text-main-50 {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        [data-theme="dark"] .text-muted {
+            color: rgba(255, 255, 255, 0.5) !important;
         }
     </style>
 
@@ -343,11 +371,14 @@
             }, 1000);
         }
 
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        const isDark = savedTheme === 'dark';
+
         tinymce.init({
             selector: '#mytextarea,#longtextarea',
             height: 300,
-            skin: 'oxide-dark',
-            content_css: 'dark',
+            skin: isDark ? 'oxide-dark' : 'oxide',
+            content_css: isDark ? 'dark' : 'default',
             padding: 0,
             branding: false,
             placeholder: 'Start typing your message here...',
@@ -362,7 +393,9 @@
             extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
             valid_elements: '*[*]',
             content_css: false,
-            content_style: 'body { background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent), #1a2436; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; } body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: rgba(255, 255, 255, 0.4); }',
+            content_style: isDark ?
+                'body { background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent), #1a2436; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; } body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: rgba(255, 255, 255, 0.4); }' :
+                'body { background: #ffffff; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; }',
             entity_encoding: 'raw',
             remove_trailing_brs: false,
             valid_children: '+body[style|i]',
@@ -370,7 +403,8 @@
                 editor.on('init', function() {
                     const container = editor.getContainer();
                     if (container) {
-                        container.style.border = '1px solid rgba(99, 102, 241, 0.3)';
+                        container.style.border = isDark ? '1px solid rgba(99, 102, 241, 0.3)' :
+                            '1px solid #ced4da';
                         container.style.borderRadius = '8px';
                     }
                 });

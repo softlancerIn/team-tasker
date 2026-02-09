@@ -59,4 +59,14 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Role::class);
     }
+
+    public function hasPermission($permission)
+    {
+        if (!$this->role) {
+            return false;
+        }
+
+        $permissions = $this->role->permissions ?? [];
+        return in_array($permission, $permissions);
+    }
 }

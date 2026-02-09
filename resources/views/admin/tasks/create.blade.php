@@ -60,11 +60,14 @@
             $('.alert-success,.alert-danger').fadeOut('fast');
         }, 3000);
 
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        const isDark = savedTheme === 'dark';
+
         tinymce.init({
             selector: '#mytextarea,#longtextarea',
             height: 400,
-            skin: 'oxide-dark',
-            content_css: 'dark',
+            skin: isDark ? 'oxide-dark' : 'oxide',
+            content_css: isDark ? 'dark' : 'default',
             branding: false,
             placeholder: 'Describe the task in detail...',
             plugins: [
@@ -78,7 +81,9 @@
             extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
             valid_elements: '*[*]',
             content_css: false,
-            content_style: 'body { background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent), #1a2436; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; } body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: rgba(255, 255, 255, 0.4); }',
+            content_style: isDark ?
+                'body { background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent), #1a2436; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; } body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: rgba(255, 255, 255, 0.4); }' :
+                'body { background: #ffffff; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; }',
             entity_encoding: 'raw',
             remove_trailing_brs: false,
             valid_children: '+body[style|i]',
@@ -86,7 +91,8 @@
                 editor.on('init', function() {
                     const container = editor.getContainer();
                     if (container) {
-                        container.style.border = '1px solid rgba(99, 102, 241, 0.3)';
+                        container.style.border = isDark ? '1px solid rgba(99, 102, 241, 0.3)' :
+                            '1px solid #ced4da';
                         container.style.borderRadius = '8px';
                     }
                 });

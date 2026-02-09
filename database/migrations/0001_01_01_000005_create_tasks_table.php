@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('assigned_to')->nullable()->constrained('users')->onDelete('set null');
             $table->string('title');
             $table->text('description');
-            $table->string('status')->default('pending');
+            $table->foreignId('status_id')->nullable()->constrained('statuses')->onDelete('set null');
             $table->integer('progress')->default(0);
             $table->decimal('planned_hours', 8, 2)->nullable();
             $table->timestamp('deadline')->nullable();

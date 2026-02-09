@@ -12,24 +12,48 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
+        $allPermissions = [];
+        foreach (config('permissions') as $group => $permissions) {
+            if (is_array($permissions)) {
+                foreach ($permissions as $action => $label) {
+                    $allPermissions[] = "$group.$action";
+                }
+            } else {
+                $allPermissions[] = $group;
+            }
+        }
+
+        $managerPermissions = [
+            'dashboard',
+            'tasks.view',
+            'tasks.create',
+            'users.view',
+            'users.create',
+            'users.edit',
+            'users.approve',
+            'roles.view', // Can view roles but not edit/create
+        ];
+
+        $developerPermissions = [
+            'dashboard',
+            'tasks.view',
+            'tasks.create', // Developers can create tasks for themselves or report bugs
+        ];
+
         $roles = [
-            ['name' => 'Admin', 'slug' => 'admin'],
-            ['name' => 'Manager', 'slug' => 'manager'],
-            ['name' => 'Developer', 'slug' => 'developer'],
+            ['name' => 'Admin', 'slug' => 'admin', 'permissions' => $allPermissions],
+            ['name' => 'Manager', 'slug' => 'manager', 'permissions' => $managerPermissions],
+            ['name' => 'Developer', 'slug' => 'developer', 'permissions' => $developerPermissions],
         ];
 
         foreach ($roles as $role) {
-            \App\Models\Role::firstOrCreate(['slug' => $role['slug']], $role);
-        }
-
-        // Assign Admin role to the first user if exists
-        $adminRole = \App\Models\Role::where('slug', 'admin')->first();
-        $user = \App\Models\User::first();
-        if ($user && $adminRole) {
-            $user->update([
-                'role_id' => $adminRole->id,
-                'is_approved' => true,
-            ]);
+            \App\Models\Role::updateOrCreate(
+                ['slug' => $role['slug']],
+                [
+                    'name' => $role['name'],
+                    'permissions' => $role['permissions']
+                ]
+            );
         }
     }
 }

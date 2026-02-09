@@ -14,11 +14,10 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        // Ensure Admin role exists
-        $adminRole = Role::firstOrCreate(
-            ['slug' => 'admin'],
-            ['name' => 'Admin']
-        );
+        // Ensure Roles are seeded
+        $this->call(RoleSeeder::class);
+
+        $adminRole = Role::where('slug', 'admin')->first();
 
         // Create Super Admin User
         User::updateOrCreate(
