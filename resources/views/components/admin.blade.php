@@ -364,6 +364,26 @@
             background: rgba(99, 102, 241, 0.1);
             color: var(--primary);
         }
+
+        /* Global Table Fix */
+        .table {
+            color: var(--text-main);
+            --bs-table-color: var(--text-main);
+        }
+
+        [data-theme="light"] .text-main-50 {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        [data-theme="light"] .search-container input {
+            background: #ffffff;
+            border-color: #ced4da;
+            color: var(--text-main);
+        }
+
+        [data-theme="light"] .search-container i {
+            color: #6c757d;
+        }
     </style>
 </head>
 
@@ -411,6 +431,11 @@
                     </a>
                 </div>
             @endif
+
+            <a href="{{ route('admin.chat.index') }}"
+                class="nav-link {{ request()->routeIs('admin.chat.*') ? 'active' : '' }}">
+                <i class="fas fa-comments"></i> Team Chat
+            </a>
 
             @if (Auth::user()->hasPermission('settings'))
                 <div class="nav-link" data-bs-toggle="collapse" href="#settingsSubmenu" role="button"

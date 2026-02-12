@@ -57,7 +57,7 @@
                         <div class="table-responsive">
                             <table class="table text-main">
                                 <thead>
-                                    <tr class="text-muted small uppercase">
+                                    <tr class="text-white-50 small uppercase">
                                         <th class="bg-transparent border-0">Order</th>
                                         <th class="bg-transparent border-0">Name</th>
                                         <th class="bg-transparent border-0">Slug</th>
@@ -68,8 +68,8 @@
                                 </thead>
                                 <tbody>
                                     @foreach ($statuses as $status)
-                                        <tr class="border-bottom border-secondary border-opacity-10">
-                                            <td class="bg-transparent align-middle">{{ $status->order }}</td>
+                                        <tr class="border-bottom border-secondary border-opacity-10 text-main">
+                                            <td class="bg-transparent align-middle text-main">{{ $status->order }}</td>
                                             <td class="bg-transparent align-middle">
                                                 <span class="badge bg-{{ $status->color }}">{{ $status->name }}</span>
                                             </td>
@@ -138,7 +138,7 @@
     </x-modal>
 
     <!-- Edit Status Modal -->
-    <x-modal id="editStatusModal" title="Edit Status" submitText="Update" formAction="#" id="editStatusModalRoot">
+    <x-modal id="editStatusModal" title="Edit Status" submitText="Update" formAction="#">
         <!-- Note: formAction is set dynamically via JS. We removed it from x-modal attr and using vanilla form inside if needed OR
              actually x-modal expects formAction. Let's customize x-modal usage or use internal form.
              Ideally x-modal puts form around body. Let's just use a form inside or direct slot usage if x-modal supports it.

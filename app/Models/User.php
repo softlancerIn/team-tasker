@@ -55,6 +55,18 @@ class User extends Authenticatable
         return $this->hasMany(Task::class, 'assigned_to');
     }
 
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+                    ->withPivot('last_read_at')
+                    ->withTimestamps();
+    }
+
     public function role()
     {
         return $this->belongsTo(Role::class);

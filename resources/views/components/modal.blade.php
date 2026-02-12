@@ -1,4 +1,4 @@
-<div class="modal fade" id="{{ $id }}" tabindex="-1" aria-hidden="true" {{ $attributes }}>
+<div class="modal fade" id="{{ $id }}" tabindex="-1" aria-hidden="true" {{ $attributes }} wire:ignore.self>
     <div class="modal-dialog modal-dialog-centered {{ $size ?? '' }}">
         <div class="modal-content bg-dark border-{{ $variant ?? 'secondary' }} border-opacity-25 shadow-lg">
             <div class="modal-header border-{{ $variant ?? 'secondary' }} border-opacity-25">
@@ -18,10 +18,15 @@
                 {{ $slot }}
             </div>
             <div class="modal-footer border-{{ $variant ?? 'secondary' }} border-opacity-25">
-                <button type="button" class="btn btn-outline-secondary"
-                    data-bs-dismiss="modal">{{ $cancelText ?? 'Cancel' }}</button>
-                @if (isset($submitText))
-                    <button type="submit" class="btn btn-{{ $variant ?? 'primary' }}">{{ $submitText }}</button>
+                @if (isset($footer))
+                    {{ $footer }}
+                @else
+                    <button type="button" class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">{{ $cancelText ?? 'Cancel' }}</button>
+                    @if (isset($submitText))
+                        <button type="submit"
+                            class="btn btn-{{ $variant ?? 'primary' }}">{{ $submitText }}</button>
+                    @endif
                 @endif
             </div>
             @if (isset($formAction))

@@ -36,7 +36,7 @@ Route::middleware('web')->controller(TaskController::class)->group(function () {
 });
 
 // Team Management
-Route::middleware('web')->controller(TeamController::class)->prefix('admin')->group(function () {
+Route::middleware(['web', 'auth'])->controller(TeamController::class)->prefix('admin')->group(function () {
     // Users
     Route::group(['middleware' => 'permission:users.view'], function () {
         Route::get('/users', 'index')->name('admin.users.index');
@@ -65,6 +65,11 @@ Route::middleware('web')->controller(TeamController::class)->prefix('admin')->gr
     Route::group(['middleware' => 'permission:roles.delete'], function () {
         Route::delete('/roles/{id}/delete', 'deleteRole')->name('admin.roles.delete');
     });
+
+    // Chat Route
+    Route::get('/chat', function () {
+        return view('admin.chat.index');
+    })->name('admin.chat.index');
 });
 
 // Settings (Statuses, etc.)
