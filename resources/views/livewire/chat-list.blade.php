@@ -41,7 +41,11 @@ new class extends Component {
                 $c->display_name = $c->name;
                 $c->users_count = $c->participants->count();
                 return $c;
-            });
+            })
+            ->sortByDesc(function ($c) {
+                return $c->latestMessage?->created_at?->timestamp ?? ($c->created_at?->timestamp ?? 0);
+            })
+            ->values();
 
         // 2. Get Users (for 1-on-1) AND mixed with existing private conversations
         // Strategy: Get all users. If a private conversation exists, attach it.
@@ -55,6 +59,7 @@ new class extends Component {
                 $conversation = Conversation::where('type', 'private')
                     ->whereHas('participants', fn($q) => $q->where('user_id', $userId))
                     ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
+                    ->with(['latestMessage'])
                     ->withCount([
                         'messages as unread_count' => function ($query) use ($userId) {
                             $query->where('user_id', '!=', $userId)->where('created_at', '>', function ($q) use ($userId) {
@@ -66,7 +71,11 @@ new class extends Component {
 
                 $user->conversation = $conversation;
                 return $user;
-            });
+            })
+            ->sortByDesc(function ($user) {
+                return $user->conversation?->latestMessage?->created_at?->timestamp ?? 0;
+            })
+            ->values();
 
         return [
             'conversations' => $conversations,
@@ -96,10 +105,11 @@ new class extends Component {
         Auth::user()
             ->conversations()
             ->updateExistingPivot($conversationId, ['last_read_at' => now()]);
-    }
+    } // Listen for the event dispatched by layout
 
     #[On('groupCreated')]
     #[On('messageReceived')]
+    #[On('global-message-received')]
     public function refreshList()
     {
         // Volts automatically re-renders on event if we use $refresh or just method call
@@ -108,45 +118,52 @@ new class extends Component {
 }; ?>
 
 <div class="d-flex flex-column h-100">
-    <div class="p-3 border-bottom border-secondary border-opacity-10">
+    <div class="p-3 border-bottom" style="border-color: var(--border-color) !important;">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Messages</h5>
-            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+            <h5 class="mb-0 fw-bold" style="color: var(--text-main);">Customers</h5>
+            <button class="btn btn-sm rounded-circle" data-bs-toggle="modal" data-bs-target="#createGroupModal"
+                style="background: var(--input-bg); color: var(--text-muted);">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
-        <div class="search-container w-100">
-            <i class="fas fa-search"></i>
-            <input type="text" wire:model.live="search" class="form-control" placeholder="Search...">
+        <div class="search-container w-100 position-relative">
+            <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3"
+                style="color: var(--text-muted);"></i>
+            <input type="text" wire:model.live="search" class="form-control rounded-pill ps-5 border-0"
+                placeholder="Search Customers..." style="background: var(--input-bg); color: var(--text-main);">
         </div>
     </div>
 
-    <div class="overflow-auto flex-grow-1 p-2">
+    <div class="overflow-auto flex-grow-1">
         <!-- Direct Messages -->
-        <div class="text-uppercase text-muted small fw-bold px-2 mt-2 mb-1">Direct Messages</div>
         @foreach ($users as $user)
-            <div class="d-flex align-items-center p-2 rounded user-item {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'bg-primary bg-opacity-10' : '' }}"
-                wire:click="selectUser({{ $user->id }})" style="cursor: pointer;">
+            <div class="d-flex align-items-center p-3 border-bottom user-item"
+                wire:click="selectUser({{ $user->id }})"
+                style="cursor: pointer; border-color: var(--border-color) !important; {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'background: rgba(var(--primary-rgb), 0.1);' : '' }}"
+                data-user-id="{{ $user->id }}">
                 <div class="position-relative">
                     @if ($user->profile_image)
-                        <img src="{{ asset('storage/' . $user->profile_image) }}" class="rounded-circle" width="40"
-                            height="40" style="object-fit: cover;">
+                        <img src="{{ asset('storage/' . $user->profile_image) }}" class="rounded-circle" width="45"
+                            height="45" style="object-fit: cover;">
                     @else
-                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
-                            style="width: 40px; height: 40px;">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                            style="width: 45px; height: 45px; font-size: 1.2rem;">
                             {{ substr($user->name, 0, 1) }}
                         </div>
                     @endif
+                    <!-- Online Status Dot -->
+                    <span class="status-dot position-absolute top-0 end-0 p-1 bg-secondary rounded-circle"
+                        style="border: 2px solid var(--sidebar-bg);"></span>
                 </div>
                 <div class="ms-3 flex-grow-1 overflow-hidden">
-                    <div class="d-flex justify-content-between">
-                        <h6 class="mb-0 text-truncate">{{ $user->name }}</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-main);">{{ $user->name }}</h6>
                         @if ($user->conversation && $user->conversation->unread_count > 0)
-                            <span class="badge bg-danger rounded-pill">{{ $user->conversation->unread_count }}</span>
+                            <span class="badge bg-primary rounded-pill">{{ $user->conversation->unread_count }}</span>
                         @endif
                     </div>
-                    <small class="text-muted text-truncate d-block">
-                        {{ $user->role->name ?? 'Member' }}
+                    <small class="text-truncate d-block" style="color: var(--text-muted);">
+                        {{ $user->email }}
                     </small>
                 </div>
             </div>
@@ -154,23 +171,24 @@ new class extends Component {
 
         <!-- Groups -->
         @if ($conversations->isNotEmpty())
-            <hr class="border-secondary border-opacity-10 my-2">
-            <div class="text-uppercase text-muted small fw-bold px-2 mt-2 mb-1">Groups</div>
+            <hr class="my-2" style="border-color: var(--border-color); opacity: 0.1;">
+            <div class="text-uppercase small fw-bold px-2 mt-2 mb-1" style="color: var(--text-muted);">Groups</div>
             @foreach ($conversations as $group)
-                <div class="d-flex align-items-center p-2 rounded user-item {{ $selectedConversationId == $group->id ? 'bg-primary bg-opacity-10' : '' }}"
-                    wire:click="selectConversation({{ $group->id }})" style="cursor: pointer;">
+                <div class="d-flex align-items-center p-2 rounded user-item"
+                    wire:click="selectConversation({{ $group->id }})"
+                    style="cursor: pointer; {{ $selectedConversationId == $group->id ? 'background: rgba(var(--primary-rgb), 0.1);' : '' }}">
                     <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white"
                         style="width: 40px; height: 40px;">
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="ms-3 flex-grow-1 overflow-hidden">
                         <div class="d-flex justify-content-between">
-                            <h6 class="mb-0 text-truncate">{{ $group->name }}</h6>
+                            <h6 class="mb-0 text-truncate" style="color: var(--text-main);">{{ $group->name }}</h6>
                             @if ($group->unread_count > 0)
                                 <span class="badge bg-danger rounded-pill">{{ $group->unread_count }}</span>
                             @endif
                         </div>
-                        <small class="text-muted text-truncate d-block">
+                        <small class="text-truncate d-block" style="color: var(--text-muted);">
                             {{ $group->users_count }} members
                         </small>
                     </div>

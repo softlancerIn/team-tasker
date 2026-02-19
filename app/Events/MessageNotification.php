@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageSent implements ShouldBroadcast
+class MessageNotification implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -28,8 +28,11 @@ class MessageSent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        return [
-            new PrivateChannel('chat.'.$this->message->conversation_id),
-        ];
+        return $this->message->conversation->participants
+            ->where('id', '!=', $this->message->user_id)
+            ->map(function ($participant) {
+                return new PrivateChannel('App.Models.User.'.$participant->id);
+            })
+            ->toArray();
     }
 }

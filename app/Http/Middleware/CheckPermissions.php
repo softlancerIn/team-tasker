@@ -15,11 +15,11 @@ class CheckPermissions
      */
     public function handle(Request $request, Closure $next, $permission): Response
     {
-        if (!\Auth::check()) {
+        if (! \Auth::check()) {
             return redirect()->route('loginPage');
         }
 
-        if (!\Auth::user()->hasPermission($permission)) {
+        if (! \Auth::user()->hasPermission($permission)) {
             abort(403, 'Unauthorized action.');
         }
 

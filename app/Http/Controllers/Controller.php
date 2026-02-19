@@ -12,6 +12,6 @@ class Controller extends BaseController
 
     public function redirectToLogin()
     {
-        return redirect()->route('login');
+        return redirect()->route('loginPage');
     }
 }

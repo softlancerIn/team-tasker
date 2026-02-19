@@ -1,10 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\TaskController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskLogController;
+use App\Http\Controllers\TeamController;
+use Illuminate\Support\Facades\Route;
 
 // Auth Controller
 Route::controller(AuthController::class)->group(function () {
@@ -51,7 +51,7 @@ Route::middleware(['web', 'auth'])->controller(TeamController::class)->prefix('a
     Route::group(['middleware' => 'permission:users.delete'], function () {
         Route::delete('/users/{id}/delete', 'deleteUser')->name('admin.users.delete');
     });
-    
+
     // Roles
     Route::group(['middleware' => 'permission:roles.view'], function () {
         Route::get('/roles', 'roles')->name('admin.roles.index');

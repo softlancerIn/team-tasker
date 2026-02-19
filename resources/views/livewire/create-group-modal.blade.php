@@ -71,11 +71,11 @@ new class extends Component {
                 </div>
                 <div class="d-flex flex-column gap-2 overflow-auto" style="max-height: 200px;">
                     @foreach ($users as $user)
-                        <label
-                            class="d-flex align-items-center gap-2 p-2 border border-secondary border-opacity-10 rounded cursor-pointer hover-bg-light">
+                        <label class="d-flex align-items-center gap-2 p-2 rounded cursor-pointer user-item"
+                            style="border: 1px solid var(--border-color);">
                             <input type="checkbox" wire:model.live="selectedUsers" value="{{ $user->id }}"
                                 class="form-check-input">
-                            <span>{{ $user->name }}</span>
+                            <span style="color: var(--text-main);">{{ $user->name }}</span>
                         </label>
                     @endforeach
                 </div>

@@ -18,7 +18,7 @@ class SearchController extends Controller
                 ->orWhere('description', 'like', "%{$query}%")
                 ->where(function ($q) {
                     $q->where('user_id', \Auth::id())
-                      ->orWhere('assigned_to', \Auth::id());
+                        ->orWhere('assigned_to', \Auth::id());
                 })
                 ->with(['status', 'assignedTo'])
                 ->get();

@@ -33,10 +33,7 @@
 
     <div class="container">
         @if (session()->has('success'))
-            <x-alert.alert
-                type="success"
-                message="{{ session()->get('success') }}"
-            />
+            <x-alert.alert type="success" message="{{ session()->get('success') }}" />
         @endif
         {{ $slot }}
     </div>

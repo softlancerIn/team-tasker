@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class TeamController extends Controller
@@ -13,11 +13,11 @@ class TeamController extends Controller
         $query = User::with('role');
 
         if ($request->filled('name')) {
-            $query->where('name', 'like', '%' . $request->name . '%');
+            $query->where('name', 'like', '%'.$request->name.'%');
         }
 
         if ($request->filled('email')) {
-            $query->where('email', 'like', '%' . $request->email . '%');
+            $query->where('email', 'like', '%'.$request->email.'%');
         }
 
         if ($request->filled('role_id')) {
@@ -31,6 +31,7 @@ class TeamController extends Controller
 
         $users = $query->get();
         $roles = Role::all();
+
         return view('admin.users.index', compact('users', 'roles'));
     }
 
@@ -57,7 +58,7 @@ class TeamController extends Controller
     public function updateUser(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
@@ -86,6 +87,7 @@ class TeamController extends Controller
             return back()->with('error', 'You cannot delete yourself.');
         }
         $user->delete();
+
         return back()->with('success', 'User deleted successfully.');
     }
 
@@ -95,14 +97,16 @@ class TeamController extends Controller
         if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot change your own approval status.');
         }
-        $user->update(['is_approved' => !$user->is_approved]);
+        $user->update(['is_approved' => ! $user->is_approved]);
         $status = $user->is_approved ? 'approved' : 'disapproved';
+
         return back()->with('success', "User successfully {$status}.");
     }
 
     public function roles()
     {
         $roles = Role::withCount('users')->get();
+
         return view('admin.roles.index', compact('roles'));
     }
 
@@ -140,6 +144,7 @@ class TeamController extends Controller
             return back()->with('error', 'Cannot delete role assigned to users.');
         }
         $role->delete();
+
         return back()->with('success', 'Role deleted successfully.');
     }
 }

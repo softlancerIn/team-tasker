@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Status;
 use App\Models\Task;
+use App\Models\TimeLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\TimeLog;
-use App\Models\Status;
 
 class TaskController extends Controller
 {
@@ -22,6 +22,7 @@ class TaskController extends Controller
 
         return view('admin.tasks.index', compact('tasks'));
     }
+
     /**
      * Display a listing of the resource.
      */
@@ -41,9 +42,9 @@ class TaskController extends Controller
             $date = now()->subDays($i);
             $chartLabels[] = $date->format('D');
             $chartData[] = Task::whereDate('created_at', $date->toDateString())
-                ->where(function($query) use ($userId) {
+                ->where(function ($query) use ($userId) {
                     $query->where('user_id', $userId)
-                          ->orWhere('assigned_to', $userId);
+                        ->orWhere('assigned_to', $userId);
                 })
                 ->count();
         }
@@ -61,6 +62,7 @@ class TaskController extends Controller
     {
         $users = User::all();
         $statuses = Status::orderBy('order')->get();
+
         return view('admin.tasks.create', compact('users', 'statuses'));
     }
 
@@ -70,19 +72,19 @@ class TaskController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'       => 'required|max:255',
+            'title' => 'required|max:255',
             'description' => 'required',
-            'status_id'   => 'nullable|exists:statuses,id',
+            'status_id' => 'nullable|exists:statuses,id',
         ]);
 
         $defaultStatus = Status::where('is_default', true)->first();
 
         $task = Task::create([
-            'user_id'     => Auth::user()->id,
-            'title'       => $request->title,
+            'user_id' => Auth::user()->id,
+            'title' => $request->title,
             'description' => $request->description,
-            'status_id'   => $request->status_id ?? $defaultStatus?->id,
-            'assigned_to' => $request->assigned_to
+            'status_id' => $request->status_id ?? $defaultStatus?->id,
+            'assigned_to' => $request->assigned_to,
         ]);
 
         return to_route('index')->with('success', 'Data add successfully');
@@ -101,7 +103,7 @@ class TaskController extends Controller
             })
             ->first();
 
-        if (!$task) {
+        if (! $task) {
             return redirect()->intended('dashboard');
         }
 
@@ -120,17 +122,18 @@ class TaskController extends Controller
     public function edit(Request $request)
     {
         $task = Task::where('id', $request->id)
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->where('user_id', Auth::user()->id)
                     ->orWhere('assigned_to', Auth::user()->id);
             })->first();
 
-        if (!$task) {
-             return redirect()->intended('dashboard');
+        if (! $task) {
+            return redirect()->intended('dashboard');
         }
 
         $users = User::all();
         $statuses = Status::orderBy('order')->get();
+
         return view('admin.tasks.edit', compact('task', 'users', 'statuses'));
     }
 
@@ -140,16 +143,16 @@ class TaskController extends Controller
     public function update(Request $request, Task $task)
     {
         $validated = $request->validate([
-            'title'       => 'required|max:255',
+            'title' => 'required|max:255',
             'description' => 'required',
-            'status_id'   => 'nullable|exists:statuses,id',
+            'status_id' => 'nullable|exists:statuses,id',
         ]);
 
         $task = Task::where('id', $request->id)->update([
-            'title'       => $request->title,
+            'title' => $request->title,
             'description' => $request->description,
-            'status_id'   => $request->status_id,
-            'assigned_to' => $request->assigned_to
+            'status_id' => $request->status_id,
+            'assigned_to' => $request->assigned_to,
         ]);
 
         return to_route('index')->with('success', 'Data update successfully');

@@ -11,16 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('statuses')) {
+        if (! Schema::hasTable('statuses')) {
             Schema::create('statuses', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->string('color')->default('primary');
-            $table->integer('order')->default(0);
-            $table->boolean('is_default')->default(false);
-            $table->timestamps();
-        });
+                $table->id();
+                $table->string('name');
+                $table->string('slug')->unique();
+                $table->string('color')->default('primary');
+                $table->integer('order')->default(0);
+                $table->boolean('is_default')->default(false);
+                $table->timestamps();
+            });
         }
     }
 

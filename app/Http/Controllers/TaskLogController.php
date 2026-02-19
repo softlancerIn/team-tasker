@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Task;
 use App\Models\TaskLog;
 use App\Models\TimeLog;
-use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
-use Carbon\Carbon;
 
 class TaskLogController extends Controller
 {
@@ -24,8 +22,8 @@ class TaskLogController extends Controller
         TaskLog::create([
             'task_id' => $taskId,
             'user_id' => Auth::id(),
-            'note'    => $request->note,
-            'type'    => 'log',
+            'note' => $request->note,
+            'type' => 'log',
         ]);
 
         return back()->with('success', 'Log added successfully');
@@ -46,8 +44,8 @@ class TaskLogController extends Controller
         TaskLog::create([
             'task_id' => $taskId,
             'user_id' => Auth::id(),
-            'note'    => $request->message,
-            'type'    => 'message',
+            'note' => $request->message,
+            'type' => 'message',
         ]);
 
         return back()->with('success', 'Message sent to admin successfully');
@@ -94,7 +92,7 @@ class TaskLogController extends Controller
             ->latest()
             ->first();
 
-        if (!$activeTimer) {
+        if (! $activeTimer) {
             return back()->with('error', 'No active timer found for this task.');
         }
 
@@ -104,10 +102,10 @@ class TaskLogController extends Controller
 
         $activeTimer->update([
             'end_time' => $endTime,
-            'duration' => $duration
+            'duration' => $duration,
         ]);
 
-        return back()->with('success', 'Timer stopped successfully. Duration: ' . gmdate("H:i:s", $duration));
+        return back()->with('success', 'Timer stopped successfully. Duration: '.gmdate('H:i:s', $duration));
     }
 
     /**
@@ -121,7 +119,7 @@ class TaskLogController extends Controller
         ]);
 
         $task = Task::findOrFail($taskId);
-        
+
         $oldProgress = $task->progress;
         $oldStatus = $task->status;
 
@@ -139,7 +137,7 @@ class TaskLogController extends Controller
         TaskLog::create([
             'task_id' => $taskId,
             'user_id' => Auth::id(),
-            'note' => "Updated status to **" . ucfirst($request->status) . "** and progress to **" . $task->progress . "%**.",
+            'note' => 'Updated status to **'.ucfirst($request->status).'** and progress to **'.$task->progress.'%**.',
             'type' => 'log',
         ]);
 

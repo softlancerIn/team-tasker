@@ -27,15 +27,16 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return redirect()->back()->withInput()->with('error', 'Invalid email or password.');
         }
 
-        if (!$user->is_approved) {
+        if (! $user->is_approved) {
             return redirect()->back()->withInput()->with('error', 'Your account is pending admin approval.');
         }
 
         Auth::login($user);
+
         return redirect()->intended('dashboard');
     }
 
@@ -83,7 +84,7 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email|exists:users,email']);
-        
+
         // In a real app, we would send an email with a token.
         // For this demo/requirement, we'll redirect directly to a reset page with the email.
         return redirect()->route('resetPasswordPage', ['email' => $request->email])
@@ -113,7 +114,7 @@ class AuthController extends Controller
         $user = Auth::user();
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:8',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);

@@ -63,8 +63,8 @@ class User extends Authenticatable
     public function conversations()
     {
         return $this->belongsToMany(Conversation::class, 'conversation_participants')
-                    ->withPivot('last_read_at')
-                    ->withTimestamps();
+            ->withPivot('last_read_at')
+            ->withTimestamps();
     }
 
     public function role()
@@ -74,11 +74,23 @@ class User extends Authenticatable
 
     public function hasPermission($permission)
     {
-        if (!$this->role) {
+        if (! $this->role) {
             return false;
         }
 
         $permissions = $this->role->permissions ?? [];
+
         return in_array($permission, $permissions);
+    }
+
+    // Relationships for Blocking
+    public function blocking()
+    {
+        return $this->belongsToMany(User::class, 'blocked_users', 'blocker_id', 'blocked_id');
+    }
+
+    public function blockedBy()
+    {
+        return $this->belongsToMany(User::class, 'blocked_users', 'blocked_id', 'blocker_id');
     }
 }

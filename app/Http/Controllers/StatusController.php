@@ -11,6 +11,7 @@ class StatusController extends Controller
     public function index()
     {
         $statuses = Status::orderBy('order')->get();
+
         return view('admin.settings.statuses.index', compact('statuses'));
     }
 
@@ -65,6 +66,7 @@ class StatusController extends Controller
         }
 
         $status->delete();
+
         return redirect()->back()->with('success', 'Status deleted successfully.');
     }
 }
