@@ -4,99 +4,199 @@
     </x-slot:title>
 
     <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="glass-card">
+        <!-- Project Overall Stats -->
+        <div class="col-md-3">
+            <div class="glass-card h-100">
                 <div class="stat-icon icon-primary">
-                    <i class="fas fa-tasks"></i>
+                    <i class="fas fa-project-diagram"></i>
                 </div>
-                <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Total Tasks</div>
-                <div style="font-size: 1.8rem; font-weight: 700;">{{ count($tasks) }}</div>
-                <div style="font-size: 0.8rem; color: var(--accent); margin-top: 0.5rem;">
-                    <i class="fas fa-arrow-up"></i> 12% from last week
+                <div class="text-muted extra-small uppercase mb-1">Total Project Tasks</div>
+                <div class="h3 mb-0 fw-bold text-white">{{ $totalTasks }}</div>
+                <div class="mt-2 progress bg-white bg-opacity-10" style="height: 4px;">
+                    <div class="progress-bar bg-primary" style="width: 100%"></div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="glass-card">
+        <div class="col-md-3">
+            <div class="glass-card h-100">
                 <div class="stat-icon icon-accent">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fas fa-check-double"></i>
                 </div>
-                <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Completed</div>
-                <div style="font-size: 1.8rem; font-weight: 700;">
-                    {{ $tasks->filter(fn($t) => $t->status?->slug === 'completed')->count() }}
-                </div>
-                <div style="font-size: 0.8rem; color: var(--accent); margin-top: 0.5rem;">
-                    <i class="fas fa-arrow-up"></i> 5% increase
+                <div class="text-muted extra-small uppercase mb-1">Completed Tasks</div>
+                <div class="h3 mb-0 fw-bold text-white">{{ $completedTasksCount }}</div>
+                <div class="mt-2 progress bg-white bg-opacity-10" style="height: 4px;">
+                    <div class="progress-bar bg-success"
+                        style="width: {{ $totalTasks > 0 ? ($completedTasksCount / $totalTasks) * 100 : 0 }}%"></div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="glass-card">
+        <div class="col-md-3">
+            <div class="glass-card h-100">
                 <div class="stat-icon icon-warning">
-                    <i class="fas fa-clock"></i>
+                    <i class="fas fa-ticket-alt"></i>
                 </div>
-                <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Pending</div>
-                <div style="font-size: 1.8rem; font-weight: 700;">
-                    {{ $tasks->filter(fn($t) => $t->status?->slug !== 'completed')->count() }}</div>
-                <div style="font-size: 0.8rem; color: #f59e0b; margin-top: 0.5rem;">
-                    Attention required
+                <div class="text-muted extra-small uppercase mb-1">Total Tickets</div>
+                <div class="h3 mb-0 fw-bold text-white">{{ $totalTickets }}</div>
+                <div class="mt-2 text-primary extra-small">Across all clients</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card h-100">
+                <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+                    <i class="fas fa-users"></i>
                 </div>
+                <div class="text-muted extra-small uppercase mb-1">Team Members</div>
+                <div class="h3 mb-0 fw-bold text-white">{{ $totalUsers }}</div>
+                <div class="mt-2 text-main-50 extra-small">Active in system</div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4">
+    <!-- Health & Progress Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="glass-card border-danger border-opacity-10">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-danger extra-small uppercase mb-1">Critical Tasks</h6>
+                        <h4 class="mb-0 text-white">{{ $criticalTasksCount }}</h4>
+                    </div>
+                    <div
+                        class="stat-icon bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                </div>
+                <p class="text-muted small mt-2 mb-0">Tasks requiring immediate attention across the project.</p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="glass-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-muted extra-small uppercase mb-0">Project Completion</h6>
+                    <span class="text-primary fw-bold">{{ round($projectProgress, 1) }}%</span>
+                </div>
+                <div class="progress bg-white bg-opacity-10" style="height: 10px; border-radius: 5px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                        style="width: {{ $projectProgress }}%"></div>
+                </div>
+                <p class="text-muted small mt-2 mb-0">Weighted average progress of all tracked project tasks.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
         <div class="col-lg-8">
             <div class="glass-card h-100">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="mb-0">Task Performance</h5>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                            data-bs-toggle="dropdown">
-                            This Month
-                        </button>
-                    </div>
+                    <h5 class="mb-0">Task Creation Activity</h5>
+                    <span
+                        class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">Last
+                        7 Days</span>
                 </div>
-                <div style="position: relative; height: 300px; width: 100%;">
+                <div style="position: relative; height: 350px; width: 100%;">
                     <canvas id="taskChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-lg-4">
             <div class="glass-card h-100">
-                <h5 class="mb-4">Recent Tasks</h5>
-                <div class="list-group list-group-flush bg-transparent">
-                    @forelse($tasks->take(5) as $task)
-                        <div class="list-group-item bg-transparent border-0 px-0 py-3 d-flex align-items-center gap-3">
-                            <div class="avatar"
-                                style="width: 32px; height: 32px; font-size: 0.7rem; background: rgba(255,255,255,0.1)">
-                                {{ substr($task->title, 0, 1) }}
+                <h5 class="mb-4">Project Activity Log</h5>
+                <div class="activity-timeline">
+                    @forelse($recentActivities as $log)
+                        <div class="d-flex gap-3 mb-4">
+                            <div class="position-relative">
+                                <div class="avatar" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                                    {{ substr($log->user->name, 0, 1) }}
+                                </div>
+                                @if (!$loop->last)
+                                    <div class="position-absolute start-50 top-100 border-start border-secondary border-opacity-25"
+                                        style="height: 25px; transform: translateX(-50%);"></div>
+                                @endif
                             </div>
-                            <div class="flex-grow-1">
-                                <div style="font-size: 0.9rem; font-weight: 500;">{{ $task->title }}</div>
-                                <div class="d-flex align-items-center gap-2 mt-1">
-                                    <div style="font-size: 0.75rem; color: var(--text-muted);">
-                                        {{ $task->created_at->diffForHumans() }}</div>
-                                    @if ($task->assignedTo)
-                                        <span
-                                            class="badge bg-white bg-opacity-5 text-muted border border-white border-opacity-10 rounded-pill py-1 px-2"
-                                            style="font-size: 0.65rem;">
-                                            <i class="fas fa-user-check me-1"></i> {{ $task->assignedTo->name }}
-                                        </span>
-                                    @endif
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-white small fw-bold">{{ $log->user->name }}</span>
+                                    <span class="text-muted extra-small">{{ $log->created_at->diffForHumans() }}</span>
+                                </div>
+                                <div class="text-main-50 extra-small text-truncate mt-1">
+                                    {{ $log->type == 'message' ? 'Messaged on' : 'Updated' }}
+                                    <a href="{{ route('details', $log->task_id) }}"
+                                        class="text-primary decoration-none">#{{ $log->task_id }}</a>
+                                </div>
+                                <div class="text-muted extra-small italic mt-1 text-truncate">
+                                    "{!! Str::limit(strip_tags($log->note), 40) !!}"
                                 </div>
                             </div>
-                            <a href="{{ route('details', $task->id) }}" class="text-primary"><i
-                                    class="fas fa-chevron-right"></i></a>
                         </div>
                     @empty
-                        <div class="text-center py-4 text-muted">No tasks found.</div>
+                        <div class="text-center py-4 text-muted small">No global activity yet.</div>
                     @endforelse
                 </div>
-                <div class="mt-4">
-                    <a href="{{ route('index') }}" class="btn btn-primary w-100">View All Tasks</a>
-                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Personal Tasks Section -->
+    <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0">My Recent Tasks</h5>
+            <a href="{{ route('index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table text-white align-middle mb-0">
+                <thead>
+                    <tr class="text-muted extra-small uppercase border-bottom border-white border-opacity-10">
+                        <th class="border-0 bg-transparent">Task</th>
+                        <th class="border-0 bg-transparent">Status</th>
+                        <th class="border-0 bg-transparent">Priority</th>
+                        <th class="border-0 bg-transparent">Progress</th>
+                        <th class="border-0 bg-transparent text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($personalTasks as $task)
+                        <tr class="border-bottom border-secondary border-opacity-10">
+                            <td class="bg-transparent py-3">
+                                <div class="fw-bold small">{{ $task->title }}</div>
+                                <div class="text-muted extra-small mt-1">Due:
+                                    {{ $task->deadline ? $task->deadline->format('M d') : 'No Date' }}</div>
+                            </td>
+                            <td class="bg-transparent py-3">
+                                <span
+                                    class="badge bg-{{ $task->status->color ?? 'secondary' }} bg-opacity-10 text-{{ $task->status->color ?? 'secondary' }} extra-small">
+                                    {{ $task->status->name ?? 'Pending' }}
+                                </span>
+                            </td>
+                            <td class="bg-transparent py-3">
+                                <span
+                                    class="extra-small text-{{ $task->priority == 'Critical' ? 'danger' : ($task->priority == 'High' ? 'warning' : 'info') }}">
+                                    <i class="fas fa-flag me-1"></i> {{ $task->priority }}
+                                </span>
+                            </td>
+                            <td class="bg-transparent py-3" style="width: 150px;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress bg-white bg-opacity-10 flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-primary" style="width: {{ $task->progress }}%">
+                                        </div>
+                                    </div>
+                                    <span class="extra-small">{{ $task->progress }}%</span>
+                                </div>
+                            </td>
+                            <td class="bg-transparent py-3 text-end">
+                                <a href="{{ route('details', $task->id) }}"
+                                    class="btn btn-sm btn-outline-secondary border-0">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted small">No personal tasks assigned.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 

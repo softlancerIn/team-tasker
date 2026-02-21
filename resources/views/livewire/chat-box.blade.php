@@ -375,7 +375,8 @@ new class extends Component {
                     $createdAt = is_array($message) ? $message['created_at'] : $message->created_at;
                     $isRead = is_array($message) ? $message['is_read'] ?? false : $message->is_read;
                 @endphp
-                <div class="d-flex mb-3 {{ $isMe ? 'justify-content-end' : '' }}">
+                <div class="d-flex mb-3 {{ $isMe ? 'justify-content-end' : '' }}"
+                    wire:key="msg-{{ $message['id'] ?? $message->id }}">
                     @if (!$isMe)
                         <img src="{{ isset($msgUser['profile_image']) && $msgUser['profile_image'] ? asset('storage/' . $msgUser['profile_image']) : 'https://ui-avatars.com/api/?name=' . urlencode($msgUser['name'] ?? 'User') }}"
                             class="rounded-circle me-2" width="35" height="35" alt="User">
@@ -383,50 +384,85 @@ new class extends Component {
 
                     <div class="d-flex flex-column {{ $isMe ? 'align-items-end' : 'align-items-start' }}"
                         style="max-width: 75%;">
-                        <div class="p-3 rounded-3"
-                            style="{{ $isMe ? 'background: var(--primary); color: white;' : 'background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);' }}">
-                            @if (count($msgAttachments) > 0)
-                                @foreach ($msgAttachments as $att)
-                                    @continue(!is_array($att) && !is_object($att))
-                                    @php
-                                        // Handle both array (when hydrated) and object (when model) cases
-                                        $filePath = is_array($att) ? $att['file_path'] ?? '' : $att->file_path;
-                                        $fileName = is_array($att) ? $att['file_name'] ?? '' : $att->file_name;
-                                        $fileType = is_array($att) ? $att['file_type'] ?? '' : $att->file_type;
-                                    @endphp
-                                    @if (str_starts_with($fileType, 'image/'))
-                                        <div class="position-relative d-inline-block group-hover-show-download mb-2">
-                                            <img src="{{ asset('storage/' . $filePath) }}" class="img-fluid rounded"
-                                                style="max-height: 200px;">
-                                            <a href="{{ asset('storage/' . $filePath) }}"
-                                                download="{{ $fileName }}"
-                                                class="btn btn-dark btn-sm rounded-circle position-absolute top-0 end-0 m-1 opacity-75 hover-opacity-100 d-flex align-items-center justify-content-center"
-                                                style="width: 25px; height: 25px;" title="Download">
-                                                <i class="fas fa-download" style="font-size: 12px;"></i>
-                                            </a>
-                                        </div>
-                                    @else
-                                        <div class="d-flex align-items-center mb-2">
-                                            <a href="{{ asset('storage/' . $filePath) }}" target="_blank"
-                                                class="text-decoration-none"
-                                                style="color: {{ $isMe ? 'white' : 'var(--text-main)' }};">
-                                                <i class="fas fa-file me-1"></i> {{ $fileName }}
-                                            </a>
-                                            <a href="{{ asset('storage/' . $filePath) }}"
-                                                download="{{ $fileName }}" class="ms-2 text-decoration-none"
-                                                style="color: {{ $isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }};"
-                                                title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            @endif
+                        @php
+                            $deletedAt = is_array($message) ? $message['deleted_at'] ?? null : $message->deleted_at;
+                            $msgId = is_array($message) ? $message['id'] : $message->id;
+                        @endphp
 
-                            <div class="message-body">
-                                {!! $msgBody !!}
+                        @if ($deletedAt)
+                            <div class="p-3 rounded-3"
+                                style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-muted); font-style: italic;">
+                                <i class="fas fa-ban me-1"></i> Message has been deleted
                             </div>
-                        </div>
+                        @else
+                            <div class="position-relative message-hover-container">
+                                <style>
+                                    .message-hover-container .delete-btn {
+                                        opacity: 0;
+                                        transition: opacity 0.2s;
+                                    }
+
+                                    .message-hover-container:hover .delete-btn {
+                                        opacity: 1;
+                                    }
+                                </style>
+                                <div class="p-3 rounded-3"
+                                    style="{{ $isMe ? 'background: var(--primary); color: white;' : 'background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);' }}">
+                                    @if (count($msgAttachments) > 0)
+                                        @foreach ($msgAttachments as $att)
+                                            @continue(!is_array($att) && !is_object($att))
+                                            @php
+                                                // Handle both array (when hydrated) and object (when model) cases
+                                                $filePath = is_array($att) ? $att['file_path'] ?? '' : $att->file_path;
+                                                $fileName = is_array($att) ? $att['file_name'] ?? '' : $att->file_name;
+                                                $fileType = is_array($att) ? $att['file_type'] ?? '' : $att->file_type;
+                                            @endphp
+                                            @if (str_starts_with($fileType, 'image/'))
+                                                <div
+                                                    class="position-relative d-inline-block group-hover-show-download mb-2">
+                                                    <img src="{{ asset('storage/' . $filePath) }}"
+                                                        class="img-fluid rounded" style="max-height: 200px;">
+                                                    <a href="{{ asset('storage/' . $filePath) }}"
+                                                        download="{{ $fileName }}"
+                                                        class="btn btn-dark btn-sm rounded-circle position-absolute top-0 end-0 m-1 opacity-75 hover-opacity-100 d-flex align-items-center justify-content-center"
+                                                        style="width: 25px; height: 25px;" title="Download">
+                                                        <i class="fas fa-download" style="font-size: 12px;"></i>
+                                                    </a>
+                                                </div>
+                                            @else
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <a href="{{ asset('storage/' . $filePath) }}" target="_blank"
+                                                        class="text-decoration-none"
+                                                        style="color: {{ $isMe ? 'white' : 'var(--text-main)' }};">
+                                                        <i class="fas fa-file me-1"></i> {{ $fileName }}
+                                                    </a>
+                                                    <a href="{{ asset('storage/' . $filePath) }}"
+                                                        download="{{ $fileName }}"
+                                                        class="ms-2 text-decoration-none"
+                                                        style="color: {{ $isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }};"
+                                                        title="Download">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    @endif
+
+                                    <div class="message-body">
+                                        {!! $msgBody !!}
+                                    </div>
+                                </div>
+                                @if ($isMe)
+                                    <button wire:click="deleteMessage({{ $msgId }})"
+                                        wire:confirm="Are you sure you want to delete this message?"
+                                        class="btn btn-sm btn-danger position-absolute top-0 start-0 translate-middle rounded-circle p-0 delete-btn d-flex align-items-center justify-content-center shadow-sm"
+                                        style="width: 24px; height: 24px; border: 1px solid rgba(255,255,255,0.2);"
+                                        title="Delete Message">
+                                        <i class="fas fa-trash-alt" style="font-size: 10px;"></i>
+                                    </button>
+                                @endif
+                            </div>
+                        @endif
                         <small class="mt-1" style="font-size: 0.75rem; color: var(--text-muted);">
                             {{ \Carbon\Carbon::parse($createdAt)->format('d-m-Y H:i') }}
                             @if ($isMe)

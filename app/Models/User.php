@@ -23,6 +23,8 @@ class User extends Authenticatable
         'role_id',
         'is_approved',
         'profile_image',
+        'phone',
+        'company',
     ];
 
     /**
@@ -44,6 +46,11 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
 
     public function tasks()
     {
@@ -81,6 +88,11 @@ class User extends Authenticatable
         $permissions = $this->role->permissions ?? [];
 
         return in_array($permission, $permissions);
+    }
+
+    public function hasRole($slug)
+    {
+        return $this->role && $this->role->slug === $slug;
     }
 
     // Relationships for Blocking

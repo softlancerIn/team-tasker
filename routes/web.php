@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\Route;
 
 // Auth Controller
 Route::controller(AuthController::class)->group(function () {
+    Route::get('/login', 'loginPage')->name('login');
     Route::get('/', 'loginPage')->name('loginPage');
-    Route::post('/login', 'login')->name('login');
+    Route::post('/login', 'login')->name('login_submit');
     Route::get('/register', 'registerPage')->name('registerPage');
     Route::post('/register', 'register')->name('register');
     Route::get('/forgotPassword', 'forgotPasswordPage')->name('forgotPasswordPage');
@@ -24,9 +25,14 @@ Route::controller(AuthController::class)->group(function () {
 Route::middleware(['web', 'auth'])->get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.global');
 
 // Task Controller
-Route::middleware('web')->controller(TaskController::class)->group(function () {
-    Route::get('/dashboard', 'dashboard')->name('dashboard')->middleware('permission:dashboard');
-    Route::get('/index', 'index')->name('index')->middleware('permission:tasks.view');
+Route::middleware(['web', 'auth'])->controller(TaskController::class)->prefix('admin/tasks')->group(function () {
+    Route::get('/dashboard', 'dashboard')->name('dashboard');
+    Route::get('/', 'index')->name('index')->middleware('permission:tasks.view');
+    Route::get('board', 'board')->name('tasks.board')->middleware('permission:tasks.view');
+    Route::get('calendar', 'calendar')->name('tasks.calendar')->middleware('permission:tasks.view');
+    Route::get('events', 'calendarEvents')->name('tasks.calendar.events')->middleware('permission:tasks.view');
+    Route::get('gantt', 'gantt')->name('tasks.gantt')->middleware('permission:tasks.view');
+    Route::get('gantt-data', 'ganttData')->name('tasks.gantt.data')->middleware('permission:tasks.view');
     Route::get('create', 'create')->name('create')->middleware('permission:tasks.create');
     Route::post('store', 'store')->name('store')->middleware('permission:tasks.create');
     Route::get('details/{id}', 'show')->name('details')->middleware('permission:tasks.view');
@@ -52,6 +58,8 @@ Route::middleware(['web', 'auth'])->controller(TeamController::class)->prefix('a
         Route::delete('/users/{id}/delete', 'deleteUser')->name('admin.users.delete');
     });
 
+    Route::post('/users/bulk-action', 'bulkAction')->name('admin.users.bulkAction');
+
     // Roles
     Route::group(['middleware' => 'permission:roles.view'], function () {
         Route::get('/roles', 'roles')->name('admin.roles.index');
@@ -70,14 +78,64 @@ Route::middleware(['web', 'auth'])->controller(TeamController::class)->prefix('a
     Route::get('/chat', function () {
         return view('admin.chat.index');
     })->name('admin.chat.index');
+
+    // Tickets
+    Route::controller(App\Http\Controllers\TicketController::class)->prefix('tickets')->group(function () {
+        Route::get('/', 'index')->name('admin.tickets.index');
+        Route::get('/create', 'create')->name('admin.tickets.create');
+        Route::post('/', 'store')->name('admin.tickets.store');
+        Route::get('/{id}', 'show')->name('admin.tickets.show');
+        Route::post('/{id}/update', 'updateStatus')->name('admin.tickets.update');
+        Route::post('/{id}/reply', 'storeReply')->name('admin.tickets.reply');
+        Route::post('/{id}/assign', 'assign')->name('admin.tickets.assign');
+        Route::post('/{id}/convert-to-task', 'convertToTask')->name('admin.tickets.convert_to_task');
+    });
+
+    // Clients
+    Route::controller(App\Http\Controllers\AdminClientController::class)->prefix('clients')->group(function () {
+        Route::get('/', 'index')->name('admin.clients.index');
+        Route::get('/create', 'create')->name('admin.clients.create');
+        Route::post('/', 'store')->name('admin.clients.store');
+        Route::get('/{id}/edit', 'edit')->name('admin.clients.edit');
+        Route::post('/{id}/update', 'update')->name('admin.clients.update');
+        Route::delete('/{id}/delete', 'destroy')->name('admin.clients.delete');
+    });
 });
 
-// Settings (Statuses, etc.)
-Route::middleware(['web', 'permission:settings'])->controller(App\Http\Controllers\StatusController::class)->prefix('admin/settings')->group(function () {
-    Route::get('/statuses', 'index')->name('admin.statuses.index');
-    Route::post('/statuses/store', 'store')->name('admin.statuses.store');
-    Route::post('/statuses/{id}/update', 'update')->name('admin.statuses.update');
-    Route::delete('/statuses/{id}/delete', 'destroy')->name('admin.statuses.delete');
+// Client Support Portal
+Route::middleware(['web', 'auth'])->prefix('client')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\ClientController::class, 'dashboard'])->name('client.dashboard');
+    Route::get('/tickets/create', [App\Http\Controllers\ClientController::class, 'create'])->name('client.tickets.create');
+    Route::post('/tickets', [App\Http\Controllers\ClientController::class, 'store'])->name('client.tickets.store');
+    Route::get('/tickets/{id}', [App\Http\Controllers\ClientController::class, 'show'])->name('client.tickets.show');
+    Route::post('/tickets/{id}/reply', [App\Http\Controllers\ClientController::class, 'reply'])->name('client.tickets.reply');
+    
+    // Client Tasks
+    Route::get('/tasks/{id}', [App\Http\Controllers\ClientController::class, 'showTask'])->name('client.tasks.show');
+    Route::post('/tasks/{id}/reply', [App\Http\Controllers\ClientController::class, 'replyTask'])->name('client.tasks.reply');
+    
+    // Client Chat
+    Route::get('/chat', function () {
+        return view('client.chat.index');
+    })->name('client.chat.index');
+});
+
+// Consolidated Settings
+Route::middleware(['web', 'permission:settings'])->controller(App\Http\Controllers\SettingsController::class)->prefix('admin/settings')->group(function () {
+    Route::get('/general', 'general')->name('admin.settings.general');
+    Route::get('/statuses', 'statuses')->name('admin.settings.statuses');
+    Route::get('/email', 'email')->name('admin.settings.email');
+    
+    // General
+    Route::post('/general', 'storeGeneral')->name('admin.settings.general.store');
+
+    // Email
+    Route::post('/email', 'storeEmail')->name('admin.settings.email.store');
+    
+    // Statuses
+    Route::post('/statuses', 'storeStatus')->name('admin.settings.status.store');
+    Route::post('/statuses/{id}/update', 'updateStatus')->name('admin.settings.status.update');
+    Route::delete('/statuses/{id}/delete', 'destroyStatus')->name('admin.settings.status.delete');
 });
 
 // Task Logs & Messaging & Time Tracking

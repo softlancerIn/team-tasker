@@ -589,6 +589,42 @@
             --bs-table-color: var(--text-main);
         }
 
+        [data-theme="dark"] .text-muted {
+            color: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        /* Submenu Styles */
+        .nav-submenu {
+            display: none;
+            flex-direction: column;
+            padding-left: 0.5rem;
+            margin-top: -0.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-submenu.show {
+            display: flex;
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s ease;
+            font-size: 0.8rem !important;
+        }
+
+        .toggle-icon.rotate {
+            transform: rotate(90deg);
+        }
+
+        .sub-link {
+            padding: 0.6rem 1rem !important;
+            font-size: 0.85rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+
+        .nav-dropdown {
+            cursor: pointer;
+        }
+
         [data-theme="light"] .text-main-50 {
             color: rgba(255, 255, 255, 0.7) !important;
         }
@@ -615,60 +651,105 @@
 
         <nav>
             @if (Auth::user()->hasPermission('dashboard'))
-                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}">
+                <a href="{{ route('dashboard') }}"
+                    class="nav-link {{ request()->is('admin/tasks/dashboard') ? 'active' : '' }}">
                     <i class="fas fa-chart-line"></i> Dashboard
                 </a>
             @endif
 
-            @if (Auth::user()->hasPermission('tasks.view'))
-                <a href="{{ route('index') }}" class="nav-link {{ request()->is('index') ? 'active' : '' }}">
-                    <i class="fas fa-tasks"></i> My Tasks
+            <div class="nav-item">
+                <a href="javascript:void(0)"
+                    class="nav-link nav-dropdown {{ request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard') ? 'active' : '' }}"
+                    onclick="toggleSubmenu(this)">
+                    <i class="fas fa-tasks"></i>
+                    <span>Tasks</span>
+                    <i
+                        class="fas fa-chevron-right ms-auto toggle-icon {{ request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard') ? 'rotate' : '' }}"></i>
                 </a>
-            @endif
+                <div
+                    class="nav-submenu {{ request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard') ? 'show' : '' }}">
 
-            @if (Auth::user()->hasPermission('tasks.create'))
-                <a href="{{ route('create') }}" class="nav-link {{ request()->is('create') ? 'active' : '' }}">
-                    <i class="fas fa-plus-circle"></i> New Task
-                </a>
-            @endif
+                    @if (Auth::user()->hasPermission('tasks.view'))
+                        <a href="{{ route('index') }}"
+                            class="nav-link sub-link {{ request()->routeIs('index') ? 'active' : '' }}">
+                            <i class="fas fa-list"></i> My Tasks
+                        </a>
+                        <a href="{{ route('tasks.board') }}"
+                            class="nav-link sub-link {{ request()->routeIs('tasks.board') ? 'active' : '' }}">
+                            <i class="fas fa-columns"></i> Task Board
+                        </a>
+                        <a href="{{ route('tasks.calendar') }}"
+                            class="nav-link sub-link {{ request()->routeIs('tasks.calendar') ? 'active' : '' }}">
+                            <i class="fas fa-calendar-alt"></i> Calendar
+                        </a>
+                        <a href="{{ route('tasks.gantt') }}"
+                            class="nav-link sub-link {{ request()->routeIs('tasks.gantt') ? 'active' : '' }}">
+                            <i class="fas fa-chart-bar"></i> Gantt Chart
+                        </a>
+                    @endif
 
-            @if (Auth::user()->hasPermission('users.view'))
-                <div class="nav-item">
-                    <a href="{{ route('admin.users.index') }}"
-                        class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                        <i class="fas fa-users"></i> Users
-                    </a>
+                    @if (Auth::user()->hasPermission('tasks.create'))
+                        <a href="{{ route('create') }}"
+                            class="nav-link sub-link {{ request()->routeIs('create') ? 'active' : '' }}">
+                            <i class="fas fa-plus-circle"></i> New Task
+                        </a>
+                    @endif
                 </div>
-            @endif
+            </div>
 
-            @if (Auth::user()->hasPermission('roles.view'))
-                <div class="nav-item">
-                    <a href="{{ route('admin.roles.index') }}"
-                        class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
-                        <i class="fas fa-shield-halved"></i> Roles
-                    </a>
-                </div>
-            @endif
 
             <a href="{{ route('admin.chat.index') }}"
                 class="nav-link {{ request()->routeIs('admin.chat.*') ? 'active' : '' }}">
                 <i class="fas fa-comments"></i> Team Chat
             </a>
 
+            <a href="{{ route('admin.tickets.index') }}"
+                class="nav-link {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
+                <i class="fas fa-ticket-alt"></i> Tickets
+            </a>
+
+            <a href="{{ route('admin.clients.index') }}"
+                class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
+                <i class="fas fa-user-tie"></i> Clients
+            </a>
+
             @if (Auth::user()->hasPermission('settings'))
-                <div class="nav-link" data-bs-toggle="collapse" href="#settingsSubmenu" role="button"
-                    aria-expanded="false" aria-controls="settingsSubmenu">
-                    <i class="fas fa-cog"></i> Settings
-                </div>
-                <div class="collapse {{ request()->routeIs('admin.statuses.*') ? 'show' : '' }}" id="settingsSubmenu">
-                    <ul class="list-unstyled ps-3">
-                        <li>
-                            <a href="{{ route('admin.statuses.index') }}"
-                                class="nav-link {{ request()->routeIs('admin.statuses.*') ? 'active' : '' }}">
-                                <i class="fas fa-tags"></i> Task Statuses
+                <div class="nav-item">
+                    <a href="javascript:void(0)"
+                        class="nav-link nav-dropdown {{ request()->routeIs('admin.settings.*') || request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'active' : '' }}"
+                        onclick="toggleSubmenu(this)">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                        <i
+                            class="fas fa-chevron-right ms-auto toggle-icon {{ request()->routeIs('admin.settings.*') || request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'rotate' : '' }}"></i>
+                    </a>
+                    <div
+                        class="nav-submenu {{ request()->routeIs('admin.settings.*') || request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'show' : '' }}">
+                        <a href="{{ route('admin.settings.general') }}"
+                            class="nav-link sub-link {{ request()->routeIs('admin.settings.general') ? 'active' : '' }}">
+                            <i class="fas fa-sliders-h"></i> General
+                        </a>
+                        <a href="{{ route('admin.settings.statuses') }}"
+                            class="nav-link sub-link {{ request()->routeIs('admin.settings.statuses') ? 'active' : '' }}">
+                            <i class="fas fa-tags"></i> Task Statuses
+                        </a>
+                        <a href="{{ route('admin.settings.email') }}"
+                            class="nav-link sub-link {{ request()->routeIs('admin.settings.email') ? 'active' : '' }}">
+                            <i class="fas fa-envelope"></i> Email Integration
+                        </a>
+                        @if (Auth::user()->hasPermission('users.view'))
+                            <a href="{{ route('admin.users.index') }}"
+                                class="nav-link sub-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                                <i class="fas fa-users"></i> Users
                             </a>
-                        </li>
-                    </ul>
+                        @endif
+                        @if (Auth::user()->hasPermission('roles.view'))
+                            <a href="{{ route('admin.roles.index') }}"
+                                class="nav-link sub-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+                                <i class="fas fa-shield-halved"></i> Roles
+                            </a>
+                        @endif
+                    </div>
                 </div>
             @endif
 
@@ -867,8 +948,21 @@
                         }
                     });
                 });
-
             }
+
+            // Submenu Toggle JS
+            window.toggleSubmenu = function(el) {
+                const submenu = el.nextElementSibling;
+                const icon = el.querySelector('.toggle-icon');
+
+                if (submenu.classList.contains('show')) {
+                    submenu.classList.remove('show');
+                    icon.classList.remove('rotate');
+                } else {
+                    submenu.classList.add('show');
+                    icon.classList.add('rotate');
+                }
+            };
         });
     </script>
     @livewireScripts

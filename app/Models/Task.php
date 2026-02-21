@@ -15,6 +15,11 @@ class Task extends Model
 
     protected $casts = [
         'deadline' => 'datetime',
+        'next_occurrence_at' => 'datetime',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'is_recurring' => 'boolean',
+        'custom_fields' => 'json',
     ];
 
     public function status()
@@ -32,6 +37,36 @@ class Task extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    public function subtasks()
+    {
+        return $this->hasMany(Task::class, 'parent_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(Task::class, 'parent_id');
+    }
+
+    public function dependencies()
+    {
+        return $this->hasMany(TaskDependency::class, 'task_id');
+    }
+
+    public function blockedBy()
+    {
+        return $this->belongsTo(TaskDependency::class, 'depends_on_id');
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(TaskAttachment::class);
+    }
+
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class);
+    }
+
     public function logs()
     {
         return $this->hasMany(TaskLog::class)->orderBy('created_at', 'desc');
@@ -40,5 +75,10 @@ class Task extends Model
     public function timeLogs()
     {
         return $this->hasMany(TimeLog::class)->orderBy('created_at', 'desc');
+    }
+
+    public function ticket()
+    {
+        return $this->belongsTo(Ticket::class);
     }
 }

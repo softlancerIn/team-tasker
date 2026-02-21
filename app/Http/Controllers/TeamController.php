@@ -103,6 +103,48 @@ class TeamController extends Controller
         return back()->with('success', "User successfully {$status}.");
     }
 
+    public function bulkAction(Request $request)
+    {
+        $ids = $request->ids;
+        $action = $request->action;
+
+        if (empty($ids)) {
+            return back()->with('error', 'No users selected.');
+        }
+
+        switch ($action) {
+            case 'approve':
+                User::whereIn('id', $ids)->update(['is_approved' => true]);
+                $message = 'Selected users approved successfully.';
+                break;
+            case 'disapprove':
+                // Prevent self-disapproval in bulk
+                User::whereIn('id', $ids)->where('id', '!=', auth()->id())->update(['is_approved' => false]);
+                $message = 'Selected users disapproved successfully.';
+                break;
+            case 'delete':
+                // Prevent self-deletion in bulk
+                $usersToDelete = User::whereIn('id', $ids)->where('id', '!=', auth()->id())->get();
+                foreach ($usersToDelete as $user) {
+                    $user->delete();
+                }
+                $message = 'Selected users deleted successfully.';
+                break;
+            case 'change_role':
+                $roleId = $request->role_id;
+                if (!$roleId) {
+                    return back()->with('error', 'Please select a role.');
+                }
+                User::whereIn('id', $ids)->update(['role_id' => $roleId]);
+                $message = 'Roles updated for selected users.';
+                break;
+            default:
+                return back()->with('error', 'Invalid action.');
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function roles()
     {
         $roles = Role::withCount('users')->get();

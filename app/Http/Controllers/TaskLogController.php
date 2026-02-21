@@ -17,16 +17,17 @@ class TaskLogController extends Controller
     {
         $request->validate([
             'note' => 'required|string',
+            'type' => 'nullable|string|in:log,message',
         ]);
 
         TaskLog::create([
             'task_id' => $taskId,
             'user_id' => Auth::id(),
             'note' => $request->note,
-            'type' => 'log',
+            'type' => $request->type ?? 'log',
         ]);
 
-        return back()->with('success', 'Log added successfully');
+        return back()->with('success', 'Note added successfully');
     }
 
     /**

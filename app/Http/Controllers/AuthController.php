@@ -12,7 +12,7 @@ class AuthController extends Controller
     public function loginPage()
     {
         if (Auth::check('user')) {
-            return redirect()->intended('dashboard');
+            return redirect()->route('dashboard');
         }
 
         return view('auth.login');
@@ -37,13 +37,13 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->intended('dashboard');
+        return redirect()->route('dashboard');
     }
 
     public function registerPage()
     {
         if (Auth::check('user')) {
-            return redirect()->intended('dashboard');
+            return redirect()->route('dashboard');
         }
 
         return view('auth.register');

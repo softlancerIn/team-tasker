@@ -55,26 +55,66 @@
                     @endif
                 </div>
 
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    @if ($task->priority)
+                        <span
+                            class="badge bg-{{ $task->priority == 'Critical' ? 'danger' : ($task->priority == 'High' ? 'warning' : 'info') }} bg-opacity-10 text-{{ $task->priority == 'Critical' ? 'danger' : ($task->priority == 'High' ? 'warning' : 'info') }} border border-opacity-25 px-2 py-1 extra-small">
+                            <i class="fas fa-flag me-1"></i> {{ $task->priority }} Priority
+                        </span>
+                    @endif
+                    @foreach ($task->tags as $tag)
+                        <span class="badge bg-opacity-10 border border-opacity-25 px-2 py-1 extra-small"
+                            style="background-color: {{ $tag->color }}1a; color: {{ $tag->color }}; border-color: {{ $tag->color }}40;">
+                            <i class="fas fa-tag me-1"></i> {{ $tag->name }}
+                        </span>
+                    @endforeach
+                    @if ($task->is_recurring)
+                        <span
+                            class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 extra-small">
+                            <i class="fas fa-redo me-1"></i> Recurring ({{ ucfirst($task->recurring_interval) }})
+                        </span>
+                    @endif
+                </div>
+
                 <h6 class="text-muted uppercase extra-small mb-3">Description</h6>
                 <div class="text-main-50 lh-lg mb-5 ck-content" style="white-space: pre-wrap;">{!! $task->description !!}
                 </div>
 
-                <div class="mb-5">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="text-muted uppercase extra-small mb-0">Progress</h6>
-                        <span class="text-main small fw-bold">{{ $task->progress }}%</span>
+                <div class="row mb-5 g-4">
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="text-muted uppercase extra-small mb-0">Progress</h6>
+                            <span class="text-main small fw-bold">{{ $task->progress }}%</span>
+                        </div>
+                        <div class="progress bg-white bg-opacity-10" style="height: 8px; border-radius: 4px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                role="progressbar" style="width: {{ $task->progress }}%;"
+                                aria-valuenow="{{ $task->progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
                     </div>
-                    <div class="progress bg-white bg-opacity-10" style="height: 8px; border-radius: 4px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
-                            role="progressbar" style="width: {{ $task->progress }}%;"
-                            aria-valuenow="{{ $task->progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="col-md-6">
+                        @php
+                            $actualHours = round($task->timeLogs->sum('duration') / 3600, 2);
+                            $overEstimated = $task->estimated_hours && $actualHours > $task->estimated_hours;
+                        @endphp
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="text-muted uppercase extra-small mb-0">Time Health</h6>
+                            <span class="small fw-bold {{ $overEstimated ? 'text-danger' : 'text-main' }}">
+                                {{ $actualHours }}h / {{ $task->estimated_hours ?? '?' }}h
+                            </span>
+                        </div>
+                        <div class="progress bg-white bg-opacity-10" style="height: 8px; border-radius: 4px;">
+                            <div class="progress-bar bg-{{ $overEstimated ? 'danger' : 'success' }}" role="progressbar"
+                                style="width: {{ $task->estimated_hours ? min(100, ($actualHours / $task->estimated_hours) * 100) : 0 }}%;">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <hr class="border-secondary border-opacity-25 mb-4">
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="mb-0">Activity Feed</h5>
+                    <h5 class="mb-0">Collaboration & Data</h5>
                     <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse"
                         data-bs-target="#addLogForm">
                         <i class="fas fa-plus me-1"></i> Add Note
@@ -86,9 +126,15 @@
                         class="bg-opacity-5 p-3 rounded-3 border border-secondary border-opacity-25">
                         @csrf
                         <div class="mb-3">
-                            <textarea id="longtextarea" name="note" class="form-control" rows="3" placeholder="Write a log note..."></textarea>
+                            <textarea id="longtextarea" name="note" class="form-control" rows="3" placeholder="Write a note..."></textarea>
                         </div>
-                        <div class="text-end">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="publicMessage" name="type"
+                                    value="message">
+                                <label class="form-check-label text-main-50 small" for="publicMessage">Visible to
+                                    Client</label>
+                            </div>
                             <button type="submit" class="btn btn-primary btn-sm px-4">Save Note</button>
                         </div>
                     </form>
@@ -99,13 +145,25 @@
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="activity-tab" data-bs-toggle="tab"
                                 data-bs-target="#activity" type="button" role="tab">
-                                <i class="fas fa-stream me-2"></i>Activity Feed
+                                <i class="fas fa-stream me-2"></i>Activity
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline"
+                            <button class="nav-link" id="subtasks-tab" data-bs-toggle="tab"
+                                data-bs-target="#subtasks" type="button" role="tab">
+                                <i class="fas fa-tasks me-2"></i>Subtasks ({{ $task->subtasks->count() }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="timeline-tab" data-bs-toggle="tab"
+                                data-bs-target="#timeline" type="button" role="tab">
+                                <i class="fas fa-history me-2"></i>Logs
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files"
                                 type="button" role="tab">
-                                <i class="fas fa-history me-2"></i>Timeline
+                                <i class="fas fa-paperclip me-2"></i>Files ({{ $task->attachments->count() }})
                             </button>
                         </li>
                     </ul>
@@ -135,8 +193,14 @@
                                         </div>
                                         @if ($log->type == 'message')
                                             <span
-                                                class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 extra-small mb-1">Admin
-                                                Message</span>
+                                                class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 extra-small mb-1">
+                                                <i class="fas fa-external-link-alt me-1"></i> Client Message
+                                            </span>
+                                        @else
+                                            <span
+                                                class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10 extra-small mb-1">
+                                                <i class="fas fa-lock me-1"></i> Internal Note
+                                            </span>
                                         @endif
                                         <div class="text-main-50 small ck-content">{!! $log->note !!}</div>
                                     </div>
@@ -146,6 +210,48 @@
                                     No activity logged yet.
                                 </div>
                             @endforelse
+                        </div>
+                    </div>
+
+                    <!-- Subtasks Tab -->
+                    <div class="tab-pane fade" id="subtasks" role="tabpanel">
+                        <div class="glass-card p-0 overflow-hidden border-0">
+                            <ul class="list-group list-group-flush bg-transparent">
+                                @forelse($task->subtasks as $subtask)
+                                    <li
+                                        class="list-group-item bg-transparent border-secondary border-opacity-10 py-3 px-4 d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="fas fa-tasks text-muted small"></i>
+                                            <div>
+                                                <a href="{{ route('show', $subtask->id) }}"
+                                                    class="text-main fw-medium text-decoration-none">
+                                                    {{ $subtask->title }}
+                                                </a>
+                                                <div class="extra-small text-muted mt-1">
+                                                    Assigned to: {{ $subtask->assignedTo->name ?? 'Unassigned' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <span
+                                                class="badge bg-{{ $subtask->status->color ?? 'secondary' }} bg-opacity-10 text-{{ $subtask->status->color ?? 'secondary' }} extra-small">
+                                                {{ $subtask->status->name ?? 'Unknown' }}
+                                            </span>
+                                            <span class="text-main-50 small fw-bold">{{ $subtask->progress }}%</span>
+                                        </div>
+                                    </li>
+                                @empty
+                                    <li class="list-group-item bg-transparent text-center py-5 text-muted small">
+                                        No subtasks found for this task.
+                                    </li>
+                                @endforelse
+                                <li class="list-group-item bg-transparent py-3 px-4 text-center">
+                                    <a href="{{ route('create') }}?parent_id={{ $task->id }}"
+                                        class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-plus me-1"></i> Create Subtask
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                     </div>
 
@@ -210,17 +316,43 @@
                                     @endforelse
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
 
-                            @if ($totalSeconds > 0)
-                                <div
-                                    class="alert alert-primary bg-opacity-5 border-primary border-opacity-25 mt-4 mb-0">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="text-main small">Total Time Invested</span>
-                                        <span class="text-primary fw-bold">{{ floor($totalSeconds / 3600) }}h
-                                            {{ floor(($totalSeconds % 3600) / 60) }}m {{ $totalSeconds % 60 }}s</span>
+                    <!-- Files Tab -->
+                    <div class="tab-pane fade" id="files" role="tabpanel">
+                        <div class="row g-3">
+                            @forelse($task->attachments as $attachment)
+                                <div class="col-md-6 col-xl-4">
+                                    <div class="p-3 rounded-3"
+                                        style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color);">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon icon-primary mb-0"
+                                                style="width: 40px; height: 40px; font-size: 1rem;">
+                                                <i class="fas fa-file"></i>
+                                            </div>
+                                            <div class="flex-grow-1 overflow-hidden">
+                                                <div class="text-main small fw-medium text-truncate"
+                                                    title="{{ $attachment->file_name }}">
+                                                    {{ $attachment->file_name }}
+                                                </div>
+                                                <div class="extra-small text-muted">
+                                                    {{ round($attachment->file_size / 1024, 1) }} KB •
+                                                    {{ $attachment->user->name }}
+                                                </div>
+                                            </div>
+                                            <a href="{{ asset('storage/' . $attachment->file_path) }}"
+                                                target="_blank" class="btn btn-sm btn-outline-primary border-0">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
-                            @endif
+                            @empty
+                                <div class="col-12 text-center py-5 text-muted small">
+                                    No attachments uploaded yet.
+                                </div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -228,6 +360,27 @@
         </div>
 
         <div class="col-lg-4">
+            <div class="glass-card mb-4">
+                <h5 class="mb-4">Dependencies</h5>
+                @forelse($task->dependencies as $dep)
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="stat-icon icon-warning mb-0"
+                            style="width: 32px; height: 32px; font-size: 0.8rem; background: rgba(245, 158, 11, 0.1);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="extra-small text-muted">Blocks this task</div>
+                            <a href="{{ route('show', $dep->blocker->id) }}"
+                                class="text-main small fw-medium text-decoration-none text-truncate d-block">
+                                {{ $dep->blocker->title }}
+                            </a>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-muted small">No blocking dependencies.</div>
+                @endforelse
+            </div>
+
             <div class="glass-card mb-4">
                 <h5 class="mb-4">Meta Information</h5>
                 <div class="mb-3">
