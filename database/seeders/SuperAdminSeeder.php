@@ -17,7 +17,7 @@ class SuperAdminSeeder extends Seeder
         // Ensure Roles are seeded
         $this->call(RoleSeeder::class);
 
-        $adminRole = Role::where('slug', 'admin')->first();
+        $adminRole = Role::where('slug', 'super-admin')->first();
 
         // Create Super Admin User
         User::updateOrCreate(

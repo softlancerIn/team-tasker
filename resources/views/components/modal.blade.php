@@ -1,10 +1,9 @@
 <div class="modal fade" id="{{ $id }}" tabindex="-1" aria-hidden="true" {{ $attributes }} wire:ignore.self>
     <div class="modal-dialog modal-dialog-centered {{ $size ?? '' }}">
-        <div class="modal-content bg-dark border-{{ $variant ?? 'secondary' }} border-opacity-25 shadow-lg">
-            <div class="modal-header border-{{ $variant ?? 'secondary' }} border-opacity-25">
-                <h5 class="modal-title font-weight-500 text-white">{{ $title }}</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+        <div class="modal-content bg-surface border-main shadow-lg" style="backdrop-filter: blur(20px);">
+            <div class="modal-header border-subtle py-3 px-4">
+                <h5 class="modal-title fw-bold text-high" style="font-size: 1.1rem;">{{ $title }}</h5>
+                <button type="button" class="btn-close opacity-50" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             @if (isset($formAction))
                 <form action="{{ $formAction }}" method="POST"
@@ -14,18 +13,18 @@
                         @method($method)
                     @endif
             @endif
-            <div class="modal-body {{ $bodyClass ?? '' }}">
+            <div class="modal-body p-4 {{ $bodyClass ?? '' }}">
                 {{ $slot }}
             </div>
-            <div class="modal-footer border-{{ $variant ?? 'secondary' }} border-opacity-25">
+            <div class="modal-footer border-subtle py-3 px-4">
                 @if (isset($footer))
                     {{ $footer }}
                 @else
-                    <button type="button" class="btn btn-outline-secondary"
-                        data-bs-dismiss="modal">{{ $cancelText ?? 'Cancel' }}</button>
+                    <button type="button" class="btn-premium btn-premium-secondary py-2 px-4" data-bs-dismiss="modal"
+                        style="font-size: 0.85rem;">{{ $cancelText ?? 'Cancel' }}</button>
                     @if (isset($submitText))
-                        <button type="submit"
-                            class="btn btn-{{ $variant ?? 'primary' }}">{{ $submitText }}</button>
+                        <button type="submit" class="btn-premium btn-premium-{{ $variant ?? 'primary' }} py-2 px-4"
+                            style="font-size: 0.85rem;">{{ $submitText }}</button>
                     @endif
                 @endif
             </div>

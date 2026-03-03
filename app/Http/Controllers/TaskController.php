@@ -152,28 +152,86 @@ class TaskController extends Controller
             ->take(6)
             ->get();
 
-        // Data for chart: Last 7 days (Project-wide)
-        $chartData = [];
-        $chartLabels = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $chartLabels[] = $date->format('D');
-            $chartData[] = Task::whereDate('created_at', $date->toDateString())->count();
-        }
+        // Data for chart: Multiple time periods
+        $chart7d = $this->buildChartData(7, 'day', 'D, M j');
+        $chart30d = $this->buildChartData(30, 'day', 'M j');
+        $chart90d = $this->buildChartData(90, 'week', 'M j');
+        $chartAll = $this->buildChartDataAllTime();
+
+        // Default view: Last 7 days
+        $chartData   = $chart7d['data'];
+        $chartLabels = $chart7d['labels'];
 
         return view('admin.dashboard', compact(
-            'personalTasks', 
-            'totalTasks', 
-            'completedTasksCount', 
-            'pendingTasksCount', 
-            'totalTickets', 
-            'totalUsers', 
-            'criticalTasksCount', 
+            'personalTasks',
+            'totalTasks',
+            'completedTasksCount',
+            'pendingTasksCount',
+            'totalTickets',
+            'totalUsers',
+            'criticalTasksCount',
             'projectProgress',
             'recentActivities',
-            'chartData', 
-            'chartLabels'
+            'chartData',
+            'chartLabels',
+            'chart7d',
+            'chart30d',
+            'chart90d',
+            'chartAll'
         ));
+    }
+
+    /**
+     * Build chart data for a given period.
+     */
+    private function buildChartData(int $days, string $groupBy, string $labelFormat): array
+    {
+        $labels = [];
+        $data   = [];
+
+        if ($groupBy === 'day') {
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $date = now()->subDays($i);
+                $labels[] = $date->format($labelFormat);
+                $data[]   = Task::whereDate('created_at', $date->toDateString())->count();
+            }
+        } elseif ($groupBy === 'week') {
+            $weeks = (int) ceil($days / 7);
+            for ($i = $weeks - 1; $i >= 0; $i--) {
+                $start = now()->subWeeks($i)->startOfWeek();
+                $end   = now()->subWeeks($i)->endOfWeek();
+                $labels[] = $start->format($labelFormat);
+                $data[]   = Task::whereBetween('created_at', [$start, $end])->count();
+            }
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
+    /**
+     * Build All Time chart data grouped by month.
+     */
+    private function buildChartDataAllTime(): array
+    {
+        $oldest = Task::min('created_at');
+        if (!$oldest) {
+            return ['labels' => [], 'data' => []];
+        }
+
+        $start = \Carbon\Carbon::parse($oldest)->startOfMonth();
+        $end   = now()->endOfMonth();
+        $labels = [];
+        $data   = [];
+
+        while ($start->lessThanOrEqualTo($end)) {
+            $labels[] = $start->format('M Y');
+            $data[]   = Task::whereYear('created_at', $start->year)
+                             ->whereMonth('created_at', $start->month)
+                             ->count();
+            $start->addMonth();
+        }
+
+        return ['labels' => $labels, 'data' => $data];
     }
 
     /**

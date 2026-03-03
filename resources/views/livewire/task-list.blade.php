@@ -112,15 +112,13 @@ new class extends Component {
     <div class="glass-card mb-4">
         <div class="row g-3">
             <div class="col-md-4">
-                <div class="search-wrapper">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
-                        placeholder="Search tasks...">
+                <div class="search-container-premium">
+                    <i class="fas fa-search"></i>
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search tasks...">
                 </div>
             </div>
             <div class="col-md-2">
-                <select wire:model.live="status_id"
-                    class="form-select bg-dark text-white border-secondary border-opacity-25">
+                <select wire:model.live="status_id" class="form-premium-control">
                     <option value="">All Statuses</option>
                     @foreach ($statuses as $status)
                         <option value="{{ $status->id }}">{{ $status->name }}</option>
@@ -128,8 +126,7 @@ new class extends Component {
                 </select>
             </div>
             <div class="col-md-2">
-                <select wire:model.live="priority"
-                    class="form-select bg-dark text-white border-secondary border-opacity-25">
+                <select wire:model.live="priority" class="form-premium-control">
                     <option value="">All Priorities</option>
                     @foreach ($priorities as $p)
                         <option value="{{ $p }}">{{ $p }}</option>
@@ -137,8 +134,7 @@ new class extends Component {
                 </select>
             </div>
             <div class="col-md-2">
-                <select wire:model.live="tag_id"
-                    class="form-select bg-dark text-white border-secondary border-opacity-25">
+                <select wire:model.live="tag_id" class="form-premium-control">
                     <option value="">All Tags</option>
                     @foreach ($tags as $tag)
                         <option value="{{ $tag->id }}">{{ $tag->name }}</option>
@@ -148,7 +144,7 @@ new class extends Component {
             <div class="col-md-2 text-end">
                 <button
                     wire:click="$set('search', ''); $set('status_id', ''); $set('priority', ''); $set('tag_id', '');"
-                    class="btn btn-outline-secondary w-100">
+                    class="btn-premium btn-premium-secondary w-100">
                     <i class="fas fa-redo me-1"></i> Reset
                 </button>
             </div>
@@ -156,115 +152,111 @@ new class extends Component {
     </div>
 
     <!-- Floating Bulk Action Bar -->
-    <div id="bulkActionBar" class="bulk-action-bar {{ count($selectedTasks) > 0 ? 'show' : '' }}">
-        <div class="container-fluid d-flex align-items-center justify-content-between py-3 px-4 shadow-lg">
+    <div id="bulkActionBar" class="bulk-action-bar hidden shadow-premium {{ count($selectedTasks) > 0 ? 'show' : '' }}"
+        style="border: 1px solid var(--border-main); background: var(--bg-surface);">
+        <div class="container-fluid d-flex align-items-center justify-content-between py-3 px-4">
             <div class="d-flex align-items-center gap-3">
-                <span class="badge bg-primary rounded-pill px-3 py-2"
-                    id="selectedCount">{{ count($selectedTasks) }}</span>
-                <span class="text-white fw-medium">Tasks Selected</span>
+                <div class="stat-icon-premium m-0 d-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
+                    <span id="selectedCount" class="fw-bold">{{ count($selectedTasks) }}</span>
+                </div>
+                <span class="text-high fw-bold" style="font-size: 0.95rem;">Tasks Selected</span>
             </div>
 
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex flex-wrap align-items-center gap-4">
                 <!-- Status Update -->
-                <div class="d-flex align-items-center gap-2 border-end border-white border-opacity-10 pe-3">
-                    <select wire:model.live="bulkStatus" class="form-select form-select-sm bulk-select">
-                        <option value="">Update Status...</option>
+                <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
+                    <select wire:model.live="bulkStatus" class="form-premium-control py-2"
+                        style="width: 150px; font-size: 0.8rem; background: var(--bg-input);">
+                        <option value="">Status...</option>
                         @foreach ($statuses as $status)
                             <option value="{{ $status->id }}">{{ $status->name }}</option>
                         @endforeach
                     </select>
-                    <button wire:click="bulkChangeStatus" class="btn btn-primary btn-sm"
-                        @if (!$bulkStatus) disabled @endif>
+                    <button wire:click="bulkChangeStatus" class="btn-premium btn-premium-primary py-2 px-3"
+                        style="font-size: 0.8rem;" @if (!$bulkStatus) disabled @endif>
                         Apply
                     </button>
                 </div>
 
                 <!-- Priority Update -->
-                <div class="d-flex align-items-center gap-2 border-end border-white border-opacity-10 pe-3">
-                    <select wire:model.live="bulkPriority" class="form-select form-select-sm bulk-select">
-                        <option value="">Update Priority...</option>
+                <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
+                    <select wire:model.live="bulkPriority" class="form-premium-control py-2"
+                        style="width: 150px; font-size: 0.8rem; background: var(--bg-input);">
+                        <option value="">Priority...</option>
                         @foreach ($priorities as $p)
                             <option value="{{ $p }}">{{ $p }}</option>
                         @endforeach
                     </select>
-                    <button wire:click="bulkChangePriority" class="btn btn-primary btn-sm"
-                        @if (!$bulkPriority) disabled @endif>
+                    <button wire:click="bulkChangePriority" class="btn-premium btn-premium-primary py-2 px-3"
+                        style="font-size: 0.8rem;" @if (!$bulkPriority) disabled @endif>
                         Apply
                     </button>
                 </div>
 
-                <!-- Assignee Update -->
-                <div class="d-flex align-items-center gap-2 border-end border-white border-opacity-10 pe-3">
-                    <select wire:model.live="bulkAssignee" class="form-select form-select-sm bulk-select">
-                        <option value="">Assign to...</option>
-                        @foreach ($users as $user)
-                            <option value="{{ $user->id }}">{{ $user->name }}</option>
-                        @endforeach
-                    </select>
-                    <button wire:click="bulkAssign" class="btn btn-primary btn-sm"
-                        @if (!$bulkAssignee) disabled @endif>
-                        Apply
-                    </button>
-                </div>
-
-                <div class="d-flex gap-2 ms-2">
+                <div class="d-flex gap-2">
                     <button wire:click="bulkDelete"
                         onclick="return confirm('Are you sure you want to delete these tasks?')"
-                        class="btn btn-danger btn-sm px-3">
+                        class="btn-premium py-2 px-4"
+                        style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2); font-size: 0.8rem;">
                         <i class="fas fa-trash-alt me-1"></i> Delete
                     </button>
-                    <button wire:click="$set('selectedTasks', [])"
-                        class="btn btn-outline-secondary btn-sm">Deselect</button>
+                    <button wire:click="$set('selectedTasks', [])" class="btn-premium btn-premium-secondary py-2 px-3"
+                        style="font-size: 0.8rem;">Deselect</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="glass-card">
+    <div class="glass-card p-0 overflow-hidden">
         <div class="table-responsive">
-            <table class="table table-dark table-hover mb-0 bg-transparent align-middle">
+            <table class="table mb-0 align-middle">
                 <thead>
-                    <tr class="text-muted small uppercase">
+                    <tr class="heading-label">
                         <th class="border-0 px-4" style="width: 40px;">
                             <input type="checkbox" class="form-check-input"
                                 onclick="let checked = this.checked; document.querySelectorAll('.task-checkbox').forEach(c => { c.checked = checked; c.dispatchEvent(new Event('change')); })">
                         </th>
-                        <th class="border-0 cursor-pointer" wire:click="sortBy('title')">
+                        <th class="border-0 cursor-pointer" wire:click="sortBy('title')"
+                            style="color: var(--text-high);">
                             Title @if ($sortField === 'title')
                                 <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1"></i>
                             @endif
                         </th>
-                        <th class="border-0">Assigned To</th>
-                        <th class="border-0 cursor-pointer" wire:click="sortBy('status_id')">
+                        <th class="border-0" style="color: var(--text-high);">Assigned To</th>
+                        <th class="border-0 cursor-pointer" wire:click="sortBy('status_id')"
+                            style="color: var(--text-high);">
                             Status @if ($sortField === 'status_id')
                                 <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1"></i>
                             @endif
                         </th>
-                        <th class="border-0">Priority</th>
-                        <th class="border-0">Tags</th>
-                        <th class="border-0 cursor-pointer" wire:click="sortBy('created_at')">
+                        <th class="border-0" style="color: var(--text-high);">Priority</th>
+                        <th class="border-0" style="color: var(--text-high);">Tags</th>
+                        <th class="border-0 cursor-pointer" wire:click="sortBy('created_at')"
+                            style="color: var(--text-high);">
                             Created @if ($sortField === 'created_at')
                                 <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1"></i>
                             @endif
                         </th>
-                        <th class="border-0 text-end px-4">Actions</th>
+                        <th class="border-0 text-end px-4" style="color: var(--text-high);">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody style="border-top: none;">
                     @forelse($tasks as $task)
                         <tr wire:key="task-row-{{ $task->id }}"
-                            class="{{ in_array($task->id, $selectedTasks) ? 'bg-primary bg-opacity-5' : '' }}">
+                            class="{{ in_array($task->id, $selectedTasks) ? 'bg-primary-subtle' : '' }}"
+                            style="border-bottom: 1px solid var(--border-subtle);">
                             <td class="px-4">
                                 <input type="checkbox" wire:model.live="selectedTasks" value="{{ $task->id }}"
                                     class="form-check-input task-checkbox">
                             </td>
                             <td>
                                 <a href="{{ route('details', $task->id) }}"
-                                    class="text-white text-decoration-none fw-medium d-block">
+                                    class="text-decoration-none fw-medium d-block text-high">
                                     {{ $task->title }}
                                 </a>
                                 @if ($task->parent_id)
-                                    <span class="extra-small text-muted"><i
+                                    <span class="extra-small text-low"><i
                                             class="fas fa-level-up-alt fa-rotate-90 me-1"></i>Subtask of
                                         #{{ $task->parent_id }}</span>
                                 @endif
@@ -272,25 +264,45 @@ new class extends Component {
                             <td>
                                 @if ($task->assignedTo)
                                     <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar"
-                                            style="width: 24px; height: 24px; font-size: 0.6rem; background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+                                        <div class="avatar-premium"
+                                            style="width: 24px; height: 24px; font-size: 0.6rem;">
                                             {{ substr($task->assignedTo->name, 0, 1) }}
                                         </div>
-                                        <span class="small">{{ $task->assignedTo->name }}</span>
+                                        <span class="small fw-medium">{{ $task->assignedTo->name }}</span>
                                     </div>
                                 @else
-                                    <span class="text-muted small italic">Unassigned</span>
+                                    <span class="text-low small italic">Unassigned</span>
                                 @endif
                             </td>
                             <td>
-                                <span
-                                    class="badge bg-{{ $task->status->color ?? 'secondary' }} bg-opacity-10 text-{{ $task->status->color ?? 'secondary' }} border border-{{ $task->status->color ?? 'secondary' }} border-opacity-25 px-3 py-1 rounded-pill extra-small">
+                                <span class="badge-premium"
+                                    style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2);">
                                     {{ $task->status->name ?? 'Unknown' }}
                                 </span>
                             </td>
                             <td>
-                                <span
-                                    class="badge bg-{{ $task->priority == 'Critical' ? 'danger' : ($task->priority == 'High' ? 'warning' : 'primary') }} bg-opacity-10 text-{{ $task->priority == 'Critical' ? 'danger' : ($task->priority == 'High' ? 'warning' : 'primary') }} extra-small px-2 py-1">
+                                @php
+                                    $pColor =
+                                        $task->priority == 'Critical'
+                                            ? 'var(--danger)'
+                                            : ($task->priority == 'High'
+                                                ? 'var(--accent)'
+                                                : 'var(--primary)');
+                                    $pBg =
+                                        $task->priority == 'Critical'
+                                            ? 'rgba(var(--danger-rgb), 0.1)'
+                                            : ($task->priority == 'High'
+                                                ? 'rgba(var(--accent-rgb), 0.1)'
+                                                : 'rgba(var(--primary-rgb), 0.1)');
+                                    $pBorder =
+                                        $task->priority == 'Critical'
+                                            ? 'rgba(var(--danger-rgb), 0.2)'
+                                            : ($task->priority == 'High'
+                                                ? 'rgba(var(--accent-rgb), 0.2)'
+                                                : 'rgba(var(--primary-rgb), 0.2)');
+                                @endphp
+                                <span class="badge-premium"
+                                    style="background: {{ $pBg }}; color: {{ $pColor }}; border: 1px solid {{ $pBorder }}; font-size: 0.7rem;">
                                     {{ $task->priority ?? 'Medium' }}
                                 </span>
                             </td>
@@ -303,29 +315,32 @@ new class extends Component {
                                         </span>
                                     @endforeach
                                     @if ($task->tags->count() > 2)
-                                        <span class="extra-small text-muted">+{{ $task->tags->count() - 2 }}</span>
+                                        <span class="extra-small text-low">+{{ $task->tags->count() - 2 }}</span>
                                     @endif
                                 </div>
                             </td>
-                            <td class="text-muted small">
+                            <td class="text-low small">
                                 {{ $task->created_at->format('M d, Y') }}
                             </td>
                             <td class="text-end px-4">
                                 <div class="d-flex justify-content-end gap-2">
                                     <a href="{{ route('details', $task->id) }}"
-                                        class="btn btn-outline-info btn-sm border-0" title="View Details">
-                                        <i class="fas fa-eye"></i>
+                                        class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
+                                        style="width: 32px; height: 32px; border-radius: 50%;" title="View Details">
+                                        <i class="fas fa-eye" style="font-size: 0.8rem;"></i>
                                     </a>
                                     <a href="{{ route('edit', $task->id) }}"
-                                        class="btn btn-outline-primary btn-sm border-0" title="Edit Task">
-                                        <i class="fas fa-edit"></i>
+                                        class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
+                                        style="width: 32px; height: 32px; border-radius: 50%; color: var(--primary);"
+                                        title="Edit Task">
+                                        <i class="fas fa-edit" style="font-size: 0.8rem;"></i>
                                     </a>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
+                            <td colspan="8" class="text-center py-5 text-low">
                                 <i class="fas fa-inbox fa-3x mb-3 d-block opacity-25"></i>
                                 No tasks found matching your filters.
                             </td>
@@ -336,7 +351,7 @@ new class extends Component {
         </div>
 
         @if ($tasks->hasPages())
-            <div class="p-4 border-top border-secondary border-opacity-10">
+            <div class="p-4" style="border-top: 1px solid var(--border-subtle);">
                 {{ $tasks->links() }}
             </div>
         @endif
@@ -345,37 +360,19 @@ new class extends Component {
     <style>
         .bulk-action-bar {
             position: fixed;
-            bottom: 30px;
+            bottom: var(--space-6);
             left: 50%;
-            transform: translateX(-50%) translateY(150%);
-            width: 90%;
-            max-width: 1100px;
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            z-index: 1000;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            transform: translateX(-50%) translateY(200%);
+            width: auto;
+            min-width: 500px;
+            z-index: 1050;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: var(--radius-xl);
+            backdrop-filter: blur(15px);
         }
 
         .bulk-action-bar.show {
             transform: translateX(-50%) translateY(0);
-        }
-
-        .bulk-select {
-            width: 150px;
-            background: rgba(255, 255, 255, 0.05) !important;
-            color: white !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        }
-
-        .bulk-select option {
-            background: #1e293b;
-            color: white;
-        }
-
-        .extra-small {
-            font-size: 0.65rem;
         }
 
         .cursor-pointer {

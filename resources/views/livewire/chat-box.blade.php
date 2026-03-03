@@ -243,9 +243,8 @@ new class extends Component {
     @if ($conversation)
 
         <!-- Header -->
-        <div class="p-3 border-bottom d-flex justify-content-between align-items-center"
-            style="min-height: 73px; background: var(--card-bg); border-bottom: 1px solid var(--border-color) !important;"
-            x-data="{
+        <div class="p-3 border-bottom border-main d-flex justify-content-between align-items-center"
+            style="min-height: 73px; background: var(--bg-surface);" x-data="{
                 status: 'Offline',
                 userId: {{ $conversation->type == 'private' && $receiver ? $receiver->id : 'null' }},
                 init() {
@@ -253,12 +252,12 @@ new class extends Component {
                         window.socket.on('user_connected', (uid) => {
                             if (uid == this.userId) this.status = 'Online';
                         });
-                        window.socket.on('disconnect_user', (uid) => { // check exact event name
+                        window.socket.on('disconnect_user', (uid) => {
                             if (uid == this.userId) this.status = 'Offline';
                         });
                         setInterval(() => {
-                            const sidebarUser = document.querySelector(`.user-item[data-user-id='${this.userId}'] .status-dot`);
-                            if (sidebarUser && sidebarUser.classList.contains('bg-success')) {
+                            const sidebarUser = document.querySelector(`.user-item-premium[data-user-id='${this.userId}'] .bg-success`);
+                            if (sidebarUser) {
                                 this.status = 'Online';
                             } else {
                                 this.status = 'Offline';
@@ -268,14 +267,14 @@ new class extends Component {
                 }
             }">
             <div class="d-flex align-items-center">
-                @if ($conversation->type == 'group')
-                    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white me-3"
-                        style="width: 45px; height: 45px;">
-                        <i class="fas fa-users"></i>
+                @if ($conversation->type == 'group' || $conversation->type == 'client_group')
+                    <div class="avatar-premium me-3" style="width: 45px; height: 45px; background: var(--bg-input);">
+                        <i class="fas fa-users" style="color: var(--primary);"></i>
                     </div>
                     <div>
-                        <h6 class="mb-0 fw-bold" style="color: var(--text-main);">{{ $conversation->name }}</h6>
-                        <small style="color: var(--text-muted);">{{ $conversation->participants->count() }}
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $conversation->name }}</h6>
+                        <small
+                            style="color: var(--text-low); font-size: 0.75rem;">{{ $conversation->participants->count() }}
                             members</small>
                     </div>
                 @else
@@ -284,60 +283,67 @@ new class extends Component {
                     @endphp
                     @if ($otherParticipant)
                         <div class="d-flex align-items-center">
-                            @if ($otherParticipant->profile_image)
-                                <img src="{{ asset('storage/' . $otherParticipant->profile_image) }}"
-                                    class="rounded-circle" width="45" height="45" style="object-fit: cover;">
-                            @else
-                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                                    style="width: 45px; height: 45px; font-size: 1.2rem;">
+                            <div class="avatar-premium" style="width: 45px; height: 45px;">
+                                @if ($otherParticipant->profile_image)
+                                    <img src="{{ asset('storage/' . $otherParticipant->profile_image) }}"
+                                        alt="Avatar">
+                                @else
                                     {{ substr($otherParticipant->name ?? 'U', 0, 1) }}
-                                </div>
-                            @endif
+                                @endif
+                            </div>
                             <div class="ms-3">
-                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);">
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-high);">
                                     {{ $otherParticipant->name ?? 'User' }}</h6>
-                                <small :class="status == 'Online' ? 'text-success' : 'text-secondary'"
-                                    x-text="status"></small>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="rounded-circle"
+                                        :class="status == 'Online' ? 'bg-success' : 'bg-secondary'"
+                                        style="width: 8px; height: 8px;"></span>
+                                    <small :class="status == 'Online' ? 'text-success' : 'text-low'"
+                                        style="font-size: 0.7rem;" x-text="status"></small>
+                                </div>
                             </div>
                         </div>
                     @else
-                        <h6 class="mb-0" style="color: var(--text-main);">Chat</h6>
+                        <h6 class="mb-0 fw-bold" style="color: var(--text-high);">Chat</h6>
                     @endif
                 @endif
             </div>
 
-            <div class="d-flex align-items-center gap-2">
-                <div class="position-relative">
-                    <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-2"
-                        style="color: var(--text-muted);"></i>
-                    <input type="text" wire:model.live="searchQuery"
-                        class="form-control form-control-sm rounded-pill ps-4" placeholder="Search Message"
-                        style="width: 200px; background: var(--input-bg); border-color: var(--border-color); color: var(--text-main);">
+            <div class="d-flex align-items-center gap-3">
+                <div class="search-container-premium" style="width: 240px;">
+                    <i class="fas fa-search search-icon-premium" style="font-size: 0.8rem;"></i>
+                    <input type="text" wire:model.live="searchQuery" class="form-premium-control ps-5 py-1"
+                        placeholder="Search message..." style="font-size: 0.8rem;">
                 </div>
                 <div class="dropdown">
-                    <button class="btn btn-sm rounded-circle" type="button" data-bs-toggle="dropdown"
-                        style="background: var(--input-bg); color: var(--text-muted);">
-                        <i class="fas fa-ellipsis-v"></i>
+                    <button class="btn-premium btn-premium-secondary p-0 rounded-circle" type="button"
+                        data-bs-toggle="dropdown"
+                        style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--bg-input);">
+                        <i class="fas fa-ellipsis-v" style="font-size: 0.8rem;"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm"
-                        style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-premium border-main"
+                        style="background: var(--bg-surface);">
                         <li>
-                            <a class="dropdown-item text-danger" href="#" wire:click.prevent="clearChatHistory"
+                            <a class="dropdown-item text-danger d-flex align-items-center gap-2 py-2" href="#"
+                                wire:click.prevent="clearChatHistory"
                                 wire:confirm="Are you sure? This will delete all messages for everyone in this chat.">
-                                <i class="fas fa-trash-alt me-2"></i> Clear Chat History
+                                <i class="fas fa-trash-alt" style="font-size: 0.8rem;"></i> <span>Clear Chat
+                                    History</span>
                             </a>
                         </li>
                         <li>
                             @if ($isBlocked)
-                                <a class="dropdown-item" href="#" wire:click.prevent="unblockUser"
-                                    style="color: var(--text-main);">
-                                    <i class="fas fa-user-check me-2"></i> Unblock User
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                    wire:click.prevent="unblockUser" style="color: var(--text-high);">
+                                    <i class="fas fa-user-check" style="font-size: 0.8rem;"></i> <span>Unblock
+                                        User</span>
                                 </a>
                             @else
-                                <a class="dropdown-item" href="#" wire:click.prevent="blockUser"
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                    wire:click.prevent="blockUser"
                                     wire:confirm="Are you sure you want to block this user?"
-                                    style="color: var(--text-main);">
-                                    <i class="fas fa-user-slash me-2"></i> Block User
+                                    style="color: var(--text-high);">
+                                    <i class="fas fa-user-slash" style="font-size: 0.8rem;"></i> <span>Block User</span>
                                 </a>
                             @endif
                         </li>
@@ -355,11 +361,13 @@ new class extends Component {
             })">
 
             @if ($isBlocked)
-                <div class="alert alert-danger text-center mx-4 mt-3">
+                <div class="alert alert-danger text-center mx-4 mt-3"
+                    style="background: rgba(var(--accent-h), var(--accent-s), var(--accent-l), 0.1); border: 1px solid var(--accent); color: var(--accent);">
                     <i class="fas fa-ban me-2"></i> You have blocked this user.
                 </div>
             @elseif($isBlockedBy)
-                <div class="alert alert-warning text-center mx-4 mt-3">
+                <div class="alert alert-warning text-center mx-4 mt-3"
+                    style="background: rgba(var(--primary-rgb), 0.1); border: 1px solid var(--primary); color: var(--primary);">
                     <i class="fas fa-exclamation-circle me-2"></i> You cannot message this user.
                 </div>
             @endif
@@ -375,11 +383,16 @@ new class extends Component {
                     $createdAt = is_array($message) ? $message['created_at'] : $message->created_at;
                     $isRead = is_array($message) ? $message['is_read'] ?? false : $message->is_read;
                 @endphp
-                <div class="d-flex mb-3 {{ $isMe ? 'justify-content-end' : '' }}"
+                <div class="d-flex mb-4 {{ $isMe ? 'justify-content-end' : '' }}"
                     wire:key="msg-{{ $message['id'] ?? $message->id }}">
                     @if (!$isMe)
-                        <img src="{{ isset($msgUser['profile_image']) && $msgUser['profile_image'] ? asset('storage/' . $msgUser['profile_image']) : 'https://ui-avatars.com/api/?name=' . urlencode($msgUser['name'] ?? 'User') }}"
-                            class="rounded-circle me-2" width="35" height="35" alt="User">
+                        <div class="avatar-premium me-3 align-self-end mb-1" style="width: 32px; height: 32px;">
+                            @if (isset($msgUser['profile_image']) && $msgUser['profile_image'])
+                                <img src="{{ asset('storage/' . $msgUser['profile_image']) }}" alt="Avatar">
+                            @else
+                                {{ substr($msgUser['name'] ?? 'U', 0, 1) }}
+                            @endif
+                        </div>
                     @endif
 
                     <div class="d-flex flex-column {{ $isMe ? 'align-items-end' : 'align-items-start' }}"
@@ -390,24 +403,14 @@ new class extends Component {
                         @endphp
 
                         @if ($deletedAt)
-                            <div class="p-3 rounded-3"
-                                style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-muted); font-style: italic;">
-                                <i class="fas fa-ban me-1"></i> Message has been deleted
+                            <div class="p-3 rounded-premium"
+                                style="background: var(--bg-input); border: 1px dashed var(--border-subtle); color: var(--text-low); font-style: italic; font-size: 0.85rem;">
+                                <i class="fas fa-ban me-1"></i> Message deleted
                             </div>
                         @else
                             <div class="position-relative message-hover-container">
-                                <style>
-                                    .message-hover-container .delete-btn {
-                                        opacity: 0;
-                                        transition: opacity 0.2s;
-                                    }
-
-                                    .message-hover-container:hover .delete-btn {
-                                        opacity: 1;
-                                    }
-                                </style>
-                                <div class="p-3 rounded-3"
-                                    style="{{ $isMe ? 'background: var(--primary); color: white;' : 'background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);' }}">
+                                <div class="px-3 py-2 rounded-premium"
+                                    style="{{ $isMe ? 'background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);' : 'background: var(--bg-surface); border: 1px solid var(--border-main); color: var(--text-high);' }}">
                                     @if (count($msgAttachments) > 0)
                                         @foreach ($msgAttachments as $att)
                                             @continue(!is_array($att) && !is_object($att))
@@ -448,75 +451,75 @@ new class extends Component {
                                         @endforeach
                                     @endif
 
-                                    <div class="message-body">
+                                    <div class="message-body" style="font-size: 0.9rem; line-height: 1.5;">
                                         {!! $msgBody !!}
                                     </div>
                                 </div>
                                 @if ($isMe)
                                     <button wire:click="deleteMessage({{ $msgId }})"
                                         wire:confirm="Are you sure you want to delete this message?"
-                                        class="btn btn-sm btn-danger position-absolute top-0 start-0 translate-middle rounded-circle p-0 delete-btn d-flex align-items-center justify-content-center shadow-sm"
-                                        style="width: 24px; height: 24px; border: 1px solid rgba(255,255,255,0.2);"
+                                        class="btn btn-sm p-0 rounded-circle delete-btn d-flex align-items-center justify-content-center shadow-premium"
+                                        style="width: 22px; height: 22px; background: var(--bg-surface); border: 1px solid var(--border-main); color: var(--accent); position: absolute; top: -11px; left: -11px; z-index: 5;"
                                         title="Delete Message">
-                                        <i class="fas fa-trash-alt" style="font-size: 10px;"></i>
+                                        <i class="fas fa-times" style="font-size: 10px;"></i>
                                     </button>
                                 @endif
                             </div>
                         @endif
-                        <small class="mt-1" style="font-size: 0.75rem; color: var(--text-muted);">
-                            {{ \Carbon\Carbon::parse($createdAt)->format('d-m-Y H:i') }}
+                        <div class="d-flex align-items-center gap-2 mt-1"
+                            style="font-size: 0.65rem; color: var(--text-low);">
+                            <span>{{ \Carbon\Carbon::parse($createdAt)->format('H:i') }}</span>
                             @if ($isMe)
                                 @if ($isRead)
-                                    <i class="fas fa-check-double text-primary ms-1"></i>
-                                    <!-- Blue Double Tick (Read) -->
+                                    <i class="fas fa-check-double text-primary"></i>
                                 @elseif ($message['delivered_at'] ?? ($message->delivered_at ?? false))
-                                    <i class="fas fa-check-double text-secondary ms-1"></i>
-                                    <!-- Grey Double Tick (Delivered) -->
+                                    <i class="fas fa-check-double text-low"></i>
                                 @else
-                                    <i class="fas fa-check text-secondary ms-1"></i>
-                                    <!-- Grey Single Tick (Sent) -->
+                                    <i class="fas fa-check text-low"></i>
                                 @endif
                             @endif
-                        </small>
+                        </div>
                     </div>
                 </div>
             @endforeach
 
             <!-- Typing Indicator -->
-            <div x-show="isTyping" x-transition class="small ms-5 fst-italic" style="color: var(--text-muted);">
-                <span x-text="typingUser"></span> is typing...
+            <div x-show="isTyping" x-transition class="ms-5 mb-3"
+                style="color: var(--text-low); font-size: 0.75rem;">
+                <span class="fw-bold" x-text="typingUser"></span> <span class="fst-italic">is typing...</span>
             </div>
         </div>
 
         <!-- Input Area -->
-        <div class="p-4 border-top" style="background: var(--card-bg); border-color: var(--border-color) !important;">
+        <div class="p-3 border-top border-main" style="background: var(--bg-surface);">
             @if ($isBlocked || $isBlockedBy)
-                <div class="text-center py-3" style="color: var(--text-muted);">
-                    <i class="fas fa-lock me-1"></i> Chat is disabled.
+                <div class="text-center py-3 text-low" style="font-size: 0.85rem;">
+                    <i class="fas fa-lock me-2"></i> Chat is disabled.
                 </div>
             @else
                 @if ($attachment)
-                    <div class="chat-media-preview d-flex flex-wrap gap-2 mb-2 p-2 border rounded"
-                        style="background: var(--input-bg); border-color: var(--border-color) !important;">
+                    <div class="chat-media-preview d-flex flex-wrap gap-2 mb-3 p-2 border-main rounded-premium"
+                        style="background: var(--bg-input);">
                         @php
                             $files = is_array($attachment) ? $attachment : [$attachment];
                         @endphp
                         @foreach ($files as $file)
-                            <div class="position-relative d-inline-block border rounded"
-                                style="width: 60px; height: 60px; background: var(--card-bg); border-color: var(--border-color) !important;">
+                            <div class="position-relative d-inline-block border-main rounded-premium"
+                                style="width: 70px; height: 70px; background: var(--bg-surface); overflow: hidden;">
                                 @if (is_object($file) && method_exists($file, 'temporaryUrl') && str_starts_with($file->getMimeType(), 'image/'))
-                                    <img src="{{ $file->temporaryUrl() }}" class="rounded"
+                                    <img src="{{ $file->temporaryUrl() }}"
                                         style="width: 100%; height: 100%; object-fit: cover;">
                                 @else
                                     <div class="d-flex align-items-center justify-content-center h-100 w-100">
-                                        <i class="fas fa-file fa-lg" style="color: var(--text-muted);"></i>
+                                        <i class="fas fa-file-alt fa-lg text-low"></i>
                                     </div>
                                 @endif
 
                                 <button type="button"
-                                    class="btn btn-danger btn-sm rounded-circle position-absolute top-0 start-100 translate-middle p-0 d-flex align-items-center justify-content-center shadow-sm"
-                                    style="width: 20px; height: 20px;" wire:click="$set('attachment', null)">
-                                    <i class="fas fa-times" style="font-size: 10px;"></i>
+                                    class="btn-premium btn-premium-secondary p-0 rounded-circle position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center shadow-premium"
+                                    style="width: 20px; height: 20px; background: var(--bg-surface); font-size: 0.6rem;"
+                                    wire:click="$set('attachment', null)">
+                                    <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         @endforeach
@@ -524,92 +527,89 @@ new class extends Component {
                 @endif
 
                 <form wire:submit.prevent="sendMessage">
-                    <div class="position-relative border rounded overflow-hidden"
-                        style="border-color: var(--border-color) !important;">
-                        <div wire:ignore wire:key="editor-{{ $conversation->id }}" x-data="chatEditor(@this, {
-                            editorId: 'message-editor-{{ $conversation->id }}',
-                            conversationId: '{{ $conversation->id }}',
-                            userId: {{ auth()->id() }},
-                            userName: '{{ auth()->user()->name }}'
-                        })">
-                            <textarea id="message-editor-{{ $conversation->id }}" class="form-control" rows="1" style="resize: none;"
-                                placeholder="Type a message..."></textarea>
-                        </div>
-
-                        <!-- Icons Positioned Absolute Bottom Right -->
-                        <div class="position-absolute bottom-0 end-0 d-flex gap-1 p-2" style="z-index: 10;">
-                            <label class="btn btn-link text-muted p-1 mb-0" style="cursor: pointer;"
-                                title="Attach File">
-                                <i class="fas fa-paperclip"></i>
-                                <input type="file" wire:model.live="attachment" class="d-none">
-                            </label>
-                            <!-- Emoji Picker -->
-                            <div class="position-relative" x-data="{ showEmojiPicker: false }"
-                                @click.outside="showEmojiPicker = false">
-                                <button type="button" class="btn btn-link p-1" style="color: var(--text-muted);"
-                                    @click="showEmojiPicker = !showEmojiPicker" title="Emojis">
-                                    <i class="far fa-smile"></i>
-                                </button>
-
-                                <div x-show="showEmojiPicker" x-transition
-                                    class="position-absolute bottom-100 end-0 mb-2 rounded shadow p-0"
-                                    style="z-index: 1050; width: 350px; height: 400px; background: var(--card-bg); border: 1px solid var(--border-color);">
-                                    <emoji-picker
-                                        @emoji-click="
-                                        $event.detail.unicode;
-                                        let editor = tinymce.get('message-editor-{{ $conversation->id }}');
-                                        if(editor) {
-                                            editor.insertContent($event.detail.unicode);
-                                        }
-                                        showEmojiPicker = false;
-                                    "
-                                        style="width: 100%; height: 100%; 
-                                        --background: var(--card-bg); 
-                                        --border-color: var(--border-color);
-                                        --input-border-color: var(--border-color);
-                                        --input-font-color: var(--text-main);
-                                        --button-hover-background: rgba(var(--primary-rgb), 0.1);
-                                        --category-font-color: var(--text-muted);
-                                        --indicator-color: var(--primary);
-                                        --emoji-font-family: 'Outfit', sans-serif;">
-                                    </emoji-picker>
-                                </div>
+                    <div class="d-flex align-items-end gap-2">
+                        <div class="flex-grow-1 position-relative">
+                            <div wire:ignore wire:key="editor-{{ $conversation->id }}" x-data="chatEditor(@this, {
+                                editorId: 'message-editor-{{ $conversation->id }}',
+                                conversationId: '{{ $conversation->id }}',
+                                userId: {{ auth()->id() }},
+                                userName: '{{ auth()->user()->name }}'
+                            })">
+                                <textarea id="message-editor-{{ $conversation->id }}" class="form-premium-control py-3" rows="1"
+                                    style="resize: none; min-height: 52px;" placeholder="Type a message..."></textarea>
                             </div>
 
-                            <!-- Send Button -->
-                            <button type="button"
-                                class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center ms-1"
-                                style="width: 30px; height: 30px;"
-                                @click="
-                                            let editor = tinymce.get('message-editor-{{ $conversation->id }}');
-                                            if(editor) {
-                                                let content = editor.getContent();
-                                                // Check if the preview element exists (indicates attachment is present)
-                                                const hasAttachment = document.querySelector('.chat-media-preview') !== null;
+                            <div class="position-absolute bottom-0 end-0 d-flex align-items-center gap-1 p-2"
+                                style="z-index: 10;">
+                                <label class="btn btn-link text-low p-1 mb-0 hover-text-high" style="cursor: pointer;"
+                                    title="Attach file">
+                                    <i class="fas fa-paperclip"></i>
+                                    <input type="file" wire:model.live="attachment" class="d-none">
+                                </label>
 
-                                                if ((content && content.trim() !== '') || hasAttachment) {
-                                                    $wire.sendMessage(content);
-                                                    editor.resetContent();
+                                <div class="position-relative" x-data="{ showEmojiPicker: false }"
+                                    @click.outside="showEmojiPicker = false">
+                                    <button type="button" class="btn btn-link p-1 text-low hover-text-high"
+                                        @click="showEmojiPicker = !showEmojiPicker" title="Emojis">
+                                        <i class="far fa-smile-beam"></i>
+                                    </button>
+
+                                    <div x-show="showEmojiPicker" x-transition
+                                        class="position-absolute bottom-100 end-0 mb-3 rounded-premium shadow-premium border-main overflow-hidden"
+                                        style="z-index: 1050; width: 340px; height: 400px; background: var(--bg-surface);">
+                                        <emoji-picker
+                                            @emoji-click="
+                                                let editor = tinymce.get('message-editor-{{ $conversation->id }}');
+                                                if(editor) {
+                                                    editor.insertContent($event.detail.unicode);
                                                 }
-                                            }
-                                        ">
-                                <i class="fas fa-paper-plane" style="font-size: 0.8rem;"></i>
-                            </button>
+                                                showEmojiPicker = false;
+                                            "
+                                            style="width: 100%; height: 100%; 
+                                            --background: var(--bg-surface); 
+                                            --border-color: var(--border-main);
+                                            --input-border-color: var(--border-subtle);
+                                            --input-font-color: var(--text-high);
+                                            --button-hover-background: var(--bg-input);
+                                            --category-font-color: var(--text-low);
+                                            --indicator-color: var(--primary);
+                                            --emoji-font-family: 'Outfit', sans-serif;">
+                                        </emoji-picker>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
+                        <button type="button"
+                            class="btn-premium btn-premium-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                            style="width: 52px; height: 52px;"
+                            @click="
+                                let editor = tinymce.get('message-editor-{{ $conversation->id }}');
+                                if(editor) {
+                                    let content = editor.getContent();
+                                    const hasAttachment = document.querySelector('.chat-media-preview') !== null;
+                                    if ((content && content.trim() !== '') || hasAttachment) {
+                                        $wire.sendMessage(content);
+                                        editor.resetContent();
+                                    }
+                                }
+                            ">
+                            <i class="fas fa-paper-plane" style="font-size: 1.1rem;"></i>
+                        </button>
                     </div>
                 </form>
             @endif
         </div>
     @else
-        <div class="d-flex h-100 align-items-center justify-content-center flex-column"
-            style="color: var(--text-muted);">
-            <div class="p-4 rounded-circle mb-3" style="background: rgba(100, 116, 139, 0.1);">
-                <i class="fas fa-comments fa-3x opacity-50"></i>
+        <div class="d-flex h-100 align-items-center justify-content-center flex-column p-5 text-center"
+            style="background: var(--bg-surface);">
+            <div class="mb-4 d-flex align-items-center justify-content-center"
+                style="width: 100px; height: 100px; border-radius: var(--radius-full); background: var(--bg-input); color: var(--primary);">
+                <i class="fas fa-comments fa-3x"></i>
             </div>
-            <h5>Welcome to Team Chat</h5>
-            <p class="text-center mb-0" style="color: var(--text-muted);">Select a team member or group from the
-                list<br>to start a
-                conversation.</p>
+            <h4 class="fw-bold mb-2" style="color: var(--text-high);">Secure Team Hub</h4>
+            <p style="color: var(--text-low); max-width: 320px; line-height: 1.6;">Select a contact or group from the
+                sidebar to start a real-time conversation.</p>
         </div>
     @endif
 

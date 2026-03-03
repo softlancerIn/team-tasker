@@ -85,6 +85,11 @@ class User extends Authenticatable
             return false;
         }
 
+        // Super Admin Bypass
+        if ($this->role->slug === 'super-admin') {
+            return true;
+        }
+
         $permissions = $this->role->permissions ?? [];
 
         return in_array($permission, $permissions);

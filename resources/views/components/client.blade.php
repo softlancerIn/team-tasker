@@ -234,380 +234,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        :root {
-            /* Common Base Colors */
-            --primary: #6366f1;
-            --primary-rgb: 99, 102, 241;
-            --primary-dark: #4f46e5;
-            --secondary: #64748b;
-            --secondary-rgb: 100, 116, 139;
-            --accent: #10b981;
-            --accent-rgb: 16, 185, 129;
-
-            /* Dark Mode Defaults */
-            --bg-dark: #0f172a;
-            --sidebar-bg: #1e293b;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --input-bg: rgba(255, 255, 255, 0.05);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        [data-theme="light"] {
-            --bg-dark: #f1f5f9;
-            --sidebar-bg: #ffffff;
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --input-bg: #f8fafc;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border-color: rgba(0, 0, 0, 0.15);
-            --secondary: #94a3b8;
-        }
-
-
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            overflow-x: hidden;
-        }
-
-        /* Glassmorphism Sidebar */
-        .sidebar {
-            width: 260px;
-            height: 100vh;
-            position: fixed;
-            left: 0;
-            top: 0;
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border-color);
-            padding: 1.5rem;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--primary);
-        }
-
-        .nav-link {
-            color: var(--text-muted);
-            padding: 0.8rem 1rem;
-            border-radius: 12px;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s ease;
-            text-decoration: none;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background: rgba(99, 102, 241, 0.1);
-            color: var(--primary);
-        }
-
-        .nav-link i {
-            width: 20px;
-            font-size: 1.1rem;
-        }
-
-        /* Main Content area */
-        .main-content {
-            margin-left: 260px;
-            padding: 2rem;
-            min-height: 100vh;
-            background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent);
-        }
-
-        /* Glass Cards */
-        .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 1.5rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .glass-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .icon-primary {
-            background: rgba(99, 102, 241, 0.1);
-            color: var(--primary);
-        }
-
-        .icon-accent {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--accent);
-        }
-
-        .icon-warning {
-            background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
-        }
-
-        .btn {
-            font-weight: 400;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
-        }
-
-        .form-control,
-        .form-select {
-            font-weight: 400;
-            border-radius: 12px;
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-        }
-
-        .form-select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-        }
-
-        .form-select option {
-            background-color: #1a1b1e;
-            color: white;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            background-color: #25262b;
-            border-color: var(--primary);
-            color: white;
-            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.1);
-        }
-
-        .form-control::placeholder {
-            color: rgba(255, 255, 255, 0.4) !important;
-        }
-
-        /* Top Bar */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2.5rem;
-        }
-
-        .search-container {
-            position: relative;
-            width: 300px;
-        }
-
-        .search-container input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 0.6rem 1rem 0.6rem 2.5rem;
-            color: white;
-            width: 100%;
-        }
-
-        .search-container i {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-        }
-
-        .extra-small {
-            font-size: 0.7rem;
-        }
-
-        .activity-timeline {
-            position: relative;
-            padding-left: 0.5rem;
-        }
-
-        .activity-timeline::before {
-            content: '';
-            position: absolute;
-            left: 20px;
-            top: 0;
-            bottom: 0;
-            width: 1px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .text-main {
-            color: var(--text-main) !important;
-        }
-
-        .text-main-50 {
-            color: var(--text-muted) !important;
-            /* text-muted matches text-white-50 intent better in light mode */
-        }
-
-        .light-mode .form-select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%231e293b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-        }
-
-        @media (max-width: 991px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .main-content {
-                margin-left: 0;
-            }
-        }
-
-        .theme-toggle {
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            color: var(--text-muted);
-            background: transparent;
-            border: 1px solid var(--border-color);
-        }
-
-        .user-profile {
-            transition: all 0.3s ease;
-            padding: 5px 10px;
-            border-radius: 12px;
-        }
-
-        .user-profile:hover {
-            background: rgba(255, 255, 255, 0.05);
-            cursor: pointer;
-        }
-
-        [data-theme="light"] .user-profile:hover {
-            background: rgba(0, 0, 0, 0.05);
-        }
-
-        /* Light Mode Overrides */
-        [data-theme="light"] .text-white,
-        [data-theme="light"] .text-white-50 {
-            color: var(--text-main) !important;
-        }
-
-        [data-theme="light"] .bg-dark {
-            background-color: #ffffff !important;
-            color: var(--text-main) !important;
-        }
-
-        [data-theme="light"] .table-dark {
-            --bs-table-bg: transparent;
-            --bs-table-color: var(--text-main);
-            color: var(--text-main);
-            background-color: transparent;
-        }
-
-        [data-theme="light"] .table-dark th,
-        [data-theme="light"] .table-dark td {
-            color: var(--text-main);
-            border-color: var(--border-color);
-        }
-
-        [data-theme="light"] .form-control,
-        [data-theme="light"] .form-select {
-            background-color: #ffffff;
-            color: var(--text-main);
-            border-color: #ced4da;
-        }
-
-        [data-theme="light"] .table tbody tr:hover td {
-            background-color: rgba(0, 0, 0, 0.03) !important;
-        }
-
-        [data-theme="light"] .form-control::placeholder {
-            color: #6c757d !important;
-            /* Bootstrap text-muted color for visibility */
-            opacity: 1;
-        }
-
-        .theme-toggle:hover {
-            background: rgba(99, 102, 241, 0.1);
-            color: var(--primary);
-        }
-
-        /* Global Table Fix */
-        .table {
-            color: var(--text-main);
-            --bs-table-color: var(--text-main);
-        }
-
-        [data-theme="light"] .text-main-50 {
-            color: rgba(255, 255, 255, 0.7) !important;
-        }
-
-        [data-theme="light"] .search-container input {
-            background: #ffffff;
-            border-color: #ced4da;
-            color: var(--text-main);
-        }
-
-        [data-theme="light"] .search-container i {
-            color: #6c757d;
-        }
+        /* Minimal specific overrides if any needed in future */
     </style>
 </head>
 
 <body>
 
-    <aside class="sidebar">
+    <aside class="sidebar-premium">
         <div class="sidebar-brand">
             <i class="fas fa-layer-group"></i>
             <span>TeamTasker</span>
@@ -615,66 +248,71 @@
 
         <nav>
             <a href="{{ route('client.dashboard') }}"
-                class="nav-link {{ request()->routeIs('client.dashboard') ? 'active' : '' }}">
+                class="nav-link-premium {{ request()->routeIs('client.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-ticket-alt"></i> My Tickets
             </a>
 
             <a href="{{ route('client.tickets.create') }}"
-                class="nav-link {{ request()->routeIs('client.tickets.create') ? 'active' : '' }}">
+                class="nav-link-premium {{ request()->routeIs('client.tickets.create') ? 'active' : '' }}">
                 <i class="fas fa-plus-circle"></i> New Ticket
             </a>
 
             <a href="{{ route('client.chat.index') }}"
-                class="nav-link {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
+                class="nav-link-premium {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
                 <i class="fas fa-comments"></i> Chat
             </a>
 
             <div style="margin-top: auto; padding-top: 2rem;">
-                <a href="{{ route('logout') }}" class="nav-link text-danger">
+                <a href="{{ route('logout') }}" class="nav-link-premium text-danger">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
         </nav>
     </aside>
 
-    <main class="main-content">
-        <div class="top-bar">
-            <form action="{{ route('search.global') }}" method="GET" class="search-container">
+    <main class="main-content-premium">
+        <div class="top-bar-premium">
+            <form action="{{ route('search.global') }}" method="GET" class="header-search">
                 <i class="fas fa-search"></i>
-                <input type="text" name="q" placeholder="Search tasks..." value="{{ request('q') }}">
+                <input type="text" name="q" placeholder="Search tickets, tasks..."
+                    value="{{ request('q') }}">
             </form>
 
             <div class="d-flex align-items-center gap-3">
-                <button class="theme-toggle" id="themeToggle" title="Toggle Theme">
+                <button class="theme-toggle-premium" id="themeToggle" title="Toggle Theme">
                     <i class="fas fa-moon"></i>
                 </button>
                 <div class="dropdown">
-                    <div class="user-profile dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"
-                        style="cursor: pointer;">
-                        <div class="avatar">
+                    <div class="user-profile-premium dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="avatar-premium" style="border: 2px solid var(--border-main);">
                             @if (Auth::user()->profile_image)
-                                <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile"
-                                    style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile">
                             @else
                                 {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
                             @endif
                         </div>
-                        <div>
-                            <div style="font-weight: 500;">{{ Auth::user()->name ?? 'User' }}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">
-                                {{ Auth::user()->role->name ?? 'User' }}</div>
+                        <div class="d-none d-md-block">
+                            <div
+                                style="font-weight: 600; font-size: 0.9rem; color: var(--text-high); line-height: 1.2;">
+                                {{ Auth::user()->name ?? 'User' }}</div>
+                            <div style="font-size: 0.72rem; color: var(--text-medium);">
+                                {{ Auth::user()->role->name ?? 'Client' }}</div>
                         </div>
                     </div>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg mt-2"
-                        style="border-radius: 12px; min-width: 200px; background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-premium mt-2" style="min-width: 200px;">
+                        <li class="px-3 py-2" style="border-bottom: 1px solid var(--border-subtle);">
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-high);">
+                                {{ Auth::user()->name }}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-low);">{{ Auth::user()->email }}</div>
+                        </li>
                         <li>
                             <a class="dropdown-item py-2" href="#" data-bs-toggle="modal"
-                                data-bs-target="#profileModal" style="color: var(--text-main);">
-                                <i class="fas fa-user-edit me-2 text-primary"></i> Edit Profile
+                                data-bs-target="#profileModal">
+                                <i class="fas fa-user-edit me-2" style="color: var(--primary);"></i> Edit Profile
                             </a>
                         </li>
                         <li>
-                            <hr class="dropdown-divider" style="border-color: var(--border-color);">
+                            <hr class="dropdown-divider" style="border-color: var(--border-subtle); margin: 4px 0;">
                         </li>
                         <li>
                             <a class="dropdown-item text-danger py-2" href="{{ route('logout') }}">
@@ -687,33 +325,35 @@
         </div>
 
         <!-- Profile Edit Modal -->
-        <x-modal id="profileModal" title="My Profile" submitText="Update Profile"
+        <x-modal id="profileModal" title="Edit Profile" submitText="Save Changes"
             formAction="{{ route('profile.update') }}" enctype="multipart/form-data">
             <div class="text-center mb-4">
-                <div class="avatar mx-auto mb-2" style="width: 80px; height: 80px; font-size: 2rem;">
+                <div class="avatar-premium mx-auto mb-3"
+                    style="width: 72px; height: 72px; font-size: 1.75rem; border: 3px solid var(--border-main);">
                     @if (Auth::user()->profile_image)
                         <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile"
-                            style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            style="width: 100%; height: 100%; object-fit: cover;">
                     @else
                         {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
                     @endif
                 </div>
-                <div class="text-muted small">Update your profile picture</div>
-                <input type="file" name="profile_image" class="form-control form-control-sm mt-2">
+                <div class="text-low small mb-2">Update your profile picture</div>
+                <input type="file" name="profile_image" class="form-premium-control py-2" style="font-size: 0.8rem;">
             </div>
             <div class="mb-3">
-                <label class="form-label text-white">Full Name</label>
-                <input type="text" name="name" value="{{ Auth::user()->name }}" class="form-control"
+                <label class="heading-label mb-2" style="font-size: 0.7rem;">Full Name</label>
+                <input type="text" name="name" value="{{ Auth::user()->name }}" class="form-premium-control"
                     required>
             </div>
             <div class="mb-3">
-                <label class="form-label text-white">Email Address</label>
-                <input type="email" name="email" value="{{ Auth::user()->email }}" class="form-control"
+                <label class="heading-label mb-2" style="font-size: 0.7rem;">Email Address</label>
+                <input type="email" name="email" value="{{ Auth::user()->email }}" class="form-premium-control"
                     required>
             </div>
             <div class="mb-3">
-                <label class="form-label text-white">New Password (Empty to keep current)</label>
-                <input type="password" name="password" class="form-control">
+                <label class="heading-label mb-2" style="font-size: 0.7rem;">New Password <span class="text-low"
+                        style="font-weight: 400;">(leave blank to keep current)</span></label>
+                <input type="password" name="password" class="form-premium-control" placeholder="••••••••">
             </div>
         </x-modal>
 

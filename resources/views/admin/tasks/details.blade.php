@@ -3,36 +3,41 @@
         Task Details | Team Tasker
     </x-slot:title>
 
-    <div class="top-bar">
+    <div class="top-bar d-flex justify-content-between align-items-center mb-5">
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('index') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left"></i>
+            <a href="{{ route('index') }}"
+                class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
+                style="width: 32px; height: 32px; border-radius: 50%;">
+                <i class="fas fa-arrow-left" style="font-size: 0.8rem;"></i>
             </a>
-            <h3 class="mb-0">Task Details</h3>
+            <h3 class="mb-0 fw-bold text-high">Task Details</h3>
         </div>
         <div class="d-flex gap-2">
             @if ($activeTimer)
                 <form action="{{ route('tasks.stop_timer', $task->id) }}" method="POST" class="d-inline">
                     @csrf
-                    <button type="submit" class="btn btn-danger">
+                    <button type="submit" class="btn-premium py-2 px-4 shadow-sm"
+                        style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2);">
                         <i class="fas fa-stop me-2"></i> Stop Timer
-                        <span class="badge bg-white bg-opacity-20 ms-2" id="liveTimer">00:00:00</span>
+                        <span class="badge-premium ms-2" id="liveTimer"
+                            style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger);">00:00:00</span>
                     </button>
                     <input type="hidden" id="startTimeValue" value="{{ $activeTimer->start_time->toIso8601String() }}">
                 </form>
             @else
                 <form action="{{ route('tasks.start_timer', $task->id) }}" method="POST" class="d-inline">
                     @csrf
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn-premium btn-premium-primary py-2 px-4">
                         <i class="fas fa-play me-2"></i> Start Timer
                     </button>
                 </form>
             @endif
 
-            <a href="{{ route('edit', $task->id) }}" class="btn btn-outline-primary">
+            <a href="{{ route('edit', $task->id) }}" class="btn-premium btn-premium-secondary py-2 px-4">
                 <i class="fas fa-edit me-2"></i> Edit
             </a>
-            <a href="{{ route('delete', $task->id) }}" class="btn btn-outline-danger"
+            <a href="{{ route('delete', $task->id) }}" class="btn-premium py-2 px-3"
+                style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2);"
                 onclick="return confirm('Are you sure?')">
                 <i class="fas fa-trash-alt"></i>
             </a>
@@ -41,36 +46,56 @@
 
     <div class="row mt-4">
         <div class="col-lg-8">
-            <div class="glass-card mb-4">
+            <div class="glass-card mb-4 border-main">
                 <div class="d-flex justify-content-between align-items-start mb-4">
-                    <h2 class="mb-0">{{ $task->title }}</h2>
+                    <h2 class="mb-0 fw-bold text-high">{{ $task->title }}</h2>
                     @if ($task->status)
-                        <span
-                            class="badge bg-{{ $task->status->color }} bg-opacity-10 text-{{ $task->status->color }} border border-{{ $task->status->color }} border-opacity-25 px-3 py-2 rounded-pill">
+                        <span class="badge-premium"
+                            style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2);">
                             {{ $task->status->name }}
                         </span>
                     @else
-                        <span
-                            class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2 rounded-pill">Unknown</span>
+                        <span class="badge-premium"
+                            style="background: var(--bg-input); color: var(--text-low);">Unknown</span>
                     @endif
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     @if ($task->priority)
-                        <span
-                            class="badge bg-{{ $task->priority == 'Critical' ? 'danger' : ($task->priority == 'High' ? 'warning' : 'info') }} bg-opacity-10 text-{{ $task->priority == 'Critical' ? 'danger' : ($task->priority == 'High' ? 'warning' : 'info') }} border border-opacity-25 px-2 py-1 extra-small">
+                        @php
+                            $pColor =
+                                $task->priority == 'Critical'
+                                    ? 'var(--danger)'
+                                    : ($task->priority == 'High'
+                                        ? 'var(--accent)'
+                                        : 'var(--primary)');
+                            $pBg =
+                                $task->priority == 'Critical'
+                                    ? 'rgba(var(--danger-rgb), 0.1)'
+                                    : ($task->priority == 'High'
+                                        ? 'rgba(var(--accent-rgb), 0.1)'
+                                        : 'rgba(var(--primary-rgb), 0.1)');
+                            $pBorder =
+                                $task->priority == 'Critical'
+                                    ? 'rgba(var(--danger-rgb), 0.2)'
+                                    : ($task->priority == 'High'
+                                        ? 'rgba(var(--accent-rgb), 0.2)'
+                                        : 'rgba(var(--primary-rgb), 0.2)');
+                        @endphp
+                        <span class="badge-premium"
+                            style="background: {{ $pBg }}; color: {{ $pColor }}; border: 1px solid {{ $pBorder }};">
                             <i class="fas fa-flag me-1"></i> {{ $task->priority }} Priority
                         </span>
                     @endif
                     @foreach ($task->tags as $tag)
-                        <span class="badge bg-opacity-10 border border-opacity-25 px-2 py-1 extra-small"
-                            style="background-color: {{ $tag->color }}1a; color: {{ $tag->color }}; border-color: {{ $tag->color }}40;">
+                        <span class="badge-premium"
+                            style="background: {{ $tag->color }}1a; color: {{ $tag->color }}; border: 1px solid {{ $tag->color }}40;">
                             <i class="fas fa-tag me-1"></i> {{ $tag->name }}
                         </span>
                     @endforeach
                     @if ($task->is_recurring)
-                        <span
-                            class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 extra-small">
+                        <span class="badge-premium"
+                            style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2);">
                             <i class="fas fa-redo me-1"></i> Recurring ({{ ucfirst($task->recurring_interval) }})
                         </span>
                     @endif
@@ -83,10 +108,10 @@
                 <div class="row mb-5 g-4">
                     <div class="col-md-6">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="text-muted uppercase extra-small mb-0">Progress</h6>
-                            <span class="text-main small fw-bold">{{ $task->progress }}%</span>
+                            <h6 class="heading-label mb-0">Progress</h6>
+                            <span class="text-high small fw-bold">{{ $task->progress }}%</span>
                         </div>
-                        <div class="progress bg-white bg-opacity-10" style="height: 8px; border-radius: 4px;">
+                        <div class="progress" style="height: 8px; border-radius: 4px; background: var(--bg-input);">
                             <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
                                 role="progressbar" style="width: {{ $task->progress }}%;"
                                 aria-valuenow="{{ $task->progress }}" aria-valuemin="0" aria-valuemax="100"></div>
@@ -98,12 +123,12 @@
                             $overEstimated = $task->estimated_hours && $actualHours > $task->estimated_hours;
                         @endphp
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="text-muted uppercase extra-small mb-0">Time Health</h6>
-                            <span class="small fw-bold {{ $overEstimated ? 'text-danger' : 'text-main' }}">
+                            <h6 class="heading-label mb-0">Time Health</h6>
+                            <span class="small fw-bold {{ $overEstimated ? 'text-danger' : 'text-high' }}">
                                 {{ $actualHours }}h / {{ $task->estimated_hours ?? '?' }}h
                             </span>
                         </div>
-                        <div class="progress bg-white bg-opacity-10" style="height: 8px; border-radius: 4px;">
+                        <div class="progress" style="height: 8px; border-radius: 4px; background: var(--bg-input);">
                             <div class="progress-bar bg-{{ $overEstimated ? 'danger' : 'success' }}" role="progressbar"
                                 style="width: {{ $task->estimated_hours ? min(100, ($actualHours / $task->estimated_hours) * 100) : 0 }}%;">
                             </div>
@@ -123,19 +148,20 @@
 
                 <div class="collapse mb-4" id="addLogForm">
                     <form action="{{ route('tasks.log', $task->id) }}" method="POST"
-                        class="bg-opacity-5 p-3 rounded-3 border border-secondary border-opacity-25">
+                        class="bg-surface p-4 rounded-xl border border-main shadow-sm">
                         @csrf
-                        <div class="mb-3">
-                            <textarea id="longtextarea" name="note" class="form-control" rows="3" placeholder="Write a note..."></textarea>
+                        <div class="mb-4">
+                            <textarea id="longtextarea" name="note" class="form-premium-control" rows="3" placeholder="Write a note..."></textarea>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" id="publicMessage" name="type"
                                     value="message">
-                                <label class="form-check-label text-main-50 small" for="publicMessage">Visible to
+                                <label class="form-check-label text-medium small" for="publicMessage">Visible to
                                     Client</label>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-sm px-4">Save Note</button>
+                            <button type="submit" class="btn-premium btn-premium-primary py-2 px-4">Save
+                                Note</button>
                         </div>
                     </form>
                 </div>
@@ -176,8 +202,8 @@
                             @forelse($task->logs as $log)
                                 <div class="d-flex gap-3 mb-4">
                                     <div class="position-relative">
-                                        <div class="avatar"
-                                            style="width: 32px; height: 32px; font-size: 0.8rem; background: {{ $log->type == 'message' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(99, 102, 241, 0.1)' }}; color: {{ $log->type == 'message' ? '#22c55e' : 'var(--primary)' }};">
+                                        <div class="avatar-premium"
+                                            style="width: 32px; height: 32px; font-size: 0.8rem; background: {{ $log->type == 'message' ? 'rgba(var(--primary-rgb), 0.1)' : 'var(--bg-input)' }}; color: {{ $log->type == 'message' ? 'var(--primary)' : 'var(--text-medium)' }};">
                                             {{ substr($log->user->name, 0, 1) }}
                                         </div>
                                         @if (!$loop->last)
@@ -187,18 +213,18 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="fw-medium text-main small">{{ $log->user->name }}</span>
+                                            <span class="fw-bold text-high small">{{ $log->user->name }}</span>
                                             <span
-                                                class="text-muted extra-small">{{ $log->created_at->diffForHumans() }}</span>
+                                                class="text-low extra-small">{{ $log->created_at->diffForHumans() }}</span>
                                         </div>
                                         @if ($log->type == 'message')
-                                            <span
-                                                class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 extra-small mb-1">
+                                            <span class="badge-premium mb-2"
+                                                style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2); font-size: 0.65rem;">
                                                 <i class="fas fa-external-link-alt me-1"></i> Client Message
                                             </span>
                                         @else
-                                            <span
-                                                class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10 extra-small mb-1">
+                                            <span class="badge-premium mb-2"
+                                                style="background: var(--bg-input); color: var(--text-low); border: 1px solid var(--border-subtle); font-size: 0.65rem;">
                                                 <i class="fas fa-lock me-1"></i> Internal Note
                                             </span>
                                         @endif
@@ -233,11 +259,11 @@
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-3">
-                                            <span
-                                                class="badge bg-{{ $subtask->status->color ?? 'secondary' }} bg-opacity-10 text-{{ $subtask->status->color ?? 'secondary' }} extra-small">
+                                            <span class="badge-premium"
+                                                style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2); font-size: 0.7rem;">
                                                 {{ $subtask->status->name ?? 'Unknown' }}
                                             </span>
-                                            <span class="text-main-50 small fw-bold">{{ $subtask->progress }}%</span>
+                                            <span class="text-high small fw-bold">{{ $subtask->progress }}%</span>
                                         </div>
                                     </li>
                                 @empty
@@ -260,7 +286,7 @@
                         <div class="glass-card table-responsive">
                             <table class="table text-main align-middle mb-0">
                                 <thead>
-                                    <tr class="text-white small uppercase">
+                                    <tr class="heading-label">
                                         <th class="border-0 bg-transparent">Date</th>
                                         <th class="border-0 bg-transparent">User</th>
                                         <th class="border-0 bg-transparent">Description</th>
@@ -401,14 +427,13 @@
                 </div>
             </div>
 
-            <div class="glass-card mb-4">
-                <h5 class="mb-4">Update Progress</h5>
+            <div class="glass-card mb-4 border-main">
+                <h5 class="fw-bold mb-4 text-high">Update Progress</h5>
                 <form action="{{ route('tasks.progress', $task->id) }}" method="POST">
                     @csrf
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">Task Status</label>
-                        <select name="status_id"
-                            class="form-select bg-dark text-white border-secondary border-opacity-25">
+                    <div class="mb-4">
+                        <label class="heading-label d-block mb-3">Task Status</label>
+                        <select name="status_id" class="form-premium-control">
                             @foreach ($statuses as $status)
                                 <option value="{{ $status->id }}"
                                     {{ isset($task->status_id) && $task->status_id == $status->id ? 'selected' : '' }}>
@@ -418,16 +443,16 @@
                         </select>
                     </div>
                     <div class="mb-4">
-                        <div class="d-flex justify-content-between mb-2">
-                            <label class="form-label text-muted small mb-0">Completion</label>
-                            <span class="text-primary small fw-bold" id="progressValue">{{ $task->progress }}%</span>
+                        <div class="d-flex justify-content-between mb-3">
+                            <label class="heading-label mb-0">Completion</label>
+                            <span class="text-primary fw-bold" id="progressValue">{{ $task->progress }}%</span>
                         </div>
                         <input type="range" name="progress" class="form-range" min="0" max="100"
                             step="5" value="{{ $task->progress }}"
                             oninput="document.getElementById('progressValue').innerText = this.value + '%'">
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-sm">Update Progress</button>
+                        <button type="submit" class="btn-premium btn-premium-primary py-2">Update Progress</button>
                     </div>
                 </form>
             </div>

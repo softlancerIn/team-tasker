@@ -4,79 +4,99 @@
     </x-slot:title>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Search Results for "{{ $query }}"</h3>
-        <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        <div>
+            <h3 class="h4 fw-bold mb-0" style="color: var(--text-high);">
+                Search Results
+            </h3>
+            <p class="text-low small mb-0 mt-1">Showing results for "<strong
+                    style="color: var(--primary);">{{ $query }}</strong>"</p>
+        </div>
+        <a href="{{ route('dashboard') }}" class="btn-premium btn-premium-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
         </a>
     </div>
 
     @if ($tasks->count() > 0)
-        <h5 class="mb-3">Tasks ({{ $tasks->count() }})</h5>
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="fas fa-tasks" style="color: var(--primary);"></i>
+            <h5 class="fw-bold mb-0" style="color: var(--text-high);">Tasks <span class="badge-premium ms-1"
+                    style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">{{ $tasks->count() }}</span>
+            </h5>
+        </div>
         <div class="row g-4 mb-5">
             @foreach ($tasks as $task)
                 <div class="col-md-6 col-lg-4">
-                    <div class="glass-card h-100 d-flex flex-column">
+                    <div class="glass-card h-100 d-flex flex-column" style="border: 1px solid var(--border-main);">
                         <div class="d-flex justify-content-between align-items-start mb-3">
-                            <span
-                                class="badge bg-{{ $task->status->color ?? 'secondary' }} bg-opacity-25 text-{{ $task->status->color ?? 'secondary' }} border border-{{ $task->status->color ?? 'secondary' }} border-opacity-25">
+                            <span class="badge-premium"
+                                style="background: {{ $task->status->color ?? 'var(--primary)' }}1a; color: {{ $task->status->color ?? 'var(--primary)' }}; border: 1px solid {{ $task->status->color ?? 'var(--primary)' }}33;">
                                 {{ $task->status->name ?? 'Unknown' }}
                             </span>
                             <div class="dropdown">
-                                <button class="btn btn-link text-white p-0" data-bs-toggle="dropdown">
+                                <button class="btn p-0" style="color: var(--text-low); background: none; border: none;"
+                                    data-bs-toggle="dropdown">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
-                                    <li><a class="dropdown-item text-white"
-                                            href="{{ route('details', $task->id) }}">View Details</a></li>
-                                    <li><a class="dropdown-item text-white" href="{{ route('edit', $task->id) }}">Edit
-                                            Task</a></li>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{{ route('details', $task->id) }}">View
+                                            Details</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('edit', $task->id) }}">Edit Task</a>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
-                        <h5 class="mb-2"><a href="{{ route('details', $task->id) }}"
-                                class="text-white text-decoration-none">{{ $task->title }}</a></h5>
-                        <p class="text-muted small mb-3 flex-grow-1">
+                        <h5 class="mb-2">
+                            <a href="{{ route('details', $task->id) }}" class="text-decoration-none fw-bold"
+                                style="color: var(--text-high);">{{ $task->title }}</a>
+                        </h5>
+                        <p class="text-low small mb-3 flex-grow-1">
                             {{ Str::limit(strip_tags($task->description), 100) }}</p>
 
-                        <div
-                            class="mt-auto pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-                            <div class="d-flex -align-items-center gap-2">
-                                <div class="avatar" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                        <div class="mt-auto pt-3 d-flex justify-content-between align-items-center"
+                            style="border-top: 1px solid var(--border-subtle);">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-premium" style="width: 24px; height: 24px; font-size: 0.7rem;">
                                     {{ substr($task->assignedTo->name ?? 'U', 0, 1) }}
                                 </div>
-                                <span class="small text-muted">{{ $task->assignedTo->name ?? 'Unassigned' }}</span>
+                                <span class="small text-low">{{ $task->assignedTo->name ?? 'Unassigned' }}</span>
                             </div>
-                            <span class="small text-muted">{{ $task->created_at->format('M d') }}</span>
+                            <span class="small text-low">{{ $task->created_at->format('M d') }}</span>
                         </div>
                     </div>
                 </div>
             @endforeach
         </div>
     @else
-        <div class="alert alert-secondary bg-transparent border-secondary text-center py-4 mb-4">
-            <i class="fas fa-tasks fa-2x mb-3 text-muted"></i>
-            <p class="mb-0 text-muted">No tasks found matching "{{ $query }}".</p>
+        <div class="glass-card text-center py-5 mb-4" style="border: 1px solid var(--border-main);">
+            <i class="fas fa-tasks fa-2x mb-3 d-block" style="color: var(--text-low); opacity: 0.4;"></i>
+            <p class="mb-0 text-low">No tasks found matching "{{ $query }}".</p>
         </div>
     @endif
 
     @if (Auth::user()->hasPermission('users.view') && $users->count() > 0)
-        <h5 class="mb-3">Users ({{ $users->count() }})</h5>
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="fas fa-users" style="color: var(--accent);"></i>
+            <h5 class="fw-bold mb-0" style="color: var(--text-high);">Users <span class="badge-premium ms-1"
+                    style="background: rgba(var(--accent-rgb), 0.1); color: var(--accent);">{{ $users->count() }}</span>
+            </h5>
+        </div>
         <div class="row g-4">
             @foreach ($users as $user)
                 <div class="col-md-6 col-lg-3">
-                    <div class="glass-card text-center p-4">
-                        <div class="avatar mx-auto mb-3" style="width: 64px; height: 64px; font-size: 1.5rem;">
+                    <div class="glass-card text-center p-4" style="border: 1px solid var(--border-main);">
+                        <div class="avatar-premium mx-auto mb-3"
+                            style="width: 56px; height: 56px; font-size: 1.3rem; border: 2px solid var(--border-main);">
                             @if ($user->profile_image)
                                 <img src="{{ asset('storage/' . $user->profile_image) }}" alt=""
-                                    style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                    style="width: 100%; height: 100%; object-fit: cover;">
                             @else
                                 {{ substr($user->name, 0, 1) }}
                             @endif
                         </div>
-                        <h6 class="mb-1">{{ $user->name }}</h6>
-                        <p class="text-muted small mb-2">{{ $user->email }}</p>
-                        <span
-                            class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill">
+                        <h6 class="mb-1 fw-bold" style="color: var(--text-high);">{{ $user->name }}</h6>
+                        <p class="text-low small mb-3">{{ $user->email }}</p>
+                        <span class="badge-premium"
+                            style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2);">
                             {{ $user->role->name ?? 'No Role' }}
                         </span>
                     </div>
@@ -84,9 +104,9 @@
             @endforeach
         </div>
     @elseif(Auth::user()->hasPermission('users.view') && $query)
-        <div class="alert alert-secondary bg-transparent border-secondary text-center py-4">
-            <i class="fas fa-users fa-2x mb-3 text-muted"></i>
-            <p class="mb-0 text-muted">No users found matching "{{ $query }}".</p>
+        <div class="glass-card text-center py-5" style="border: 1px solid var(--border-main);">
+            <i class="fas fa-users fa-2x mb-3 d-block" style="color: var(--text-low); opacity: 0.4;"></i>
+            <p class="mb-0 text-low">No users found matching "{{ $query }}".</p>
         </div>
     @endif
 

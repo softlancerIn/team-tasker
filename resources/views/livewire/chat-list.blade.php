@@ -155,129 +155,125 @@ new class extends Component {
     }
 }; ?>
 
-<div class="d-flex flex-column h-100">
-    <div class="p-3 border-bottom" style="border-color: var(--border-color) !important;">
+<div class="d-flex flex-column h-100" style="background: var(--bg-surface);">
+    <div class="p-3 border-bottom border-main">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0 fw-bold" style="color: var(--text-main);">{{ $isClient ? 'My Groups' : 'Customers' }}</h5>
+            <h5 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $isClient ? 'My Groups' : 'Conversations' }}</h5>
             @if (!$isClient)
-                <button class="btn btn-sm rounded-circle" data-bs-toggle="modal" data-bs-target="#createGroupModal"
-                    style="background: var(--input-bg); color: var(--text-muted);">
-                    <i class="fas fa-plus"></i>
+                <button class="btn-premium btn-premium-secondary p-0 rounded-circle" data-bs-toggle="modal"
+                    data-bs-target="#createGroupModal"
+                    style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--bg-input);">
+                    <i class="fas fa-plus" style="font-size: 0.8rem;"></i>
                 </button>
             @endif
         </div>
-        <div class="search-container w-100 position-relative">
-            <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3"
-                style="color: var(--text-muted);"></i>
-            <input type="text" wire:model.live="search" class="form-control rounded-pill ps-5 border-0"
-                placeholder="{{ $isClient ? 'Search Groups...' : 'Search Customers...' }}"
-                style="background: var(--input-bg); color: var(--text-main);">
+        <div class="search-container-premium w-100">
+            <i class="fas fa-search search-icon-premium" style="font-size: 0.9rem;"></i>
+            <input type="text" wire:model.live="search" class="form-premium-control ps-5 py-2"
+                placeholder="{{ $isClient ? 'Search groups...' : 'Search contacts...' }}" style="font-size: 0.85rem;">
         </div>
     </div>
 
     <div class="overflow-auto flex-grow-1">
         <!-- Client Groups -->
-        <div class="d-flex justify-content-between align-items-center px-3 py-2 mt-2">
-            <div class="text-uppercase small fw-bold" style="color: var(--text-muted);">Client Groups</div>
+        <div class="d-flex justify-content-between align-items-center px-4 py-3">
+            <div class="heading-label mb-0" style="font-size: 0.7rem;">Client Groups</div>
             @if (!$isClient)
-                <button class="btn btn-sm rounded-circle" data-bs-toggle="modal"
-                    data-bs-target="#createClientGroupModal"
-                    style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted);"
+                <button class="btn btn-sm px-1 py-0 border-0 opacity-50" data-bs-toggle="modal"
+                    data-bs-target="#createClientGroupModal" style="color: var(--text-high);"
                     title="Create Client Group">
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-plus-circle"></i>
                 </button>
             @endif
         </div>
 
         @if ($clientGroups->isNotEmpty())
             @foreach ($clientGroups as $group)
-                <div class="d-flex align-items-center p-2 rounded user-item mx-2"
-                    wire:click="selectConversation({{ $group->id }})"
-                    style="cursor: pointer; {{ $selectedConversationId == $group->id ? 'background: rgba(var(--primary-rgb), 0.1);' : '' }}">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
-                        style="width: 40px; height: 40px; background: linear-gradient(45deg, #FF9F43, #FF6B6B);">
-                        <i class="fas fa-user-tie"></i>
+                <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $selectedConversationId == $group->id ? 'active' : '' }}"
+                    wire:click="selectConversation({{ $group->id }})">
+                    <div class="avatar-premium"
+                        style="width: 42px; height: 42px; background: linear-gradient(135deg, var(--primary), var(--accent));">
+                        <i class="fas fa-user-tie text-white" style="font-size: 1rem;"></i>
                     </div>
                     <div class="ms-3 flex-grow-1 overflow-hidden">
-                        <div class="d-flex justify-content-between">
-                            <h6 class="mb-0 text-truncate" style="color: var(--text-main);">{{ $group->name }}</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0 text-truncate fw-bold" style="color: var(--text-high); font-size: 0.9rem;">
+                                {{ $group->name }}</h6>
                             @if ($group->unread_count > 0)
-                                <span class="badge bg-danger rounded-pill">{{ $group->unread_count }}</span>
+                                <span class="badge-premium py-0 px-2 rounded-pill"
+                                    style="background: var(--accent); color: white; font-size: 0.65rem;">{{ $group->unread_count }}</span>
                             @endif
                         </div>
-                        <small class="text-truncate d-block" style="color: var(--text-muted);">
+                        <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
                             {{ $group->users_count }} members
-                        </small>
+                        </div>
                     </div>
                 </div>
             @endforeach
         @else
-            <div class="px-3 py-2 text-muted small fst-italic">No client groups yet.</div>
+            <div class="px-4 py-2 text-low small fst-italic" style="font-size: 0.8rem;">No client groups.</div>
         @endif
 
         @if (!$isClient)
-            <hr class="my-2" style="border-color: var(--border-color); opacity: 0.1;">
-            <div class="text-uppercase small fw-bold px-3 py-2" style="color: var(--text-muted);">
-                Direct Messages</div>
+            <div class="heading-label px-4 py-3 mb-0"
+                style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle);">Direct Messages</div>
 
             <!-- Direct Messages -->
             @foreach ($users as $user)
-                <div class="d-flex align-items-center p-3 border-bottom user-item"
-                    wire:click="selectUser({{ $user->id }})"
-                    style="cursor: pointer; border-color: var(--border-color) !important; {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'background: rgba(var(--primary-rgb), 0.1);' : '' }}"
-                    data-user-id="{{ $user->id }}">
+                <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'active' : '' }}"
+                    wire:click="selectUser({{ $user->id }})" data-user-id="{{ $user->id }}">
                     <div class="position-relative">
-                        @if ($user->profile_image)
-                            <img src="{{ asset('storage/' . $user->profile_image) }}" class="rounded-circle"
-                                width="45" height="45" style="object-fit: cover;">
-                        @else
-                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                                style="width: 45px; height: 45px; font-size: 1.2rem;">
+                        <div class="avatar-premium" style="width: 42px; height: 42px;">
+                            @if ($user->profile_image)
+                                <img src="{{ asset('storage/' . $user->profile_image) }}" alt="Avatar">
+                            @else
                                 {{ substr($user->name, 0, 1) }}
-                            </div>
-                        @endif
-                        <!-- Online Status Dot -->
-                        <span class="status-dot position-absolute top-0 end-0 p-1 bg-secondary rounded-circle"
-                            style="border: 2px solid var(--sidebar-bg);"></span>
-                    </div>
-                    <div class="ms-3 flex-grow-1 overflow-hidden">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 fw-bold" style="color: var(--text-main);">{{ $user->name }}</h6>
-                            @if ($user->conversation && $user->conversation->unread_count > 0)
-                                <span
-                                    class="badge bg-primary rounded-pill">{{ $user->conversation->unread_count }}</span>
                             @endif
                         </div>
-                        <small class="text-truncate d-block" style="color: var(--text-muted);">
+                        <!-- Online Status Dot -->
+                        <span
+                            class="position-absolute bottom-0 end-0 p-1 bg-success rounded-circle border border-1 border-dark"
+                            style="width: 12px; height: 12px; transform: translate(10%, 10%);"></span>
+                    </div>
+                    <div class="ms-3 flex-grow-1 overflow-hidden">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
+                                {{ $user->name }}</h6>
+                            @if ($user->conversation && $user->conversation->unread_count > 0)
+                                <span class="badge-premium py-0 px-2 rounded-pill"
+                                    style="background: var(--primary); color: white; font-size: 0.65rem;">{{ $user->conversation->unread_count }}</span>
+                            @endif
+                        </div>
+                        <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
                             {{ $user->email }}
-                        </small>
+                        </div>
                     </div>
                 </div>
             @endforeach
 
             <!-- Groups -->
             @if ($conversations->isNotEmpty())
-                <hr class="my-2" style="border-color: var(--border-color); opacity: 0.1;">
-                <div class="text-uppercase small fw-bold px-2 mt-2 mb-1" style="color: var(--text-muted);">Groups</div>
+                <div class="heading-label px-4 py-3 mb-0"
+                    style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle);">Staff Groups</div>
                 @foreach ($conversations as $group)
-                    <div class="d-flex align-items-center p-2 rounded user-item"
-                        wire:click="selectConversation({{ $group->id }})"
-                        style="cursor: pointer; {{ $selectedConversationId == $group->id ? 'background: rgba(var(--primary-rgb), 0.1);' : '' }}">
-                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white"
-                            style="width: 40px; height: 40px;">
-                            <i class="fas fa-users"></i>
+                    <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $selectedConversationId == $group->id ? 'active' : '' }}"
+                        wire:click="selectConversation({{ $group->id }})">
+                        <div class="avatar-premium" style="width: 42px; height: 42px; background: var(--bg-input);">
+                            <i class="fas fa-users" style="color: var(--primary);"></i>
                         </div>
                         <div class="ms-3 flex-grow-1 overflow-hidden">
-                            <div class="d-flex justify-content-between">
-                                <h6 class="mb-0 text-truncate" style="color: var(--text-main);">{{ $group->name }}
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="mb-0 text-truncate fw-bold"
+                                    style="color: var(--text-high); font-size: 0.9rem;">{{ $group->name }}
                                 </h6>
                                 @if ($group->unread_count > 0)
-                                    <span class="badge bg-danger rounded-pill">{{ $group->unread_count }}</span>
+                                    <span class="badge-premium py-0 px-2 rounded-pill"
+                                        style="background: var(--accent); color: white; font-size: 0.65rem;">{{ $group->unread_count }}</span>
                                 @endif
                             </div>
-                            <small class="text-truncate d-block" style="color: var(--text-muted);">
+                            <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
                                 {{ $group->users_count }} members
-                            </small>
+                            </div>
                         </div>
                     </div>
                 @endforeach
@@ -290,12 +286,23 @@ new class extends Component {
     <livewire:create-client-group-modal />
 
     <style>
-        .user-item:hover {
-            background: rgba(255, 255, 255, 0.05);
+        .user-item-premium {
+            cursor: pointer;
+            transition: var(--transition-base);
+            border-left: 3px solid transparent;
         }
 
-        [data-theme="light"] .user-item:hover {
-            background: rgba(0, 0, 0, 0.05);
+        .user-item-premium:hover {
+            background: var(--bg-input);
+        }
+
+        .user-item-premium.active {
+            background: rgba(var(--primary-rgb), 0.08);
+            border-left-color: var(--primary);
+        }
+
+        .user-item-premium.active .fw-bold {
+            color: var(--primary) !important;
         }
     </style>
 </div>

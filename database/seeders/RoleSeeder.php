@@ -23,24 +23,34 @@ class RoleSeeder extends Seeder
         }
 
         $managerPermissions = [
-            'dashboard',
+            'dashboard.view',
             'tasks.view',
             'tasks.create',
+            'tasks.edit',
+            'tickets.view',
+            'tickets.reply',
+            'tickets.assign',
+            'clients.view',
+            'clients.create',
+            'clients.edit',
+            'chat.view',
             'users.view',
             'users.create',
             'users.edit',
             'users.approve',
-            'roles.view', // Can view roles but not edit/create
+            'roles.view',
         ];
 
         $developerPermissions = [
-            'dashboard',
+            'dashboard.view',
             'tasks.view',
-            'tasks.create', // Developers can create tasks for themselves or report bugs
+            'tasks.create',
+            'tasks.edit',
+            'chat.view',
         ];
 
         $roles = [
-            ['name' => 'Admin', 'slug' => 'admin', 'permissions' => $allPermissions],
+            ['name' => 'Super Admin', 'slug' => 'super-admin', 'permissions' => $allPermissions],
             ['name' => 'Manager', 'slug' => 'manager', 'permissions' => $managerPermissions],
             ['name' => 'Developer', 'slug' => 'developer', 'permissions' => $developerPermissions],
         ];
