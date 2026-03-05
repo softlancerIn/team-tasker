@@ -250,7 +250,10 @@
                     this.socket.emit('join_room', roomId);
 
                     const onReceiveMessage = (data) => {
-                        if (data.user_id != this.userId) {
+                        if (data.action === 'delete') {
+                            // Find the deleted message and either remove it from DOM or trigger Livewire reload
+                            if (wire) wire.call('loadConversation', this.conversationId);
+                        } else if (data.user_id != this.userId) {
                             if (wire) wire.call('loadConversation', this.conversationId);
                         }
                     };
@@ -309,33 +312,239 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        /* Minimal specific overrides if any needed in future */
+        /* GLOBAL HEADER & LAYOUT REFINEMENTS */
+        .layout-header-premium {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 1050;
+            backdrop-filter: blur(10px);
+        }
+
+        .sidebar-premium {
+            top: 70px !important;
+            height: calc(100vh - 70px) !important;
+            border-top: none !important;
+            z-index: 1040;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-subtle) transparent;
+        }
+
+        .sidebar-premium::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar-premium::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar-premium::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+            border-radius: 10px;
+        }
+
+        .main-content-premium {
+            margin-top: 70px;
+            padding: 24px;
+            margin-left: 280px;
+            /* Sidebar width */
+        }
+
+        .header-utils {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-medium);
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .header-icon-btn:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: var(--bg-surface);
+        }
+
+        .header-search-premium {
+            flex-grow: 1;
+            max-width: 500px;
+            margin: 0 40px;
+            position: relative;
+        }
+
+        .header-search-premium i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-low);
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        .header-search-premium input {
+            width: 100%;
+            padding: 9px 16px 9px 40px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            color: var(--text-high);
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .header-search-premium input:focus {
+            border-color: var(--primary);
+            background: var(--bg-surface);
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .header-search-premium {
+                display: none;
+            }
+        }
+
+        @media (max-width: 991px) {
+            .main-content-premium {
+                margin-left: 0 !important;
+                padding-top: 80px !important;
+            }
+
+            .layout-header-premium {
+                left: 0 !important;
+            }
+        }
     </style>
 </head>
 
 <body>
 
-    <aside class="sidebar-premium">
-        <div class="sidebar-brand">
-            <i class="fas fa-layer-group"></i>
-            <span>TeamTasker</span>
+    <header class="layout-header-premium">
+        @php
+            $appSettings = \App\Models\Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
+            $appName = $appSettings['app_name'] ?? 'TeamTasker';
+            $appLogo = $appSettings['app_logo'] ?? null;
+        @endphp
+        <div class="d-flex align-items-center gap-3">
+            <button class="mobile-toggle-premium d-lg-none" id="mobileSidebarToggle" style="margin-right: 0;">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="{{ route('client.dashboard') }}"
+                class="sidebar-brand text-decoration-none p-0 border-0 bg-transparent">
+                @if ($appLogo)
+                    <img src="{{ asset('storage/' . $appLogo) }}" alt="Logo"
+                        style="width: 32px; height: 32px; object-fit: contain; border-radius: 6px;">
+                @else
+                    <i class="fas fa-layer-group text-primary" style="font-size: 1.5rem;"></i>
+                @endif
+                <span class="text-high fw-bold"
+                    style="font-size: 1.25rem; letter-spacing: -0.5px;">{{ $appName }}</span>
+            </a>
         </div>
 
+        <!-- Global Search -->
+        <form action="{{ route('search.global') }}" method="GET" class="header-search-premium">
+            <i class="fas fa-search"></i>
+            <input type="text" name="q" placeholder="Search tickets, tasks..." value="{{ request('q') }}">
+        </form>
+
+        <div class="header-utils">
+            <!-- Theme Toggle -->
+            <button class="header-icon-btn" id="themeToggle" title="Toggle Theme">
+                <i class="fas fa-moon"></i>
+            </button>
+
+            <!-- Notification Placeholder -->
+            @php
+                $notificationCount = Auth::user()->unreadNotifications->count();
+            @endphp
+            <button class="header-icon-btn position-relative" title="Notifications" data-bs-toggle="modal"
+                data-bs-target="#notificationsModal">
+                <i class="far fa-bell"></i>
+                @if ($notificationCount > 0)
+                    <span class="notification-badge">{{ $notificationCount > 99 ? '99+' : $notificationCount }}</span>
+                @endif
+            </button>
+
+            <!-- User Profile -->
+            <div class="dropdown">
+                <div class="user-profile-premium dropdown-toggle p-0 bg-transparent border-0" data-bs-toggle="dropdown"
+                    style="cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                    <div class="avatar-premium"
+                        style="width: 38px; height: 38px; border: 1px solid var(--border-main);">
+                        @if (Auth::user()->profile_image)
+                            <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile">
+                        @else
+                            {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
+                        @endif
+                    </div>
+                </div>
+                <ul class="dropdown-menu dropdown-menu-end shadow-premium mt-3"
+                    style="min-width: 200px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                    <li class="px-3 py-3"
+                        style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-input); border-radius: 12px 12px 0 0;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-high);">
+                            {{ Auth::user()->name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-low);">{{ Auth::user()->email }}</div>
+                    </li>
+                    <li><a class="dropdown-item py-2 mt-1" href="#" data-bs-toggle="modal"
+                            data-bs-target="#profileModal"><i class="fas fa-user-edit me-2 text-primary"></i> Edit
+                            Profile</a></li>
+                    <li>
+                        <hr class="dropdown-divider" style="opacity: 0.1;">
+                    </li>
+                    <li><a class="dropdown-item text-danger py-2 mb-1" href="{{ route('logout') }}"><i
+                                class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <aside class="sidebar-premium">
+
         <nav>
-            <a href="{{ route('client.dashboard') }}"
-                class="nav-link-premium {{ request()->routeIs('client.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-ticket-alt"></i> My Tickets
-            </a>
+            @if (Auth::user()->hasPermission('tickets.view'))
+                <a href="{{ route('client.dashboard') }}"
+                    class="nav-link-premium {{ request()->routeIs('client.dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-ticket-alt"></i> My Tickets
+                </a>
+            @endif
 
-            <a href="{{ route('client.tickets.create') }}"
-                class="nav-link-premium {{ request()->routeIs('client.tickets.create') ? 'active' : '' }}">
-                <i class="fas fa-plus-circle"></i> New Ticket
-            </a>
+            @if (Auth::user()->hasPermission('tickets.create'))
+                <a href="{{ route('client.tickets.create') }}"
+                    class="nav-link-premium {{ request()->routeIs('client.tickets.create') ? 'active' : '' }}">
+                    <i class="fas fa-plus-circle"></i> New Ticket
+                </a>
+            @endif
 
-            <a href="{{ route('client.chat.index') }}"
-                class="nav-link-premium {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
-                <i class="fas fa-comments"></i> Chat
-            </a>
+            @if (Auth::user()->hasPermission('chat.view'))
+                <a href="{{ route('client.chat.index') }}"
+                    class="nav-link-premium {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
+                    <i class="fas fa-comments"></i> Chat
+                </a>
+            @endif
 
             <div style="margin-top: auto; padding-top: 2rem;">
                 <a href="{{ route('logout') }}" class="nav-link-premium text-danger">
@@ -346,122 +555,149 @@
     </aside>
 
     <main class="main-content-premium">
-        <div class="top-bar-premium">
-            <form action="{{ route('search.global') }}" method="GET" class="header-search">
-                <i class="fas fa-search"></i>
-                <input type="text" name="q" placeholder="Search tickets, tasks..."
-                    value="{{ request('q') }}">
-            </form>
-
-            <div class="d-flex align-items-center gap-3">
-                <button class="theme-toggle-premium" id="themeToggle" title="Toggle Theme">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <div class="dropdown">
-                    <div class="user-profile-premium dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="avatar-premium" style="border: 2px solid var(--border-main);">
-                            @if (Auth::user()->profile_image)
-                                <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile">
-                            @else
-                                {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
-                            @endif
-                        </div>
-                        <div class="d-none d-md-block">
-                            <div
-                                style="font-weight: 600; font-size: 0.9rem; color: var(--text-high); line-height: 1.2;">
-                                {{ Auth::user()->name ?? 'User' }}</div>
-                            <div style="font-size: 0.72rem; color: var(--text-medium);">
-                                {{ Auth::user()->role->name ?? 'Client' }}</div>
-                        </div>
-                    </div>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-premium mt-2" style="min-width: 200px;">
-                        <li class="px-3 py-2" style="border-bottom: 1px solid var(--border-subtle);">
-                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-high);">
-                                {{ Auth::user()->name }}</div>
-                            <div style="font-size: 0.7rem; color: var(--text-low);">{{ Auth::user()->email }}</div>
-                        </li>
-                        <li>
-                            <a class="dropdown-item py-2" href="#" data-bs-toggle="modal"
-                                data-bs-target="#profileModal">
-                                <i class="fas fa-user-edit me-2" style="color: var(--primary);"></i> Edit Profile
-                            </a>
-                        </li>
-                        <li>
-                            <hr class="dropdown-divider" style="border-color: var(--border-subtle); margin: 4px 0;">
-                        </li>
-                        <li>
-                            <a class="dropdown-item text-danger py-2" href="{{ route('logout') }}">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Profile Edit Modal -->
-        <x-modal id="profileModal" title="Edit Profile" submitText="Save Changes"
-            formAction="{{ route('profile.update') }}" enctype="multipart/form-data">
-            <div class="text-center mb-4">
-                <div class="avatar-premium mx-auto mb-3"
-                    style="width: 72px; height: 72px; font-size: 1.75rem; border: 3px solid var(--border-main);">
-                    @if (Auth::user()->profile_image)
-                        <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile"
-                            style="width: 100%; height: 100%; object-fit: cover;">
-                    @else
-                        {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
-                    @endif
-                </div>
-                <div class="text-low small mb-2">Update your profile picture</div>
-                <input type="file" name="profile_image" class="form-premium-control py-2" style="font-size: 0.8rem;">
-            </div>
-            <div class="mb-3">
-                <label class="heading-label mb-2" style="font-size: 0.7rem;">Full Name</label>
-                <input type="text" name="name" value="{{ Auth::user()->name }}" class="form-premium-control"
-                    required>
-            </div>
-            <div class="mb-3">
-                <label class="heading-label mb-2" style="font-size: 0.7rem;">Email Address</label>
-                <input type="email" name="email" value="{{ Auth::user()->email }}" class="form-premium-control"
-                    required>
-            </div>
-            <div class="mb-3">
-                <label class="heading-label mb-2" style="font-size: 0.7rem;">New Password <span class="text-low"
-                        style="font-weight: 400;">(leave blank to keep current)</span></label>
-                <input type="password" name="password" class="form-premium-control" placeholder="••••••••">
-            </div>
-        </x-modal>
-
-        <!-- Toast Container -->
-        <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
-            @if (session('success'))
-                <div id="successToast" class="toast align-items-center text-white bg-success border-0 shadow-lg"
-                    role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-toast="toast"
-                            aria-label="Close"></button>
-                    </div>
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div id="errorToast" class="toast align-items-center text-white bg-danger border-0 shadow-lg"
-                    role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-                            aria-label="Close"></button>
-                    </div>
-                </div>
-            @endif
-        </div>
-
         {{ $slot }}
+    </main>
+
+    <!-- Notifications Modal -->
+    <div class="modal fade" id="notificationsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content shadow-premium"
+                style="border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface); backdrop-filter: blur(20px);">
+                <div class="modal-header border-0 px-4 pt-4 pb-0">
+                    <h5 class="modal-title fw-bold text-high">Notifications</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="px-4 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-low small">{{ $notificationCount }} Unread</span>
+                        @if ($notificationCount > 0)
+                            <form action="{{ route('notifications.markAsRead') }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                    class="btn btn-link text-primary text-decoration-none p-0 small"
+                                    style="font-size: 0.75rem;">Mark all as read</button>
+                            </form>
+                        @endif
+                    </div>
+                    <div class="notification-list-wrapper" style="max-height: 400px; overflow-y: auto;">
+                        @forelse (Auth::user()->notifications()->latest()->take(20)->get() as $notification)
+                            @php
+                                $type = 'task';
+                                $icon = 'fa-tasks';
+                                if (str_contains($notification->type, 'Ticket')) {
+                                    $type = 'ticket';
+                                    $icon = 'fa-ticket-alt';
+                                } elseif (str_contains($notification->type, 'Sla')) {
+                                    $type = 'alert';
+                                    $icon = 'fa-exclamation-triangle';
+                                }
+
+                                $url = '#';
+                                if (isset($notification->data['ticket_id'])) {
+                                    $url = route('client.tickets.show', $notification->data['ticket_id']);
+                                } elseif (isset($notification->data['task_id'])) {
+                                    $url = route('client.tasks.show', $notification->data['task_id']);
+                                }
+                            @endphp
+                            <a href="{{ $url }}"
+                                class="notification-item-premium {{ $notification->unread() ? 'unread' : '' }}">
+                                <div class="notification-icon-wrapper notification-icon-{{ $type }}">
+                                    <i class="fas {{ $icon }}"></i>
+                                </div>
+                                <div class="notification-content">
+                                    <div class="notification-title">
+                                        {{ $notification->data['message'] ?? 'New Notification' }}
+                                    </div>
+                                    <div class="notification-description">
+                                        {{ $notification->data['title'] ?? ($notification->data['description'] ?? 'No additional details') }}
+                                    </div>
+                                    <div class="notification-time">{{ $notification->created_at->diffForHumans() }}
+                                    </div>
+                                </div>
+                                @if ($notification->unread())
+                                    <div class="unread-indicator-dot"></div>
+                                @endif
+                            </a>
+                        @empty
+                            <div class="p-5 text-center">
+                                <i class="far fa-bell-slash text-low mb-3" style="font-size: 2rem;"></i>
+                                <div class="text-low small">No notifications found</div>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3">
+                    <button type="button" class="btn btn-premium-secondary btn-sm w-100"
+                        data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Edit Modal -->
+    <x-modal id="profileModal" title="Edit Profile" submitText="Save Changes"
+        formAction="{{ route('profile.update') }}" enctype="multipart/form-data">
+        <div class="text-center mb-4">
+            <div class="avatar-premium mx-auto mb-3"
+                style="width: 72px; height: 72px; font-size: 1.75rem; border: 3px solid var(--border-main);">
+                @if (Auth::user()->profile_image)
+                    <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile"
+                        style="width: 100%; height: 100%; object-fit: cover;">
+                @else
+                    {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
+                @endif
+            </div>
+            <div class="text-low small mb-2">Update your profile picture</div>
+            <input type="file" name="profile_image" class="form-premium-control py-2" style="font-size: 0.8rem;">
+        </div>
+        <div class="mb-3">
+            <label class="heading-label mb-2" style="font-size: 0.7rem;">Full Name</label>
+            <input type="text" name="name" value="{{ Auth::user()->name }}" class="form-premium-control"
+                required>
+        </div>
+        <div class="mb-3">
+            <label class="heading-label mb-2" style="font-size: 0.7rem;">Email Address</label>
+            <input type="email" name="email" value="{{ Auth::user()->email }}" class="form-premium-control"
+                required>
+        </div>
+        <div class="mb-3">
+            <label class="heading-label mb-2" style="font-size: 0.7rem;">New Password <span class="text-low"
+                    style="font-weight: 400;">(leave blank to keep current)</span></label>
+            <input type="password" name="password" class="form-premium-control" placeholder="••••••••">
+        </div>
+    </x-modal>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
+        @if (session('success'))
+            <div id="successToast" class="toast align-items-center text-white bg-success border-0 shadow-lg"
+                role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-toast="toast"
+                        aria-label="Close"></button>
+                </div>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div id="errorToast" class="toast align-items-center text-white bg-danger border-0 shadow-lg"
+                role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                        aria-label="Close"></button>
+                </div>
+            </div>
+        @endif
+    </div>
+
+    {{ $slot }}
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

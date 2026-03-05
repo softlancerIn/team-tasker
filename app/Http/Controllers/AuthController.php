@@ -11,8 +11,9 @@ class AuthController extends Controller
 {
     public function loginPage()
     {
-        if (Auth::check('user')) {
-            return redirect()->route('dashboard');
+        if (Auth::check()) {
+            $user = Auth::user();
+            return redirect()->route($user->role_id == 3 ? 'client.dashboard' : 'dashboard');
         }
 
         return view('auth.login');
@@ -37,13 +38,14 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('dashboard');
+        return redirect()->route($user->role_id == 3 ? 'client.dashboard' : 'dashboard');
     }
 
     public function registerPage()
     {
-        if (Auth::check('user')) {
-            return redirect()->route('dashboard');
+        if (Auth::check()) {
+            $user = Auth::user();
+            return redirect()->route($user->role_id == 3 ? 'client.dashboard' : 'dashboard');
         }
 
         return view('auth.register');
@@ -59,14 +61,46 @@ class AuthController extends Controller
             'email.unique' => 'This email already exists in our system.',
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role_id' => null, // Admin will assign role upon approval
             'is_approved' => false,
         ]);
 
         return redirect()->route('loginPage')->with('success', 'Registration successful! Please wait for admin approval before logging in.');
+    }
+
+    public function clientRegisterPage()
+    {
+        if (Auth::check()) {
+            $user = Auth::user();
+            return redirect()->route($user->role_id == 3 ? 'client.dashboard' : 'dashboard');
+        }
+
+        return view('auth.client-register');
+    }
+
+    public function clientRegister(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'email.unique' => 'This email already exists in our system.',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role_id' => 3, // Client Role
+            'is_approved' => false, // Requires admin approval
+        ]);
+
+        return redirect()->route('loginPage')->with('success', 'Client registration successful! Please wait for admin approval before logging in.');
     }
 
     public function logout()

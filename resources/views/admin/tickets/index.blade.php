@@ -18,8 +18,8 @@
                         class="fas fa-filter me-1"></i> Filters:</span>
             </div>
             <div class="col-md-3">
-                <x-select name="priority" class="form-premium-control" onchange="this.form.submit()"
-                    style="font-size: 0.85rem;" placeholder="All Priorities">
+                <x-select name="priority" onchange="this.form.submit()" style="font-size: 0.85rem;"
+                    placeholder="All Priorities">
                     <option value="" class="bg-dark">All Priorities</option>
                     <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }} class="bg-dark">Low
                         Priority</option>
@@ -34,8 +34,8 @@
                 </x-select>
             </div>
             <div class="col-md-3">
-                <x-select name="status" class="form-premium-control" onchange="this.form.submit()"
-                    style="font-size: 0.85rem;" placeholder="All Statuses">
+                <x-select name="status" onchange="this.form.submit()" style="font-size: 0.85rem;"
+                    placeholder="All Statuses">
                     <option value="" class="bg-dark">All Statuses</option>
                     <option value="open" {{ request('status') == 'open' ? 'selected' : '' }} class="bg-dark">Open
                         Tickets</option>

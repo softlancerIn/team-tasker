@@ -10,7 +10,9 @@ class TeamController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with('role');
+        $query = User::with('role')->where(function ($q) {
+            $q->where('role_id', '!=', 3)->orWhereNull('role_id');
+        });
 
         if ($request->filled('name')) {
             $query->where('name', 'like', '%'.$request->name.'%');
@@ -114,23 +116,31 @@ class TeamController extends Controller
 
         switch ($action) {
             case 'approve':
+                if (! auth()->user()->hasPermission('users.approve')) {
+                    abort(403, 'Unauthorized action.');
+                }
                 User::whereIn('id', $ids)->update(['is_approved' => true]);
                 $message = 'Selected users approved successfully.';
                 break;
             case 'disapprove':
+                if (! auth()->user()->hasPermission('users.approve')) {
+                    abort(403, 'Unauthorized action.');
+                }
                 // Prevent self-disapproval in bulk
                 User::whereIn('id', $ids)->where('id', '!=', auth()->id())->update(['is_approved' => false]);
                 $message = 'Selected users disapproved successfully.';
                 break;
             case 'delete':
-                // Prevent self-deletion in bulk
-                $usersToDelete = User::whereIn('id', $ids)->where('id', '!=', auth()->id())->get();
-                foreach ($usersToDelete as $user) {
-                    $user->delete();
+                if (! auth()->user()->hasPermission('users.delete')) {
+                    abort(403, 'Unauthorized action.');
                 }
+                User::whereIn('id', $ids)->where('id', '!=', auth()->id())->delete();
                 $message = 'Selected users deleted successfully.';
                 break;
             case 'change_role':
+                if (! auth()->user()->hasPermission('users.edit')) {
+                    abort(403, 'Unauthorized action.');
+                }
                 $roleId = $request->role_id;
                 if (! $roleId) {
                     return back()->with('error', 'Please select a role.');

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Team Tasker</title>
+    <title>Client Registration | Team Tasker</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
@@ -33,6 +33,7 @@
             justify-content: center;
             margin: 0;
             overflow-x: hidden;
+            padding: 2rem 0;
         }
 
         .blob {
@@ -64,7 +65,7 @@
             border-radius: 24px;
             padding: 3rem;
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.8s ease-out;
         }
@@ -116,7 +117,7 @@
             color: #cbd5e1;
             font-weight: 500;
             font-size: 0.9rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
         }
 
         .form-control {
@@ -171,12 +172,9 @@
             color: var(--accent);
         }
 
-        .alert-premium {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.2);
+        .invalid-feedback {
+            font-size: 0.8rem;
             color: #ef4444;
-            border-radius: 12px;
-            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -188,54 +186,65 @@
         <div class="auth-card">
             <div class="logo-area">
                 <div class="logo-icon">
-                    <i class="fas fa-layer-group"></i>
+                    <i class="fas fa-handshake"></i>
                 </div>
-                <h1 class="auth-title">Welcome Back</h1>
-                <p class="auth-subtitle">Log in to manage your tasks effectively</p>
+                <h1 class="auth-title">Client Registration</h1>
+                <p class="auth-subtitle">Partner with Team Tasker today</p>
             </div>
 
             @if (session('error'))
-                <div class="alert alert-premium mb-4">
+                <div class="alert alert-danger mb-4 bg-danger bg-opacity-10 border-danger border-opacity-20 text-danger"
+                    style="border-radius: 12px; font-size: 0.85rem;">
                     <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
                 </div>
             @endif
 
-            @if (session('success'))
-                <div class="alert alert-success mb-4 bg-success bg-opacity-10 border-success border-opacity-20 text-success"
-                    style="border-radius: 12px; font-size: 0.85rem;">
-                    <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-                </div>
-            @endif
-
-            <form action="{{ route('login_submit') }}" method="POST">
+            <form action="{{ route('clientRegister') }}" method="POST">
                 @csrf
                 <div class="mb-4">
-                    <label for="email" class="form-label">Email Address</label>
-                    <input type="email" id="email" name="email" class="form-control"
-                        placeholder="name@example.com" required>
+                    <label for="name" class="form-label">Full Name</label>
+                    <input type="text" id="name" name="name"
+                        class="form-control @error('name') is-invalid @enderror" placeholder="Jane Doe"
+                        value="{{ old('name') }}" required>
+                    @error('name')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="mb-4">
-                    <div class="d-flex justify-content-between">
+                    <label for="email" class="form-label">Business Email</label>
+                    <input type="email" id="email" name="email"
+                        class="form-control @error('email') is-invalid @enderror" placeholder="jane@company.com"
+                        value="{{ old('email') }}" required>
+                    @error('email')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-4">
                         <label for="password" class="form-label">Password</label>
-                        <a href="{{ route('forgotPassword') }}" class="auth-link small">Forgot?</a>
+                        <input type="password" id="password" name="password"
+                            class="form-control @error('password') is-invalid @enderror" placeholder="••••••••"
+                            required>
+                        @error('password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
-                        required>
+                    <div class="col-md-6 mb-4">
+                        <label for="password_confirmation" class="form-label">Confirm</label>
+                        <input type="password" id="password_confirmation" name="password_confirmation"
+                            class="form-control" placeholder="••••••••" required>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-auth">
-                    Sign In <i class="fas fa-arrow-right ms-2"></i>
+                    Create Client Account <i class="fas fa-check ms-2"></i>
                 </button>
             </form>
 
-            <div class="auth-footer d-flex flex-column align-items-center gap-2">
-                <span>Don't have an account?</span>
-                <div class="d-flex gap-3">
-                    <a href="{{ route('registerPage') }}" class="auth-link">Register as Team Member</a>
-                    <span class="text-muted">|</span>
-                    <a href="{{ route('clientRegisterPage') }}" class="auth-link">Register as Client</a>
-                </div>
+            <div class="auth-footer">
+                Already a client? <a href="{{ route('loginPage') }}" class="auth-link">Sign In</a>
             </div>
         </div>
     </div>

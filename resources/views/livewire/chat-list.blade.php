@@ -155,7 +155,17 @@ new class extends Component {
     }
 }; ?>
 
-<div class="d-flex flex-column h-100" style="background: var(--bg-surface);">
+<div class="d-flex flex-column h-100" style="background: var(--bg-surface);" x-data="{
+    onlineUsers: [],
+    init() {
+        if (window.socket) {
+            window.socket.on('online_users', (users) => {
+                this.onlineUsers = users.map(String);
+            });
+            window.socket.emit('user_connected', {{ auth()->id() }});
+        }
+    }
+}">
     <div class="p-3 border-bottom border-main">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $isClient ? 'My Groups' : 'Conversations' }}</h5>
@@ -231,8 +241,8 @@ new class extends Component {
                             @endif
                         </div>
                         <!-- Online Status Dot -->
-                        <span
-                            class="position-absolute bottom-0 end-0 p-1 bg-success rounded-circle border border-1 border-dark"
+                        <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
+                            :class="onlineUsers.includes('{{ $user->id }}') ? 'bg-success' : 'bg-secondary'"
                             style="width: 12px; height: 12px; transform: translate(10%, 10%);"></span>
                     </div>
                     <div class="ms-3 flex-grow-1 overflow-hidden">

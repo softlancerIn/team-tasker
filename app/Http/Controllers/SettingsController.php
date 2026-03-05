@@ -12,7 +12,8 @@ class SettingsController extends Controller
 {
     public function general()
     {
-        return view('admin.settings.general');
+        $settings = Setting::all()->pluck('value', 'key');
+        return view('admin.settings.general', compact('settings'));
     }
 
     public function email()
@@ -33,8 +34,27 @@ class SettingsController extends Controller
 
     public function storeGeneral(Request $request)
     {
-        // Future General Settings Logic
-        return back()->with('success', 'General settings updated.');
+        $request->validate([
+            'app_name' => 'nullable|string|max:255',
+            'app_logo' => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:2048',
+        ]);
+
+        if ($request->filled('app_name')) {
+            Setting::updateOrCreate(
+                ['key' => 'app_name'],
+                ['value' => $request->app_name]
+            );
+        }
+
+        if ($request->hasFile('app_logo')) {
+            $path = $request->file('app_logo')->store('logos', 'public');
+            Setting::updateOrCreate(
+                ['key' => 'app_logo'],
+                ['value' => $path]
+            );
+        }
+
+        return back()->with('success', 'General settings updated successfully.');
     }
 
     public function storeEmail(Request $request)

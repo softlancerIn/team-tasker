@@ -166,7 +166,7 @@ new class extends Component {
             <div class="d-flex flex-wrap align-items-center gap-4">
                 <!-- Status Update -->
                 <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <x-select wire:model.live="bulkStatus" class="form-premium-control" placeholder="Status..."
+                    <x-select wire:model.live="bulkStatus" placeholder="Status..."
                         style="width: 150px; font-size: 0.8rem; background: var(--bg-input);">
                         <option value="" class="bg-dark">Status...</option>
                         @foreach ($statuses as $status)
@@ -181,7 +181,7 @@ new class extends Component {
 
                 <!-- Priority Update -->
                 <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <x-select wire:model.live="bulkPriority" class="form-premium-control" placeholder="Priority..."
+                    <x-select wire:model.live="bulkPriority" placeholder="Priority..."
                         style="width: 150px; font-size: 0.8rem; background: var(--bg-input);">
                         <option value="" class="bg-dark">Priority...</option>
                         @foreach ($priorities as $p)
@@ -273,8 +273,20 @@ new class extends Component {
                                 @endif
                             </td>
                             <td>
+                                @php
+                                    $statusColorMap = [
+                                        'primary' => 'var(--primary)',
+                                        'success' => 'var(--accent)',
+                                        'danger' => 'var(--danger)',
+                                        'warning' => '#f59e0b',
+                                        'info' => '#0ea5e9',
+                                        'secondary' => 'var(--text-medium)',
+                                    ];
+                                    $statusColor = $task->status->color ?? 'secondary';
+                                    $themeColor = $statusColorMap[$statusColor] ?? 'var(--text-medium)';
+                                @endphp
                                 <span class="badge-premium"
-                                    style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2);">
+                                    style="background: color-mix(in srgb, {{ $themeColor }} 15%, transparent); color: {{ $themeColor }}; border: 1px solid color-mix(in srgb, {{ $themeColor }} 30%, transparent);">
                                     {{ $task->status->name ?? 'Unknown' }}
                                 </span>
                             </td>

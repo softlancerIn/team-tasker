@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Team Tasker</title>
+    <title>Register | Team Tasker</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
@@ -33,6 +33,7 @@
             justify-content: center;
             margin: 0;
             overflow-x: hidden;
+            padding: 2rem 0;
         }
 
         .blob {
@@ -64,7 +65,7 @@
             border-radius: 24px;
             padding: 3rem;
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.8s ease-out;
         }
@@ -116,7 +117,7 @@
             color: #cbd5e1;
             font-weight: 500;
             font-size: 0.9rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
         }
 
         .form-control {
@@ -171,12 +172,9 @@
             color: var(--accent);
         }
 
-        .alert-premium {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.2);
+        .invalid-feedback {
+            font-size: 0.8rem;
             color: #ef4444;
-            border-radius: 12px;
-            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -184,21 +182,15 @@
 <body>
     <div class="blob"></div>
 
-    <div class="container d-flex justify-content-center">
-        <div class="auth-card">
-            <div class="logo-area">
+    <div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
+        <div class="auth-card" style="max-width: 600px;">
+            <div class="logo-area mb-4">
                 <div class="logo-icon">
-                    <i class="fas fa-layer-group"></i>
+                    <i class="fas fa-headset"></i>
                 </div>
-                <h1 class="auth-title">Welcome Back</h1>
-                <p class="auth-subtitle">Log in to manage your tasks effectively</p>
+                <h1 class="auth-title">Submit Enquiry</h1>
+                <p class="auth-subtitle">We're here to help. Fill out the form below.</p>
             </div>
-
-            @if (session('error'))
-                <div class="alert alert-premium mb-4">
-                    <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
-                </div>
-            @endif
 
             @if (session('success'))
                 <div class="alert alert-success mb-4 bg-success bg-opacity-10 border-success border-opacity-20 text-success"
@@ -207,35 +199,71 @@
                 </div>
             @endif
 
-            <form action="{{ route('login_submit') }}" method="POST">
+            <form action="{{ route('enquiry.store') }}" method="POST">
                 @csrf
                 <div class="mb-4">
-                    <label for="email" class="form-label">Email Address</label>
-                    <input type="email" id="email" name="email" class="form-control"
-                        placeholder="name@example.com" required>
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                        placeholder="John Doe" required value="{{ old('name') }}">
+                    @error('name')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="mb-4">
-                    <div class="d-flex justify-content-between">
-                        <label for="password" class="form-label">Password</label>
-                        <a href="{{ route('forgotPassword') }}" class="auth-link small">Forgot?</a>
-                    </div>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
-                        required>
+                    <label class="form-label">Email Address</label>
+                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                        placeholder="name@example.com" required value="{{ old('email') }}">
+                    @error('email')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
-                <button type="submit" class="btn btn-auth">
-                    Sign In <i class="fas fa-arrow-right ms-2"></i>
+                <div class="mb-4">
+                    <label class="form-label">Subject</label>
+                    <input type="text" name="subject" class="form-control @error('subject') is-invalid @enderror"
+                        placeholder="Brief subject or topic" required value="{{ old('subject') }}">
+                    @error('subject')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Priority</label>
+                    <select name="priority" class="form-control @error('priority') is-invalid @enderror" required
+                        style="appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23cbd5e1%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1rem top 50%; background-size: 0.65rem auto;">
+                        <option value="low" style="background: #0f172a;"
+                            {{ old('priority') == 'low' ? 'selected' : '' }}>Low - General Question</option>
+                        <option value="medium" style="background: #0f172a;"
+                            {{ old('priority', 'medium') == 'medium' ? 'selected' : '' }}>Medium - Need Assistance
+                        </option>
+                        <option value="high" style="background: #0f172a;"
+                            {{ old('priority') == 'high' ? 'selected' : '' }}>High - Important Issue</option>
+                        <option value="urgent" style="background: #0f172a;"
+                            {{ old('priority') == 'urgent' ? 'selected' : '' }}>Urgent - Critical Problem</option>
+                    </select>
+                    @error('priority')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Message</label>
+                    <textarea name="body" class="form-control @error('body') is-invalid @enderror" rows="5"
+                        placeholder="How can we help you today?" required>{{ old('body') }}</textarea>
+                    @error('body')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <button type="submit" class="btn btn-auth mt-2">
+                    Submit Enquiry <i class="fas fa-paper-plane ms-2"></i>
                 </button>
             </form>
 
-            <div class="auth-footer d-flex flex-column align-items-center gap-2">
-                <span>Don't have an account?</span>
-                <div class="d-flex gap-3">
-                    <a href="{{ route('registerPage') }}" class="auth-link">Register as Team Member</a>
-                    <span class="text-muted">|</span>
-                    <a href="{{ route('clientRegisterPage') }}" class="auth-link">Register as Client</a>
-                </div>
+            <div class="auth-footer">
+                <a href="{{ route('loginPage') }}" class="auth-link"><i class="fas fa-arrow-left me-1"></i> Back to
+                    Login</a>
             </div>
         </div>
     </div>

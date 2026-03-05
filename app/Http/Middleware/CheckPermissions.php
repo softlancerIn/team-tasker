@@ -19,7 +19,14 @@ class CheckPermissions
             return redirect()->route('loginPage');
         }
 
-        if (! \Auth::user()->hasPermission($permission)) {
+        $user = \Auth::user();
+
+        // Block clients from accessing ANY admin routes (except client portal)
+        if ($user->role_id == 3 && $request->is('admin/*')) {
+            abort(403, 'Unauthorized access to admin area.');
+        }
+
+        if (! $user->hasPermission($permission)) {
             abort(403, 'Unauthorized action.');
         }
 

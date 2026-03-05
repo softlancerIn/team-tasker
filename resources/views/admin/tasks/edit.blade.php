@@ -143,9 +143,7 @@
                         </div>
 
                         <div id="recurSettings" style="{{ $task->is_recurring ? '' : 'display: none;' }}">
-                            <x-select name="recurring_interval"
-                                class="form-select bg-transparent text-white border-secondary form-select-sm"
-                                placeholder="Select Interval">
+                            <x-select name="recurring_interval" placeholder="Select Interval">
                                 <option value="daily" {{ $task->recurring_interval == 'daily' ? 'selected' : '' }}
                                     class="bg-dark">Daily</option>
                                 <option value="weekly" {{ $task->recurring_interval == 'weekly' ? 'selected' : '' }}

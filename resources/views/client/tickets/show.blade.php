@@ -1,3 +1,4 @@
+<x-client title="Ticket #{{ $ticket->id }}">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <a href="{{ route('client.dashboard') }}" class="btn-premium btn-premium-secondary btn-sm mb-2 px-3 py-1"
@@ -90,4 +91,4 @@
         </form>
     </div>
 
-    </x-client>
+</x-client>

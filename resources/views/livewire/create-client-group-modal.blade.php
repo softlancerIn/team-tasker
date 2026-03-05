@@ -65,7 +65,7 @@ new class extends Component {
 
             <div class="mb-3">
                 <label class="form-label text-main">Select Client <span class="text-danger">*</span></label>
-                <x-select wire:model="selectedClient" class="form-control" placeholder="Choose a Client..." required>
+                <x-select wire:model="selectedClient" placeholder="Choose a Client..." required>
                     <option value="">Choose a Client...</option>
                     @foreach ($clients as $client)
                         <option value="{{ $client->id }}">{{ $client->name }} ({{ $client->email }})</option>

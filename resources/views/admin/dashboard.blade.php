@@ -216,9 +216,20 @@
                                 </div>
                             </td>
                             <td style="border: none; background: transparent !important;">
+                                @php
+                                    $statusColorMap = [
+                                        'primary' => 'var(--primary)',
+                                        'success' => 'var(--accent)',
+                                        'danger' => 'var(--danger)',
+                                        'warning' => '#f59e0b', // Amber-500
+                                        'info' => '#0ea5e9', // Sky-500
+                                        'secondary' => 'var(--text-medium)',
+                                    ];
+                                    $statusColor = $task->status->color ?? 'secondary';
+                                    $themeColor = $statusColorMap[$statusColor] ?? 'var(--text-medium)';
+                                @endphp
                                 <span class="badge-premium"
-                                    style="background: {{ ($task->status->color ?? 'secondary') == 'success' ? 'rgba(var(--accent-rgb), 0.1)' : 'var(--bg-input)' }};
-                                           color: {{ ($task->status->color ?? 'secondary') == 'success' ? 'var(--accent)' : 'var(--text-high)' }}; border: 1px solid var(--border-main); white-space: nowrap;">
+                                    style="background: color-mix(in srgb, {{ $themeColor }} 15%, transparent); color: {{ $themeColor }}; border: 1px solid color-mix(in srgb, {{ $themeColor }} 30%, transparent); white-space: nowrap;">
                                     {{ $task->status->name ?? 'Pending' }}
                                 </span>
                             </td>

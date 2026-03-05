@@ -13,6 +13,11 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('/login', 'login')->name('login_submit');
     Route::get('/register', 'registerPage')->name('registerPage');
     Route::post('/register', 'register')->name('register');
+    
+    // Client Registration
+    Route::get('/client/register', 'clientRegisterPage')->name('clientRegisterPage');
+    Route::post('/client/register', 'clientRegister')->name('clientRegister');
+
     Route::get('/forgotPassword', 'forgotPasswordPage')->name('forgotPasswordPage');
     Route::post('/forgotPassword', 'forgotPassword')->name('forgotPassword');
     Route::get('/reset-password', 'resetPasswordPage')->name('resetPasswordPage');
@@ -23,6 +28,13 @@ Route::controller(AuthController::class)->group(function () {
 
 // Search Controller
 Route::middleware(['web', 'auth'])->get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.global');
+
+// Notifications
+Route::middleware(['web', 'auth'])->post('/notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+
+// Public Enquiry Route
+Route::get('/enquire', [App\Http\Controllers\EnquiryController::class, 'create'])->name('enquiry.create');
+Route::post('/enquire', [App\Http\Controllers\EnquiryController::class, 'store'])->name('enquiry.store');
 
 // Task Controller
 Route::middleware(['web', 'auth'])->controller(TaskController::class)->prefix('admin/tasks')->group(function () {
@@ -121,7 +133,7 @@ Route::middleware(['web', 'auth'])->prefix('client')->group(function () {
 });
 
 // Consolidated Settings
-Route::middleware(['web'])->controller(App\Http\Controllers\SettingsController::class)->prefix('admin/settings')->group(function () {
+Route::middleware(['web', 'auth'])->controller(App\Http\Controllers\SettingsController::class)->prefix('admin/settings')->group(function () {
     Route::get('/general', 'general')->name('admin.settings.general')->middleware('permission:settings.view');
     Route::get('/statuses', 'statuses')->name('admin.settings.statuses')->middleware('permission:settings.view');
     Route::get('/email', 'email')->name('admin.settings.email')->middleware('permission:settings.view');
@@ -146,9 +158,9 @@ Route::middleware(['web'])->controller(App\Http\Controllers\SettingsController::
 
 // Task Logs & Messaging & Time Tracking
 Route::middleware(['web', 'auth'])->controller(TaskLogController::class)->group(function () {
-    Route::post('/tasks/{id}/log', 'storeLog')->name('tasks.log');
-    Route::post('/tasks/{id}/message', 'sendMessage')->name('tasks.message');
-    Route::post('/tasks/{id}/start-timer', 'startTime')->name('tasks.start_timer');
-    Route::post('/tasks/{id}/stop-timer', 'stopTime')->name('tasks.stop_timer');
-    Route::post('/tasks/{id}/progress', 'updateProgress')->name('tasks.progress');
+    Route::post('/tasks/{id}/log', 'storeLog')->name('tasks.log')->middleware('permission:tasks.edit');
+    Route::post('/tasks/{id}/message', 'sendMessage')->name('tasks.message')->middleware('permission:tasks.view');
+    Route::post('/tasks/{id}/start-timer', 'startTime')->name('tasks.start_timer')->middleware('permission:tasks.edit');
+    Route::post('/tasks/{id}/stop-timer', 'stopTime')->name('tasks.stop_timer')->middleware('permission:tasks.edit');
+    Route::post('/tasks/{id}/progress', 'updateProgress')->name('tasks.progress')->middleware('permission:tasks.edit');
 });

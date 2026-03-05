@@ -581,13 +581,13 @@ select option,
     color: var(--text-medium);
     padding: 0.8rem 1rem;
     border-radius: var(--radius-md);
-    margin-bottom: var(--space-1);
+    margin-bottom: var(--space-2);
     display: flex;
     align-items: center;
     gap: var(--space-3);
     transition: all var(--transition-base);
     text-decoration: none;
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 .nav-link-premium:hover,
@@ -931,7 +931,6 @@ select option,
 /* Clear Button */
 .ts-wrapper .clear-button {
     color: var(--text-low) !important;
-    margin-right: 25px !important;
     /* Move left of the arrow */
     opacity: 0.6 !important;
     background: transparent !important;
@@ -946,14 +945,109 @@ select option,
 
 /* Light Theme Adjustments */
 [data-theme="light"] .ts-control {
-    background: #f8fafc !important;
+    background-color: #f8fafc !important;
     border-color: #e2e8f0 !important;
     color: #0f172a !important;
 }
 
 [data-theme="light"] .ts-wrapper.focus .ts-control {
-    background: #ffffff !important;
+    background-color: #ffffff !important;
     border-color: var(--primary) !important;
+}
+
+/* --- Notifications Modal Premium Styles --- */
+.notification-item-premium {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: all var(--transition-base);
+    text-decoration: none !important;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.notification-item-premium:hover {
+    background: var(--bg-input);
+}
+
+.notification-item-premium.unread {
+    background: rgba(var(--primary-rgb), 0.05);
+}
+
+.notification-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.notification-icon-task {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+}
+
+.notification-icon-ticket {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.notification-icon-alert {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.notification-content {
+    flex-grow: 1;
+}
+
+.notification-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-high);
+    margin-bottom: 0.15rem;
+}
+
+.notification-description {
+    font-size: 0.8rem;
+    color: var(--text-medium);
+    line-height: 1.4;
+}
+
+.notification-time {
+    font-size: 0.7rem;
+    color: var(--text-low);
+    margin-top: 0.4rem;
+}
+
+.unread-indicator-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    align-self: center;
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--danger);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-surface);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="light"] .ts-control .item {
@@ -987,7 +1081,6 @@ select option,
 [data-theme="light"] .ts-control,
 [data-theme="light"] .ts-wrapper.single .ts-control,
 [data-theme="light"] .ts-wrapper.multi .ts-control {
-    background-color: #ffffff !important;
     border-color: rgba(0, 0, 0, 0.12) !important;
     color: #0f172a !important;
 }

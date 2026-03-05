@@ -50,8 +50,20 @@
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <h2 class="mb-0 fw-bold text-high">{{ $task->title }}</h2>
                     @if ($task->status)
+                        @php
+                            $statusColorMap = [
+                                'primary' => 'var(--primary)',
+                                'success' => 'var(--accent)',
+                                'danger' => 'var(--danger)',
+                                'warning' => '#f59e0b',
+                                'info' => '#0ea5e9',
+                                'secondary' => 'var(--text-medium)',
+                            ];
+                            $statusColor = $task->status->color ?? 'secondary';
+                            $themeColor = $statusColorMap[$statusColor] ?? 'var(--text-medium)';
+                        @endphp
                         <span class="badge-premium"
-                            style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2);">
+                            style="background: color-mix(in srgb, {{ $themeColor }} 15%, transparent); color: {{ $themeColor }}; border: 1px solid color-mix(in srgb, {{ $themeColor }} 30%, transparent);">
                             {{ $task->status->name }}
                         </span>
                     @else
@@ -434,7 +446,7 @@
                     @csrf
                     <div class="mb-4">
                         <label class="heading-label d-block mb-3">Task Status</label>
-                        <x-select name="status_id" class="form-premium-control" placeholder="Select Status">
+                        <x-select name="status_id" placeholder="Select Status">
                             @foreach ($statuses as $status)
                                 <option value="{{ $status->id }}"
                                     {{ isset($task->status_id) && $task->status_id == $status->id ? 'selected' : '' }}

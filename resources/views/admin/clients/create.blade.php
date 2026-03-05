@@ -42,7 +42,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Status <span class="text-danger">*</span></label>
-                        <x-select name="status" class="form-select" placeholder="Select Status" required>
+                        <x-select name="status" placeholder="Select Status" required>
                             <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}
                                 class="bg-dark">Active</option>
                             <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}

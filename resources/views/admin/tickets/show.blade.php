@@ -165,7 +165,7 @@
                 <form action="{{ route('admin.tickets.update', $ticket->id) }}" method="POST" class="mb-4">
                     @csrf
                     <label class="heading-label mb-2" style="font-size: 0.7rem;">Update Status</label>
-                    <x-select name="status" class="form-premium-control" onchange="this.form.submit()"
+                    <x-select name="status" onchange="this.form.submit()"
                         style="font-size: 0.85rem; background: var(--bg-input);" placeholder="Update Status">
                         <option value="open" {{ $ticket->status == 'open' ? 'selected' : '' }} class="bg-dark">Open
                             Ticket</option>
@@ -187,7 +187,7 @@
                 <form action="{{ route('admin.tickets.update', $ticket->id) }}" method="POST" class="mb-4">
                     @csrf
                     <label class="heading-label mb-2" style="font-size: 0.7rem;">Ticket Priority</label>
-                    <x-select name="priority" class="form-premium-control" onchange="this.form.submit()"
+                    <x-select name="priority" onchange="this.form.submit()"
                         style="font-size: 0.85rem; background: var(--bg-input);" placeholder="Ticket Priority">
                         <option value="low" {{ $ticket->priority == 'low' ? 'selected' : '' }} class="bg-dark">Low
                             Priority
@@ -276,8 +276,7 @@
                     @csrf
                     <div class="mb-4">
                         <label class="heading-label mb-2" style="font-size: 0.7rem;">Select Responsible Agent</label>
-                        <x-select name="assigned_to" class="form-premium-control"
-                            style="font-size: 0.85rem; background: var(--bg-input);"
+                        <x-select name="assigned_to" style="font-size: 0.85rem; background: var(--bg-input);"
                             placeholder="-- No Assignment --">
                             <option value="" class="bg-dark">-- No Assignment --</option>
                             @foreach ($users as $user)

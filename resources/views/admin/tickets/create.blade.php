@@ -13,9 +13,9 @@
                     @csrf
                     <div class="mb-3">
                         <label class="form-label">Client <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <x-select name="client_id" id="clientSelect" class="form-select" required
-                                onchange="updateClientLink()" placeholder="Select Client">
+                        <div>
+                            <x-select name="client_id" id="clientSelect" onchange="updateClientLink()"
+                                placeholder="Select Client">
                                 <option value="" class="bg-dark">Select Client</option>
                                 @foreach ($clients as $client)
                                     <option value="{{ $client->id }}"
@@ -35,7 +35,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Priority <span class="text-danger">*</span></label>
-                                <x-select name="priority" class="form-select" required placeholder="Select Priority">
+                                <x-select name="priority" required placeholder="Select Priority">
                                     <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}
                                         class="bg-dark">Low</option>
                                     <option value="medium" {{ old('priority') == 'medium' ? 'selected' : '' }}
@@ -51,7 +51,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Assign To</label>
-                                <x-select name="assigned_to" class="form-select" placeholder="Unassigned">
+                                <x-select name="assigned_to" placeholder="Unassigned">
                                     <option value="" class="bg-dark">Unassigned</option>
                                     @foreach ($staff as $user)
                                         <option value="{{ $user->id }}"

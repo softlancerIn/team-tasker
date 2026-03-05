@@ -47,7 +47,7 @@
         </div>
         <div class="mb-4">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">Administrative Role</label>
-            <x-select name="role_id" class="form-premium-control" placeholder="Guest Access (No Role)">
+            <x-select name="role_id" placeholder="Guest Access (No Role)">
                 <option value="" class="bg-dark">Guest Access (No Role)</option>
                 @foreach ($roles as $role)
                     <option value="{{ $role->id }}" class="bg-dark">{{ $role->name }}</option>
@@ -70,8 +70,7 @@
         <input type="text" name="email" value="{{ request('email') }}" class="form-premium-control"
             placeholder="Search by email..." style="max-width: 220px; font-size: 0.85rem; flex: 1 1 180px;">
 
-        <x-select name="role_id" class="form-premium-control" placeholder="All Roles"
-            style="max-width: 180px; font-size: 0.85rem; flex: 1 1 140px;">
+        <x-select name="role_id" placeholder="All Roles">
             <option value="" class="bg-dark">All Roles</option>
             @foreach ($roles as $role)
                 <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}
@@ -255,7 +254,7 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <x-select id="bulkRoleSelect" class="form-premium-control" placeholder="Map to Role..."
+                    <x-select id="bulkRoleSelect" placeholder="Map to Role..."
                         style="width: 160px; font-size: 0.8rem; background: var(--bg-input);">
                         <option value="" class="bg-dark">Map to Role...</option>
                         @foreach ($roles as $role)
@@ -375,7 +374,7 @@
             </div>
             <div class="mb-4">
                 <label class="heading-label mb-2" style="font-size: 0.7rem;">Access Permissions</label>
-                <x-select name="role_id" class="form-premium-control" placeholder="Unassigned Role">
+                <x-select name="role_id" placeholder="Unassigned Role">
                     <option value="" class="bg-dark">Unassigned Role</option>
                     @foreach ($roles as $role)
                         <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}

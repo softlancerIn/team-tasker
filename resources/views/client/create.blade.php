@@ -12,7 +12,7 @@
                     </div>
                     <div class="mb-4">
                         <label class="heading-label mb-2">Priority</label>
-                        <x-select name="priority" class="form-premium-control" placeholder="Select Priority">
+                        <x-select name="priority" placeholder="Select Priority">
                             <option value="low" class="bg-dark">Low - General Question</option>
                             <option value="medium" class="bg-dark">Medium - Detailed Issue</option>
                             <option value="high" class="bg-dark">High - Urgent Problem</option>

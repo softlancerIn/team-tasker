@@ -140,9 +140,7 @@
                         </div>
 
                         <div id="recurSettings" style="display: none;">
-                            <x-select name="recurring_interval"
-                                class="form-select bg-transparent text-white border-secondary form-select-sm"
-                                placeholder="Select Interval">
+                            <x-select name="recurring_interval" placeholder="Select Interval">
                                 <option value="daily" class="bg-dark">Daily</option>
                                 <option value="weekly" class="bg-dark">Weekly</option>
                                 <option value="monthly" class="bg-dark">Monthly</option>

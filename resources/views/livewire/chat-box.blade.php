@@ -187,17 +187,27 @@ new class extends Component {
     {
         $message = Message::find($messageId);
         if ($message && $message->user_id == auth()->id()) {
-            $message->delete(); // Soft delete
+            // Soft delete: keep the row, mark deleted_at, and clear content
+            $message->update([
+                'deleted_at' => now(),
+                'body' => '',
+            ]);
 
             // Update local messages array
             foreach ($this->messages as &$msg) {
                 if ($msg['id'] == $messageId) {
                     $msg['deleted_at'] = now();
+                    $msg['body'] = '';
                 }
             }
 
-            // Broadcast deletion (optional but good for real-time)
-            // For now, we manually update the local state as seen above.
+            // Sync with other clients via sockets to instantly show deletion placeholder
+            $this->dispatch('send-message-to-node', [
+                'room' => 'chat.' . $this->conversation->id,
+                'action' => 'delete',
+                'message_id' => $messageId,
+            ]);
+
             $this->dispatch('alert', ['type' => 'success', 'message' => 'Message deleted.']);
         }
     }
@@ -270,20 +280,13 @@ new class extends Component {
                 userId: {{ $conversation->type == 'private' && $receiver ? $receiver->id : 'null' }},
                 init() {
                     if (this.userId && window.socket) {
-                        window.socket.on('user_connected', (uid) => {
-                            if (uid == this.userId) this.status = 'Online';
-                        });
-                        window.socket.on('disconnect_user', (uid) => {
-                            if (uid == this.userId) this.status = 'Offline';
-                        });
-                        setInterval(() => {
-                            const sidebarUser = document.querySelector(`.user-item-premium[data-user-id='${this.userId}'] .bg-success`);
-                            if (sidebarUser) {
+                        window.socket.on('online_users', (users) => {
+                            if (users.includes(String(this.userId))) {
                                 this.status = 'Online';
                             } else {
                                 this.status = 'Offline';
                             }
-                        }, 2000);
+                        });
                     }
                 }
             }">
