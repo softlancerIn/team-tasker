@@ -14,6 +14,7 @@ class TicketReplyNotification extends Notification implements ShouldQueue
     use Queueable;
 
     public $ticket;
+
     public $reply;
 
     /**
@@ -41,14 +42,14 @@ class TicketReplyNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-                    ->subject('[Ticket #' . $this->ticket->id . '] New Reply: ' . $this->ticket->subject)
-                    ->line('A new reply has been posted to your ticket.')
-                    ->line('Replied By: ' . ($this->reply->user ? $this->reply->user->name : 'Support Team'))
-                    ->line('---')
-                    ->line(strip_tags($this->reply->body)) // Strip HTML for plain text email, or keep raw? Maybe limit length.
-                    ->line('---')
-                    ->action('View Ticket', route('client.tickets.show', $this->ticket->id))
-                    ->line('You can also reply directly to this email.');
+            ->subject('[Ticket #'.$this->ticket->id.'] New Reply: '.$this->ticket->subject)
+            ->line('A new reply has been posted to your ticket.')
+            ->line('Replied By: '.($this->reply->user ? $this->reply->user->name : 'Support Team'))
+            ->line('---')
+            ->line(strip_tags($this->reply->body)) // Strip HTML for plain text email, or keep raw? Maybe limit length.
+            ->line('---')
+            ->action('View Ticket', route('client.tickets.show', $this->ticket->id))
+            ->line('You can also reply directly to this email.');
     }
 
     /**
@@ -60,7 +61,7 @@ class TicketReplyNotification extends Notification implements ShouldQueue
     {
         return [
             'ticket_id' => $this->ticket->id,
-            'message' => 'New reply on ticket #' . $this->ticket->id,
+            'message' => 'New reply on ticket #'.$this->ticket->id,
         ];
     }
 }

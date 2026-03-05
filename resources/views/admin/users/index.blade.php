@@ -47,12 +47,12 @@
         </div>
         <div class="mb-4">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">Administrative Role</label>
-            <select name="role_id" class="form-premium-control">
-                <option value="">Guest Access (No Role)</option>
+            <x-select name="role_id" class="form-premium-control" placeholder="Guest Access (No Role)">
+                <option value="" class="bg-dark">Guest Access (No Role)</option>
                 @foreach ($roles as $role)
-                    <option value="{{ $role->id }}">{{ $role->name }}</option>
+                    <option value="{{ $role->id }}" class="bg-dark">{{ $role->name }}</option>
                 @endforeach
-            </select>
+            </x-select>
         </div>
     </x-modal>
 
@@ -70,15 +70,16 @@
         <input type="text" name="email" value="{{ request('email') }}" class="form-premium-control"
             placeholder="Search by email..." style="max-width: 220px; font-size: 0.85rem; flex: 1 1 180px;">
 
-        <select name="role_id" class="form-premium-control"
+        <x-select name="role_id" class="form-premium-control" placeholder="All Roles"
             style="max-width: 180px; font-size: 0.85rem; flex: 1 1 140px;">
-            <option value="">All Roles</option>
+            <option value="" class="bg-dark">All Roles</option>
             @foreach ($roles as $role)
-                <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}>
+                <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}
+                    class="bg-dark">
                     {{ $role->name }}
                 </option>
             @endforeach
-        </select>
+        </x-select>
 
         <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
             @if (request()->anyFilled(['name', 'email', 'role_id']))
@@ -254,13 +255,13 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <select id="bulkRoleSelect" class="form-premium-control py-2"
+                    <x-select id="bulkRoleSelect" class="form-premium-control" placeholder="Map to Role..."
                         style="width: 160px; font-size: 0.8rem; background: var(--bg-input);">
-                        <option value="">Map to Role...</option>
+                        <option value="" class="bg-dark">Map to Role...</option>
                         @foreach ($roles as $role)
-                            <option value="{{ $role->id }}">{{ $role->name }}</option>
+                            <option value="{{ $role->id }}" class="bg-dark">{{ $role->name }}</option>
                         @endforeach
-                    </select>
+                    </x-select>
                     <button type="button" onclick="submitBulkAction('change_role')"
                         class="btn-premium btn-premium-primary py-2 px-3" style="font-size: 0.8rem;">
                         Apply
@@ -374,14 +375,15 @@
             </div>
             <div class="mb-4">
                 <label class="heading-label mb-2" style="font-size: 0.7rem;">Access Permissions</label>
-                <select name="role_id" class="form-premium-control">
-                    <option value="">Unassigned Role</option>
+                <x-select name="role_id" class="form-premium-control" placeholder="Unassigned Role">
+                    <option value="" class="bg-dark">Unassigned Role</option>
                     @foreach ($roles as $role)
-                        <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}>
+                        <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}
+                            class="bg-dark">
                             {{ $role->name }}
                         </option>
                     @endforeach
-                </select>
+                </x-select>
             </div>
         </x-modal>
 

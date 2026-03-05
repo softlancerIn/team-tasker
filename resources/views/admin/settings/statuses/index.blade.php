@@ -125,15 +125,15 @@
         </div>
         <div class="mb-3">
             <label for="color" class="form-label text-main">Color Badge</label>
-            <select class="form-select" id="color" name="color" required>
-                <option value="primary">Primary (Blue)</option>
-                <option value="secondary">Secondary (Gray)</option>
-                <option value="success">Success (Green)</option>
-                <option value="danger">Danger (Red)</option>
-                <option value="warning">Warning (Yellow)</option>
-                <option value="info">Info (Cyan)</option>
-                <option value="dark">Dark</option>
-            </select>
+            <x-select id="color" name="color" required placeholder="Select Color">
+                <option value="primary" class="bg-dark">Primary (Blue)</option>
+                <option value="secondary" class="bg-dark">Secondary (Gray)</option>
+                <option value="success" class="bg-dark">Success (Green)</option>
+                <option value="danger" class="bg-dark">Danger (Red)</option>
+                <option value="warning" class="bg-dark">Warning (Yellow)</option>
+                <option value="info" class="bg-dark">Info (Cyan)</option>
+                <option value="dark" class="bg-dark">Dark</option>
+            </x-select>
         </div>
     </x-modal>
 
@@ -154,15 +154,15 @@
         </div>
         <div class="mb-3">
             <label for="edit_color" class="form-label text-main">Color Badge</label>
-            <select class="form-select" id="edit_color" name="color" required>
-                <option value="primary">Primary (Blue)</option>
-                <option value="secondary">Secondary (Gray)</option>
-                <option value="success">Success (Green)</option>
-                <option value="danger">Danger (Red)</option>
-                <option value="warning">Warning (Yellow)</option>
-                <option value="info">Info (Cyan)</option>
-                <option value="dark">Dark</option>
-            </select>
+            <x-select id="edit_color" name="color" required placeholder="Select Color">
+                <option value="primary" class="bg-dark">Primary (Blue)</option>
+                <option value="secondary" class="bg-dark">Secondary (Gray)</option>
+                <option value="success" class="bg-dark">Success (Green)</option>
+                <option value="danger" class="bg-dark">Danger (Red)</option>
+                <option value="warning" class="bg-dark">Warning (Yellow)</option>
+                <option value="info" class="bg-dark">Info (Cyan)</option>
+                <option value="dark" class="bg-dark">Dark</option>
+            </x-select>
         </div>
         <div class="mb-3">
             <label for="edit_order" class="form-label text-main">Order</label>

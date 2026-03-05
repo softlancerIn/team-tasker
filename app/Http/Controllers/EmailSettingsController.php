@@ -11,7 +11,7 @@ class EmailSettingsController extends Controller
     {
         $settings = Setting::whereIn('key', [
             'imap_host', 'imap_port', 'imap_user', 'imap_password', 'imap_encryption',
-            'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_encryption', 'from_email', 'from_name'
+            'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_encryption', 'from_email', 'from_name',
         ])->pluck('value', 'key');
 
         return view('admin.settings.email', compact('settings'));
@@ -25,7 +25,7 @@ class EmailSettingsController extends Controller
             'imap_user' => 'required|string',
             'imap_password' => 'required|string',
             'imap_encryption' => 'nullable|string|in:ssl,tls,null',
-            
+
             'smtp_host' => 'nullable|string',
             'smtp_port' => 'nullable|integer',
             'smtp_user' => 'nullable|string',

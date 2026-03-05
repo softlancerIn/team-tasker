@@ -24,11 +24,13 @@ new class extends Component {
     public $isBlocked = false;
     public $isBlockedBy = false;
     public $receiver; // Added for the other participant in a private chat
+    public $showGroupInfo = false;
     public $perPage = 10; // Added for pagination
 
     #[On('conversationSelected')]
     public function loadConversation($conversationId)
     {
+        $this->showGroupInfo = false; // Reset on conversation change
         $this->conversation = Conversation::with(['participants', 'messages.user', 'messages.attachments'])->find($conversationId);
 
         if (!$this->conversation) {
@@ -181,6 +183,25 @@ new class extends Component {
         $this->dispatch('scroll-bottom');
     }
 
+    public function deleteMessage($messageId)
+    {
+        $message = Message::find($messageId);
+        if ($message && $message->user_id == auth()->id()) {
+            $message->delete(); // Soft delete
+
+            // Update local messages array
+            foreach ($this->messages as &$msg) {
+                if ($msg['id'] == $messageId) {
+                    $msg['deleted_at'] = now();
+                }
+            }
+
+            // Broadcast deletion (optional but good for real-time)
+            // For now, we manually update the local state as seen above.
+            $this->dispatch('alert', ['type' => 'success', 'message' => 'Message deleted.']);
+        }
+    }
+
     public function receiveMessage($messageId)
     {
         $message = Message::with(['user', 'attachments'])->find($messageId);
@@ -239,7 +260,7 @@ new class extends Component {
     }
 }; ?>
 
-<div class="d-flex flex-column h-100">
+<div class="d-flex flex-column h-100 position-relative">
     @if ($conversation)
 
         <!-- Header -->
@@ -331,6 +352,15 @@ new class extends Component {
                                     History</span>
                             </a>
                         </li>
+                        @if ($conversation->type != 'private')
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                    wire:click.prevent="$set('showGroupInfo', true)" style="color: var(--text-high);">
+                                    <i class="fas fa-info-circle" style="font-size: 0.8rem;"></i> <span>Group
+                                        Info</span>
+                                </a>
+                            </li>
+                        @endif
                         <li>
                             @if ($isBlocked)
                                 <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
@@ -613,5 +643,81 @@ new class extends Component {
         </div>
     @endif
 
+    <!-- Group Info Sidebar -->
+    @if ($showGroupInfo && $conversation && $conversation->type != 'private')
+        <div class="position-absolute top-0 end-0 h-100 shadow-premium border-start border-main d-flex flex-column animate-slide-in-right"
+            style="width: 320px; background: var(--bg-surface); backdrop-filter: blur(20px); z-index: 1000;">
+            <div class="p-4 border-bottom border-main d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold" style="color: var(--text-high);">Group Info</h6>
+                <button class="btn btn-link text-low p-0 hover-text-high" wire:click="$set('showGroupInfo', false)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="flex-grow-1 overflow-auto p-4">
+                <div class="text-center mb-4">
+                    <div class="avatar-premium mx-auto mb-3"
+                        style="width: 80px; height: 80px; background: var(--bg-input);">
+                        <i class="fas fa-users fa-2x" style="color: var(--primary);"></i>
+                    </div>
+                    <h5 class="fw-bold mb-1" style="color: var(--text-high);">{{ $conversation->name }}</h5>
+                    <span class="badge-premium"
+                        style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border-color: rgba(var(--primary-rgb), 0.2);">
+                        {{ $conversation->participants->count() }} Members
+                    </span>
+                </div>
+
+                <div class="heading-label mb-3" style="font-size: 0.7rem;">Participants</div>
+                <div class="d-flex flex-column gap-3">
+                    @foreach ($conversation->participants as $participant)
+                        <div class="d-flex align-items-center p-2 rounded-premium transition-base hover-bg-input">
+                            <div class="avatar-premium flex-shrink-0" style="width: 38px; height: 38px;">
+                                @if ($participant->profile_image)
+                                    <img src="{{ asset('storage/' . $participant->profile_image) }}" alt="Avatar">
+                                @else
+                                    {{ substr($participant->name, 0, 1) }}
+                                @endif
+                            </div>
+                            <div class="ms-3 overflow-hidden">
+                                <div class="fw-bold text-truncate"
+                                    style="color: var(--text-high); font-size: 0.85rem;">
+                                    {{ $participant->name }}
+                                </div>
+                                <div class="text-truncate" style="color: var(--text-low); font-size: 0.75rem;">
+                                    {{ $participant->email }}
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
     <livewire:edit-group-modal />
+
+    <style>
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        .animate-slide-in-right {
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        .hover-bg-input:hover {
+            background: var(--bg-input) !important;
+            cursor: pointer;
+        }
+
+        .transition-base {
+            transition: all var(--transition-base);
+        }
+    </style>
 </div>

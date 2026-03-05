@@ -151,7 +151,8 @@
                         class="bg-surface p-4 rounded-xl border border-main shadow-sm">
                         @csrf
                         <div class="mb-4">
-                            <textarea id="longtextarea" name="note" class="form-premium-control" rows="3" placeholder="Write a note..."></textarea>
+                            <x-textarea id="longtextarea" name="note" class="form-premium-control" rows="3"
+                                placeholder="Write a note..." texteditor="true"></x-textarea>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="form-check form-switch mb-0">
@@ -433,14 +434,15 @@
                     @csrf
                     <div class="mb-4">
                         <label class="heading-label d-block mb-3">Task Status</label>
-                        <select name="status_id" class="form-premium-control">
+                        <x-select name="status_id" class="form-premium-control" placeholder="Select Status">
                             @foreach ($statuses as $status)
                                 <option value="{{ $status->id }}"
-                                    {{ isset($task->status_id) && $task->status_id == $status->id ? 'selected' : '' }}>
+                                    {{ isset($task->status_id) && $task->status_id == $status->id ? 'selected' : '' }}
+                                    class="bg-dark">
                                     {{ $status->name }}
                                 </option>
                             @endforeach
-                        </select>
+                        </x-select>
                     </div>
                     <div class="mb-4">
                         <div class="d-flex justify-content-between mb-3">
@@ -463,8 +465,8 @@
                 <form action="{{ route('tasks.message', $task->id) }}" method="POST">
                     @csrf
                     <div class="mb-3">
-                        <textarea id="mytextarea" name="message" class="form-control" rows="4"
-                            placeholder="Type your message here..."></textarea>
+                        <x-textarea id="mytextarea" name="message" class="form-control" rows="4"
+                            placeholder="Type your message here..."></x-textarea>
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">
@@ -549,45 +551,6 @@
             }, 1000);
         }
 
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        const isDark = savedTheme === 'dark';
-
-        tinymce.init({
-            selector: '#mytextarea,#longtextarea',
-            height: 300,
-            skin: isDark ? 'oxide-dark' : 'oxide',
-            content_css: isDark ? 'dark' : 'default',
-            padding: 0,
-            branding: false,
-            placeholder: 'Start typing your message here...',
-            plugins: [
-                'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor', 'pagebreak',
-                'searchreplace', 'wordcount', 'visualblocks', 'visualchars', 'code', 'fullscreen',
-                'insertdatetime',
-                'media', 'table', 'emoticons', 'help'
-            ],
-            menubar: false,
-            toolbar: 'undo redo | bold italic | bullist numlist | link | code',
-            extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
-            valid_elements: '*[*]',
-            content_css: false,
-            content_style: isDark ?
-                'body { background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent), #1a2436; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; } body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: rgba(255, 255, 255, 0.4); }' :
-                'body { background: #ffffff; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; }',
-            entity_encoding: 'raw',
-            remove_trailing_brs: false,
-            valid_children: '+body[style|i]',
-            setup: function(editor) {
-                editor.on('init', function() {
-                    const container = editor.getContainer();
-                    if (container) {
-                        container.style.border = isDark ? '1px solid rgba(99, 102, 241, 0.3)' :
-                            '1px solid #ced4da';
-                        container.style.borderRadius = '8px';
-                    }
-                });
-            }
-        });
 
         feather.replace()
     </script>

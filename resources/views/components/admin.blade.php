@@ -22,6 +22,242 @@
     <script src='https://cdn.jsdelivr.net/npm/tinymce@5/tinymce.min.js' referrerpolicy="origin"></script>
     <script src="https://unpkg.com/feather-icons"></script>
 
+    {{-- TomSelect - JS only, we own all CSS --}}
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    {{-- TomSelect Full Custom CSS - fully owned, matches text box design --}}
+    <style>
+        /* ======= TomSelect Required Base Styles ======= */
+        .ts-hidden-accessible {
+            clip: rect(0 0 0 0) !important;
+            border: 0 !important;
+            clip-path: inset(50%) !important;
+            overflow: hidden !important;
+            padding: 0 !important;
+            position: absolute !important;
+            white-space: nowrap !important;
+            width: 1px !important;
+        }
+
+        .ts-wrapper {
+            position: relative;
+            display: block;
+        }
+
+        .ts-control {
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .ts-control>* {
+            display: inline-block;
+            vertical-align: baseline;
+        }
+
+        .ts-control>input {
+            flex: 1 1 auto;
+            min-width: 7rem;
+            max-width: 100%;
+            border: 0 !important;
+            box-shadow: none !important;
+            background: none !important;
+            outline: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            line-height: inherit !important;
+            color: inherit !important;
+        }
+
+        .ts-control>input:focus {
+            outline: none !important;
+        }
+
+        .ts-wrapper.single .ts-control,
+        .ts-wrapper.single .ts-control>input {
+            cursor: pointer;
+        }
+
+        .ts-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .ts-dropdown-content {
+            overflow-y: auto;
+            max-height: 220px;
+            overflow-x: hidden;
+        }
+
+        .ts-dropdown [data-selectable] {
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .ts-dropdown [data-selectable].option {
+            cursor: pointer;
+        }
+
+        /* Plugin: clear_button */
+        .plugin-clear_button .clear-button {
+            background: transparent !important;
+            cursor: pointer;
+            opacity: 0;
+            position: absolute;
+            right: 2.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: opacity .3s;
+            border: none;
+            font-size: 1rem;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .plugin-clear_button.focus.has-items .clear-button,
+        .plugin-clear_button:not(.disabled):hover.has-items .clear-button {
+            opacity: 0.6;
+        }
+
+        /* Plugin: remove_button */
+        .ts-wrapper.plugin-remove_button .item {
+            align-items: center;
+            display: inline-flex;
+            padding-right: 0 !important;
+        }
+
+        .ts-wrapper.plugin-remove_button .item .remove {
+            display: inline-block;
+            padding: 0 5px;
+            text-decoration: none;
+            vertical-align: middle;
+            cursor: pointer;
+        }
+
+        .input-hidden .ts-control>input {
+            left: -10000px;
+            opacity: 0;
+            position: absolute;
+        }
+
+        .ts-control,
+        .ts-wrapper.single .ts-control,
+        .ts-wrapper.multi .ts-control {
+            background-color: var(--bg-input) !important;
+            background-image: var(--ts-arrow-bg, var(--ts-arrow-dark)) !important;
+            background-repeat: no-repeat !important;
+            background-position: right 0.85rem center !important;
+            background-size: 12px 12px !important;
+            border: 1px solid var(--border-main) !important;
+            border-radius: var(--radius-md) !important;
+            color: var(--text-high) !important;
+            padding: 0.6rem 2.5rem 0.6rem 1rem !important;
+            min-height: 42px !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+            font-family: 'Outfit', sans-serif !important;
+            font-size: 0.95rem !important;
+        }
+
+        .ts-wrapper.focus .ts-control,
+        .ts-wrapper.focus.single .ts-control,
+        .ts-wrapper.focus.multi .ts-control {
+            border-color: var(--primary) !important;
+            background-color: var(--bg-surface) !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        .ts-wrapper .ts-control input,
+        .ts-control input {
+            color: var(--text-high) !important;
+            background: transparent !important;
+            caret-color: var(--text-high) !important;
+        }
+
+        .ts-dropdown,
+        .ts-dropdown.single,
+        .ts-dropdown.multi {
+            background: #1a2436 !important;
+            border: 1px solid var(--border-main) !important;
+            border-radius: var(--radius-md) !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+            backdrop-filter: blur(20px) !important;
+            color: var(--text-high) !important;
+            z-index: 2000 !important;
+        }
+
+        .ts-dropdown .option,
+        .ts-dropdown .ts-dropdown-content .option {
+            color: var(--text-high) !important;
+            background: transparent !important;
+            padding: 0.6rem 1rem !important;
+        }
+
+        .ts-dropdown .option:hover,
+        .ts-dropdown .option.active {
+            background: rgba(var(--primary-rgb), 0.12) !important;
+            color: var(--primary) !important;
+        }
+
+        .ts-dropdown .optgroup-header {
+            color: var(--text-low) !important;
+            background: transparent !important;
+        }
+
+        .ts-control .item .remove {
+            color: var(--primary) !important;
+            border-left: 1px solid rgba(var(--primary-rgb), 0.3) !important;
+        }
+
+        /* Light mode overrides */
+        [data-theme="light"] .ts-control,
+        [data-theme="light"] .ts-wrapper.single .ts-control,
+        [data-theme="light"] .ts-wrapper.multi .ts-control {
+            background: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .ts-wrapper.focus .ts-control,
+        [data-theme="light"] .ts-wrapper.focus.single .ts-control {
+            background: #ffffff !important;
+            border-color: var(--primary) !important;
+        }
+
+        [data-theme="light"] .ts-wrapper .ts-control input {
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .ts-dropdown,
+        [data-theme="light"] .ts-dropdown.single {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .ts-dropdown .option,
+        [data-theme="light"] .ts-dropdown .ts-dropdown-content .option {
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .ts-control .item {
+            background: rgba(var(--primary-rgb), 0.1) !important;
+            color: var(--primary) !important;
+        }
+    </style>
+
     <script>
         // Global Chat Editor Component for Alpine.js
         // Global Chat Editor Component for Alpine.js
@@ -36,18 +272,23 @@
                 this.mountEditor();
 
                 // Listen for theme changes
-                this.themeChangeListener = () => {
-                    this.mountEditor();
+                this.themeChangeListener = (e) => {
+                    const newTheme = e.detail && e.detail.theme ? e.detail.theme : localStorage.getItem(
+                        'theme');
+                    this.mountEditor(newTheme);
                 };
                 window.addEventListener('theme-changed', this.themeChangeListener);
             },
 
-            mountEditor() {
+            mountEditor(theme = null) {
                 // Ensure TinyMCE is loaded
                 if (typeof tinymce === 'undefined') {
                     console.error('TinyMCE not loaded');
                     return;
                 }
+
+                const savedTheme = theme || localStorage.getItem('theme') || 'dark';
+                const isDark = savedTheme === 'dark';
 
                 // Remove existing instance if any (safety check)
                 let existingEditor = tinymce.get(this.editorStr);
@@ -62,20 +303,6 @@
                     }
                 }
 
-                // Aggressively clean up stale editors
-                if (tinymce.editors) {
-                    for (let i = tinymce.editors.length - 1; i >= 0; i--) {
-                        let ed = tinymce.editors[i];
-                        if (!document.getElementById(ed.id)) {
-                            try {
-                                ed.remove();
-                            } catch (e) {}
-                        }
-                    }
-                }
-
-                const savedTheme = localStorage.getItem('theme') || 'dark';
-                const isDark = savedTheme === 'dark';
 
                 tinymce.init({
                     selector: '#' + this.editorStr,
@@ -97,13 +324,27 @@
                     toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | forecolor backcolor | table | bullist numlist',
                     extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
                     valid_elements: '*[*]',
-                    content_css: false,
-                    content_style: isDark ?
-                        'body { background: transparent; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; margin: 0; padding: 0 10px; line-height: 1.4; height: 100%; display: flex; flex-direction: column; justify-content: center; } p { margin: 0; } i { font-style: italic; } .mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { text-align: left; position: absolute; top: 50%; transform: translateY(-50%); left: 10px; color: rgba(255, 255, 255, 0.5); }' :
-                        'body { background: transparent; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; margin: 0; padding: 0 10px; line-height: 1.4; height: 100%; display: flex; flex-direction: column; justify-content: center; } p { margin: 0; } i { font-style: italic; } .mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { text-align: left; position: absolute; top: 50%; transform: translateY(-50%); left: 10px; color: #aaa; }',
                     entity_encoding: 'raw',
                     remove_trailing_brs: false,
                     valid_children: '+body[style|i]',
+                    content_style: `
+                        body { 
+                            background: transparent !important; 
+                            color: ${isDark ? '#f8fafc' : '#0f172a'}; 
+                            font-family: 'Outfit', sans-serif; 
+                            font-size: 14px; 
+                            margin: 0; 
+                            padding: 10px; 
+                            line-height: 1.5; 
+                        } 
+                        p { margin: 0; } 
+                        i { font-style: italic; } 
+                        .mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { 
+                            color: ${isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)'} !important; 
+                            font-family: 'Outfit', sans-serif;
+                            font-style: normal;
+                        }
+                    `,
                     setup: (editor) => {
                         editor.on('change keyup', () => {
                             let content = editor.getContent();
@@ -138,6 +379,7 @@
                             const container = editor.getContainer();
                             if (container) {
                                 container.style.border = 'none';
+                                container.style.background = 'transparent';
                             }
                             // Restore content if reloading
                             if (currentContent) {
@@ -147,6 +389,79 @@
                     }
                 });
             }
+        });
+
+        // Global Initialization for other editors (Task Description, etc.)
+        window.initGlobalEditors = (theme = null) => {
+            if (typeof tinymce === 'undefined') return;
+
+            const savedTheme = theme || localStorage.getItem('theme') || 'dark';
+            const isDark = savedTheme === 'dark';
+
+            // Remove existing instances from elements with rich-editor class
+            document.querySelectorAll('.rich-editor').forEach(el => {
+                if (el.id) {
+                    const ed = tinymce.get(el.id);
+                    if (ed) ed.remove();
+                }
+            });
+
+            tinymce.init({
+                selector: '.rich-editor',
+                height: 400,
+                skin: isDark ? 'oxide-dark' : 'oxide',
+                content_css: isDark ? 'dark' : 'default',
+                branding: false,
+                placeholder: 'Describe the task in detail...',
+                plugins: [
+                    'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor',
+                    'pagebreak',
+                    'searchreplace', 'wordcount', 'visualblocks', 'visualchars', 'code', 'fullscreen',
+                    'insertdatetime',
+                    'media', 'table', 'emoticons', 'help'
+                ],
+                menubar: true,
+                toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code | styleselect',
+                extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
+                valid_elements: '*[*]',
+                content_style: isDark ?
+                    'body { background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent), #1a2436; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; } body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: rgba(255, 255, 255, 0.4); }' :
+                    'body { background: #ffffff; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; }',
+                entity_encoding: 'raw',
+                remove_trailing_brs: false,
+                valid_children: '+body[style|i]',
+                setup: function(editor) {
+                    editor.on('init', function() {
+                        const container = editor.getContainer();
+                        if (container) {
+                            container.style.border = isDark ? '1px solid rgba(99, 102, 241, 0.3)' :
+                                '1px solid #ced4da';
+                            container.style.borderRadius = '8px';
+                        }
+                    });
+                    editor.on('change keyup', function() {
+                        const content = editor.getContent();
+                        const textarea = editor.getElement();
+                        textarea.value = content;
+                        textarea.dispatchEvent(new Event('input', {
+                            bubbles: true
+                        }));
+                    });
+                }
+            });
+        };
+
+        // Initialize on load if editors exist
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.querySelector('.rich-editor')) {
+                window.initGlobalEditors();
+            }
+        });
+
+        // Listen for theme changes globally
+        window.addEventListener('theme-changed', (e) => {
+            const newTheme = e.detail && e.detail.theme ? e.detail.theme : localStorage.getItem('theme');
+            window.initGlobalEditors(newTheme);
         });
 
         // Global Chat Messages Component
@@ -401,7 +716,11 @@
                         </a>
                         <a href="{{ route('admin.settings.statuses') }}"
                             class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.statuses') ? 'active' : '' }}">
-                            <i class="fas fa-tags"></i> Task Statuses
+                            <i class="fas fa-check-circle"></i> Task Statuses
+                        </a>
+                        <a href="{{ route('admin.settings.tags') }}"
+                            class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.tags') ? 'active' : '' }}">
+                            <i class="fas fa-tags"></i> Tags
                         </a>
                         <a href="{{ route('admin.settings.email') }}"
                             class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.email') ? 'active' : '' }}">
@@ -448,7 +767,8 @@
                     <i class="fas fa-moon"></i>
                 </button>
                 <div class="dropdown">
-                    <div class="user-profile-premium dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="user-profile-premium dropdown-toggle" data-bs-toggle="dropdown"
+                        aria-expanded="false">
                         <div class="avatar-premium" style="border: 2px solid var(--border-main);">
                             @if (Auth::user()->profile_image)
                                 <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile">

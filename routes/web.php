@@ -37,7 +37,7 @@ Route::middleware(['web', 'auth'])->controller(TaskController::class)->prefix('a
     Route::post('store', 'store')->name('store')->middleware('permission:tasks.create');
     Route::get('details/{id}', 'show')->name('details')->middleware('permission:tasks.view');
     Route::get('edit/{id}', 'edit')->name('edit')->middleware('permission:tasks.edit');
-    Route::post('update', 'update')->name('update')->middleware('permission:tasks.edit');
+    Route::post('update/{id}', 'update')->name('update')->middleware('permission:tasks.edit');
     Route::get('delete/{id}', 'destroy')->name('delete')->middleware('permission:tasks.delete');
 });
 
@@ -109,11 +109,11 @@ Route::middleware(['web', 'auth'])->prefix('client')->group(function () {
     Route::post('/tickets', [App\Http\Controllers\ClientController::class, 'store'])->name('client.tickets.store');
     Route::get('/tickets/{id}', [App\Http\Controllers\ClientController::class, 'show'])->name('client.tickets.show');
     Route::post('/tickets/{id}/reply', [App\Http\Controllers\ClientController::class, 'reply'])->name('client.tickets.reply');
-    
+
     // Client Tasks
     Route::get('/tasks/{id}', [App\Http\Controllers\ClientController::class, 'showTask'])->name('client.tasks.show');
     Route::post('/tasks/{id}/reply', [App\Http\Controllers\ClientController::class, 'replyTask'])->name('client.tasks.reply');
-    
+
     // Client Chat
     Route::get('/chat', function () {
         return view('client.chat.index');
@@ -125,17 +125,23 @@ Route::middleware(['web'])->controller(App\Http\Controllers\SettingsController::
     Route::get('/general', 'general')->name('admin.settings.general')->middleware('permission:settings.view');
     Route::get('/statuses', 'statuses')->name('admin.settings.statuses')->middleware('permission:settings.view');
     Route::get('/email', 'email')->name('admin.settings.email')->middleware('permission:settings.view');
-    
+
     // General
     Route::post('/general', 'storeGeneral')->name('admin.settings.general.store')->middleware('permission:settings.edit');
 
     // Email
     Route::post('/email', 'storeEmail')->name('admin.settings.email.store')->middleware('permission:settings.edit');
-    
+
     // Statuses
     Route::post('/statuses', 'storeStatus')->name('admin.settings.status.store')->middleware('permission:settings.edit');
     Route::post('/statuses/{id}/update', 'updateStatus')->name('admin.settings.status.update')->middleware('permission:settings.edit');
     Route::delete('/statuses/{id}/delete', 'destroyStatus')->name('admin.settings.status.delete')->middleware('permission:settings.edit');
+
+    // Tags
+    Route::get('/tags', 'tags')->name('admin.settings.tags')->middleware('permission:settings.view');
+    Route::post('/tags', 'storeTag')->name('admin.settings.tag.store')->middleware('permission:settings.edit');
+    Route::post('/tags/{id}/update', 'updateTag')->name('admin.settings.tag.update')->middleware('permission:settings.edit');
+    Route::delete('/tags/{id}/delete', 'destroyTag')->name('admin.settings.tag.delete')->middleware('permission:settings.edit');
 });
 
 // Task Logs & Messaging & Time Tracking

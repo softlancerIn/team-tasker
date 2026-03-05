@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Status;
+use App\Models\Tag;
 use App\Models\Task;
+use App\Models\TaskAttachment;
+use App\Models\TaskDependency;
+use App\Models\TaskTemplate;
 use App\Models\TimeLog;
 use App\Models\User;
-use App\Models\Tag;
-use App\Models\TaskTemplate;
-use App\Models\TaskDependency;
-use App\Models\TaskAttachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -45,14 +45,14 @@ class TaskController extends Controller
     public function calendarEvents(Request $request)
     {
         $userId = Auth::id();
-        $tasks = Task::where(function($q) use ($userId) {
-                $q->where('user_id', $userId)
-                  ->orWhere('assigned_to', $userId);
-            })
+        $tasks = Task::where(function ($q) use ($userId) {
+            $q->where('user_id', $userId)
+                ->orWhere('assigned_to', $userId);
+        })
             ->whereNotNull('deadline')
             ->get();
 
-        $events = $tasks->map(function($task) {
+        $events = $tasks->map(function ($task) {
             return [
                 'id' => $task->id,
                 'title' => $task->title,
@@ -60,8 +60,8 @@ class TaskController extends Controller
                 'allDay' => true,
                 'extendedProps' => [
                     'priority' => $task->priority,
-                    'status' => $task->status->name ?? 'Unknown'
-                ]
+                    'status' => $task->status->name ?? 'Unknown',
+                ],
             ];
         });
 
@@ -83,29 +83,29 @@ class TaskController extends Controller
     {
         $userId = Auth::id();
         $tasks = Task::with('dependencies')
-            ->where(function($q) use ($userId) {
+            ->where(function ($q) use ($userId) {
                 $q->where('user_id', $userId)
-                  ->orWhere('assigned_to', $userId);
+                    ->orWhere('assigned_to', $userId);
             })
             ->whereNotNull('deadline')
             ->get();
 
-        $data = $tasks->map(function($task) {
+        $data = $tasks->map(function ($task) {
             $start = $task->created_at->format('Y-m-d');
             $end = $task->deadline->format('Y-m-d');
-            
+
             if ($start == $end) {
                 $end = $task->deadline->addDay()->format('Y-m-d');
             }
 
             return [
-                'id' => (string)$task->id,
+                'id' => (string) $task->id,
                 'name' => $task->title,
                 'start' => $start,
                 'end' => $end,
                 'progress' => $task->progress ?? 0,
                 'dependencies' => $task->dependencies->pluck('depends_on_id')
-                    ->map(fn($id) => (string)$id)->implode(', ')
+                    ->map(fn ($id) => (string) $id)->implode(', '),
             ];
         });
 
@@ -118,7 +118,7 @@ class TaskController extends Controller
     public function dashboard()
     {
         if (Auth::user()->role_id == 3) { // Client Role
-             return redirect()->route('client.dashboard');
+            return redirect()->route('client.dashboard');
         }
 
         $userId = Auth::user()->id;
@@ -126,7 +126,7 @@ class TaskController extends Controller
 
         // Personal tasks for the list
         $personalTasks = Task::with(['user', 'assignedTo', 'status'])
-            ->where(function($q) use ($userId) {
+            ->where(function ($q) use ($userId) {
                 $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
             })
             ->orderBy('created_at', 'desc')
@@ -135,17 +135,17 @@ class TaskController extends Controller
 
         // Project-wide Metrics
         $totalTasks = Task::count();
-        $completedTasksCount = Task::whereHas('status', function($q) {
+        $completedTasksCount = Task::whereHas('status', function ($q) {
             $q->where('slug', 'completed')->orWhere('name', 'Completed');
         })->count();
-        
+
         $pendingTasksCount = $totalTasks - $completedTasksCount;
         $totalTickets = \App\Models\Ticket::count();
         $totalUsers = \App\Models\User::count();
         $criticalTasksCount = Task::where('priority', 'Critical')->count();
-        
+
         $projectProgress = $totalTasks > 0 ? Task::avg('progress') : 0;
-        
+
         // Recent Activity (Project-wide)
         $recentActivities = \App\Models\TaskLog::with(['user', 'task'])
             ->latest()
@@ -159,7 +159,7 @@ class TaskController extends Controller
         $chartAll = $this->buildChartDataAllTime();
 
         // Default view: Last 7 days
-        $chartData   = $chart7d['data'];
+        $chartData = $chart7d['data'];
         $chartLabels = $chart7d['labels'];
 
         return view('admin.dashboard', compact(
@@ -187,21 +187,21 @@ class TaskController extends Controller
     private function buildChartData(int $days, string $groupBy, string $labelFormat): array
     {
         $labels = [];
-        $data   = [];
+        $data = [];
 
         if ($groupBy === 'day') {
             for ($i = $days - 1; $i >= 0; $i--) {
                 $date = now()->subDays($i);
                 $labels[] = $date->format($labelFormat);
-                $data[]   = Task::whereDate('created_at', $date->toDateString())->count();
+                $data[] = Task::whereDate('created_at', $date->toDateString())->count();
             }
         } elseif ($groupBy === 'week') {
             $weeks = (int) ceil($days / 7);
             for ($i = $weeks - 1; $i >= 0; $i--) {
                 $start = now()->subWeeks($i)->startOfWeek();
-                $end   = now()->subWeeks($i)->endOfWeek();
+                $end = now()->subWeeks($i)->endOfWeek();
                 $labels[] = $start->format($labelFormat);
-                $data[]   = Task::whereBetween('created_at', [$start, $end])->count();
+                $data[] = Task::whereBetween('created_at', [$start, $end])->count();
             }
         }
 
@@ -214,20 +214,20 @@ class TaskController extends Controller
     private function buildChartDataAllTime(): array
     {
         $oldest = Task::min('created_at');
-        if (!$oldest) {
+        if (! $oldest) {
             return ['labels' => [], 'data' => []];
         }
 
         $start = \Carbon\Carbon::parse($oldest)->startOfMonth();
-        $end   = now()->endOfMonth();
+        $end = now()->endOfMonth();
         $labels = [];
-        $data   = [];
+        $data = [];
 
         while ($start->lessThanOrEqualTo($end)) {
             $labels[] = $start->format('M Y');
-            $data[]   = Task::whereYear('created_at', $start->year)
-                             ->whereMonth('created_at', $start->month)
-                             ->count();
+            $data[] = Task::whereYear('created_at', $start->year)
+                ->whereMonth('created_at', $start->month)
+                ->count();
             $start->addMonth();
         }
 
@@ -246,7 +246,7 @@ class TaskController extends Controller
         $allTasks = Task::all();
         $priorities = ['Low', 'Medium', 'High', 'Critical'];
         $templates = TaskTemplate::where('is_active', true)->get();
-        
+
         $selectedParentId = $request->get('parent_id');
 
         return view('admin.tasks.create', compact('users', 'statuses', 'tags', 'parentTasks', 'allTasks', 'priorities', 'selectedParentId', 'templates'));
@@ -277,7 +277,7 @@ class TaskController extends Controller
         ]);
 
         $status = Status::find($request->status_id);
-        
+
         $task = Task::create([
             'user_id' => Auth::id(),
             'assigned_to' => $request->assigned_to,
@@ -328,77 +328,77 @@ class TaskController extends Controller
      * Display the specified resource.
      */
     public function show($id)
-{
-    $task = Task::with([
-        'user', 
-        'assignedTo', 
-        'logs.user', 
-        'timeLogs.user', 
-        'subtasks.status', 
-        'subtasks.assignedTo',
-        'dependencies.blocker.status', 
-        'attachments.user', 
-        'tags'
-    ])->findOrFail($id);
+    {
+        $task = Task::with([
+            'user',
+            'assignedTo',
+            'logs.user',
+            'timeLogs.user',
+            'subtasks.status',
+            'subtasks.assignedTo',
+            'dependencies.blocker.status',
+            'attachments.user',
+            'tags',
+        ])->findOrFail($id);
 
-    $activeTimer = TimeLog::where('task_id', $task->id)
-        ->where('user_id', Auth::id())
-        ->whereNull('end_time')
-        ->first();
-    $statuses = Status::orderBy('order')->get();
+        $activeTimer = TimeLog::where('task_id', $task->id)
+            ->where('user_id', Auth::id())
+            ->whereNull('end_time')
+            ->first();
+        $statuses = Status::orderBy('order')->get();
 
-    return view('admin.tasks.details', compact('task', 'activeTimer', 'statuses'));
-}
+        return view('admin.tasks.details', compact('task', 'activeTimer', 'statuses'));
+    }
 
     /**
      * Show the form for editing the specified resource.
      */
     public function edit($id)
-{
-    $task = Task::with(['tags', 'dependencies', 'attachments'])->findOrFail($id);
+    {
+        $task = Task::with(['tags', 'dependencies', 'attachments'])->findOrFail($id);
 
-    $users = User::all();
-    $statuses = Status::orderBy('order')->get();
-    $tags = Tag::all();
-    $parentTasks = Task::whereNull('parent_id')->where('id', '!=', $id)->get();
-    $allTasks = Task::where('id', '!=', $id)->get();
-    $priorities = ['Low', 'Medium', 'High', 'Critical'];
+        $users = User::all();
+        $statuses = Status::orderBy('order')->get();
+        $tags = Tag::all();
+        $parentTasks = Task::whereNull('parent_id')->where('id', '!=', $id)->get();
+        $allTasks = Task::where('id', '!=', $id)->get();
+        $priorities = ['Low', 'Medium', 'High', 'Critical'];
 
-    return view('admin.tasks.edit', compact('task', 'users', 'statuses', 'tags', 'parentTasks', 'allTasks', 'priorities'));
-}
+        return view('admin.tasks.edit', compact('task', 'users', 'statuses', 'tags', 'parentTasks', 'allTasks', 'priorities'));
+    }
 
     /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, $id)
-{
-    $task = Task::findOrFail($id);
+    {
+        $task = Task::findOrFail($id);
 
-    $request->validate([
-        'title' => 'required|string|max:255',
-        'description' => 'required|string',
-        'assigned_to' => 'nullable|exists:users,id',
-        'status_id' => 'required|exists:statuses,id',
-        'priority' => 'nullable|string',
-        'parent_id' => 'nullable|exists:tasks,id',
-        'estimated_hours' => 'nullable|numeric|min:0',
-        'deadline' => 'nullable|date',
-        'tags' => 'nullable|array',
-        'tags.*' => 'exists:tags,id',
-        'dependencies' => 'nullable|array',
-        'dependencies.*' => 'exists:tasks,id',
-        'attachments' => 'nullable|array',
-        'attachments.*' => 'file|max:10240',
-        'is_recurring' => 'nullable|boolean',
-        'recurring_interval' => 'nullable|string|in:daily,weekly,monthly,yearly',
-    ]);
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'assigned_to' => 'nullable|exists:users,id',
+            'status_id' => 'required|exists:statuses,id',
+            'priority' => 'nullable|string',
+            'parent_id' => 'nullable|exists:tasks,id',
+            'estimated_hours' => 'nullable|numeric|min:0',
+            'deadline' => 'nullable|date',
+            'tags' => 'nullable|array',
+            'tags.*' => 'exists:tags,id',
+            'dependencies' => 'nullable|array',
+            'dependencies.*' => 'exists:tasks,id',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|max:10240',
+            'is_recurring' => 'nullable|boolean',
+            'recurring_interval' => 'nullable|string|in:daily,weekly,monthly,yearly',
+        ]);
 
         $status = Status::find($request->status_id);
         $completed_at = $task->completed_at;
-        
-        if ($status && $status->is_completed && !$completed_at) {
+
+        if ($status && $status->is_completed && ! $completed_at) {
             $completed_at = now();
-        } elseif ($status && !$status->is_completed) {
+        } elseif ($status && ! $status->is_completed) {
             $completed_at = null;
         }
 
@@ -416,38 +416,38 @@ class TaskController extends Controller
             'completed_at' => $completed_at,
         ]);
 
-    if ($request->has('tags')) {
-        $task->tags()->sync($request->tags);
-    }
-
-    if ($request->has('dependencies')) {
-        // Simple sync for dependencies
-        TaskDependency::where('task_id', $task->id)->delete();
-        foreach ($request->dependencies as $depId) {
-            TaskDependency::create([
-                'task_id' => $task->id,
-                'depends_on_id' => $depId,
-                'type' => 'blocker',
-            ]);
+        if ($request->has('tags')) {
+            $task->tags()->sync($request->tags);
         }
-    }
 
-    if ($request->hasFile('attachments')) {
-        foreach ($request->file('attachments') as $file) {
-            $path = $file->store('task-attachments', 'public');
-            TaskAttachment::create([
-                'task_id' => $task->id,
-                'user_id' => Auth::id(),
-                'file_path' => $path,
-                'file_name' => $file->getClientOriginalName(),
-                'file_type' => $file->getClientMimeType(),
-                'file_size' => $file->getSize(),
-            ]);
+        if ($request->has('dependencies')) {
+            // Simple sync for dependencies
+            TaskDependency::where('task_id', $task->id)->delete();
+            foreach ($request->dependencies as $depId) {
+                TaskDependency::create([
+                    'task_id' => $task->id,
+                    'depends_on_id' => $depId,
+                    'type' => 'blocker',
+                ]);
+            }
         }
-    }
 
-    return redirect()->route('index')->with('success', 'Task updated successfully.');
-}
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('task-attachments', 'public');
+                TaskAttachment::create([
+                    'task_id' => $task->id,
+                    'user_id' => Auth::id(),
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $file->getClientMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+        }
+
+        return redirect()->route('index')->with('success', 'Task updated successfully.');
+    }
 
     /**
      * Remove the specified resource from storage.

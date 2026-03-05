@@ -23,7 +23,7 @@ class Ticket extends Model
         parent::boot();
 
         static::created(function ($ticket) {
-            $ticket->ticket_number = 'TKT-' . str_pad($ticket->id, 4, '0', STR_PAD_LEFT);
+            $ticket->ticket_number = 'TKT-'.str_pad($ticket->id, 4, '0', STR_PAD_LEFT);
             $ticket->save();
         });
     }

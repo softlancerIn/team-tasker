@@ -38,12 +38,12 @@ class TicketAssigned extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-                    ->subject('Ticket Assigned: #' . $this->ticket->id . ' - ' . $this->ticket->subject)
-                    ->line('You have been assigned a new ticket.')
-                    ->line('Client: ' . ($this->ticket->user ? $this->ticket->user->name : $this->ticket->email_source))
-                    ->line('Priority: ' . ucfirst($this->ticket->priority))
-                    ->action('View Ticket', route('admin.tickets.show', $this->ticket->id))
-                    ->line('Thank you for using our application!');
+            ->subject('Ticket Assigned: #'.$this->ticket->id.' - '.$this->ticket->subject)
+            ->line('You have been assigned a new ticket.')
+            ->line('Client: '.($this->ticket->user ? $this->ticket->user->name : $this->ticket->email_source))
+            ->line('Priority: '.ucfirst($this->ticket->priority))
+            ->action('View Ticket', route('admin.tickets.show', $this->ticket->id))
+            ->line('Thank you for using our application!');
     }
 
     /**
@@ -55,7 +55,7 @@ class TicketAssigned extends Notification implements ShouldQueue
     {
         return [
             'ticket_id' => $this->ticket->id,
-            'message' => 'New ticket assigned: #' . $this->ticket->id,
+            'message' => 'New ticket assigned: #'.$this->ticket->id,
         ];
     }
 }

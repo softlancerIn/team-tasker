@@ -31,9 +31,9 @@ return new class extends Migration
         Schema::table('tasks', function (Blueprint $table) {
             $table->dropForeign(['parent_id']);
             $table->dropColumn([
-                'parent_id', 'is_recurring', 'recurring_interval', 
-                'next_occurrence_at', 'estimated_hours', 
-                'started_at', 'completed_at', 'custom_fields'
+                'parent_id', 'is_recurring', 'recurring_interval',
+                'next_occurrence_at', 'estimated_hours',
+                'started_at', 'completed_at', 'custom_fields',
             ]);
         });
     }

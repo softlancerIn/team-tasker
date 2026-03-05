@@ -4,13 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\User;
-use App\Models\TicketReply;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Match;
-use Illuminate\Support\Facades\Notification;
 use App\Notifications\TicketAssigned;
 use App\Notifications\TicketReplyNotification;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 
 class TicketController extends Controller
 {
@@ -27,7 +25,7 @@ class TicketController extends Controller
         }
 
         $tickets = $query->paginate(15);
-        
+
         return view('admin.tickets.index', compact('tickets'));
     }
 
@@ -35,6 +33,7 @@ class TicketController extends Controller
     {
         $clients = User::where('role_id', 3)->get();
         $staff = User::where('role_id', '!=', 3)->get();
+
         return view('admin.tickets.create', compact('clients', 'staff'));
     }
 
@@ -101,9 +100,9 @@ class TicketController extends Controller
         ]);
 
         // Auto-update status if it's a public reply
-        if (!$isInternal) {
+        if (! $isInternal) {
             $ticket->update(['status' => 'waiting_for_client']);
-            
+
             // Notify Client - Wrap in try-catch to prevent crash on mail error
             try {
                 if ($ticket->user) {
@@ -114,7 +113,8 @@ class TicketController extends Controller
                 }
             } catch (\Exception $e) {
                 // Log the error but don't stop execution
-                \Illuminate\Support\Facades\Log::error('Failed to send ticket reply email: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error('Failed to send ticket reply email: '.$e->getMessage());
+
                 return back()->with('success', 'Reply posted successfully, but email notification failed to send.');
             }
         }
@@ -176,6 +176,6 @@ class TicketController extends Controller
             'priority' => $ticket->priority,
         ]);
 
-        return back()->with('success', 'Ticket converted to task successfully. Task ID: ' . $task->id);
+        return back()->with('success', 'Ticket converted to task successfully. Task ID: '.$task->id);
     }
 }

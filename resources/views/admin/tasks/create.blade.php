@@ -7,14 +7,13 @@
         <div class="d-flex align-items-center gap-3">
             <i class="fas fa-magic text-primary"></i>
             <div class="flex-grow-1">
-                <label class="form-label mb-0 small text-muted">Quick Start: Load from Template</label>
-                <select class="form-select bg-transparent border-0 text-white p-0" id="templateSelector">
-                    <option value="" class="bg-dark">Select a template...</option>
+                <label class="form-label mb-0 small">Quick Start: Load from Template</label>
+                <x-select id="templateSelector" name="template_id" placeholder="Select a template...">
                     @foreach ($templates as $template)
                         <option value="{{ $template->id }}" class="bg-dark"
                             data-structure="{{ json_encode($template->structure) }}">{{ $template->name }}</option>
                     @endforeach
-                </select>
+                </x-select>
             </div>
         </div>
     </div>
@@ -36,8 +35,8 @@
 
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea id="mytextarea" class="form-control bg-transparent text-white border-secondary" name="description"
-                            rows="4" placeholder="Detailed description of the task..."></textarea>
+                        <x-textarea id="mytextarea" name="description" placeholder="Detailed description of the task..."
+                            texteditor="true"></x-textarea>
                         @error('description')
                             <div class="text-danger mt-1 small">{{ $message }}</div>
                         @enderror
@@ -46,24 +45,23 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Parent Task (for Subtasks)</label>
-                            <select name="parent_id" class="form-select bg-transparent text-white border-secondary">
+                            <x-select name="parent_id" placeholder="None (Top-Level Task)">
                                 <option value="" class="bg-dark">None (Top-Level Task)</option>
                                 @foreach ($parentTasks as $ptask)
                                     <option value="{{ $ptask->id }}"
                                         {{ ($selectedParentId ?? null) == $ptask->id ? 'selected' : '' }}
                                         class="bg-dark">#{{ $ptask->id }} - {{ $ptask->title }}</option>
                                 @endforeach
-                            </select>
+                            </x-select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Dependencies (Blockers)</label>
-                            <select name="dependencies[]" class="form-select bg-transparent text-white border-secondary"
-                                multiple>
+                            <x-multiselect id="dependencies" name="dependencies[]" placeholder="Select Dependencies">
                                 @foreach ($allTasks as $atask)
                                     <option value="{{ $atask->id }}" class="bg-dark">#{{ $atask->id }} -
                                         {{ $atask->title }}</option>
                                 @endforeach
-                            </select>
+                            </x-multiselect>
                             <div class="text-muted extra-small mt-1">Hold Ctrl/Cmd to select multiple</div>
                         </div>
                     </div>
@@ -81,48 +79,44 @@
                         style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color);">
                         <div class="mb-3">
                             <label for="assigned_to" class="form-label">Assign To</label>
-                            <select name="assigned_to" class="form-select bg-transparent text-white border-secondary">
-                                <option value="" class="bg-dark">Unassigned</option>
+                            <x-select id="assigned_to" name="assigned_to" placeholder="Unassigned">
                                 @foreach ($users as $user)
                                     <option value="{{ $user->id }}" class="bg-dark">{{ $user->name }}
                                         ({{ $user->role->name ?? 'No Role' }})
                                     </option>
                                 @endforeach
-                            </select>
+                            </x-select>
                         </div>
 
                         <div class="mb-3">
                             <label for="status" class="form-label">Status</label>
-                            <select name="status_id" class="form-select bg-transparent text-white border-secondary"
-                                required>
+                            <x-select id="status_id" name="status_id" placeholder="Select Status" required="true">
                                 @foreach ($statuses as $status)
                                     <option value="{{ $status->id }}" {{ $status->is_default ? 'selected' : '' }}
                                         class="bg-dark">
                                         {{ $status->name }}
                                     </option>
                                 @endforeach
-                            </select>
+                            </x-select>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Priority</label>
-                            <select name="priority" class="form-select bg-transparent text-white border-secondary">
+                            <x-select id="priority" name="priority" placeholder="Select Priority">
                                 @foreach ($priorities as $priority)
                                     <option value="{{ $priority }}" {{ $priority == 'Medium' ? 'selected' : '' }}
                                         class="bg-dark">{{ $priority }}</option>
                                 @endforeach
-                            </select>
+                            </x-select>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Tags</label>
-                            <div class="d-flex flex-wrap gap-2 mb-2" id="tag-chips"></div>
-                            <select name="tags[]" class="form-select bg-transparent text-white border-secondary"
-                                multiple>
+                            <x-multiselect id="tags" name="tags[]" placeholder="Select Tags">
                                 @foreach ($tags as $tag)
                                     <option value="{{ $tag->id }}" class="bg-dark">{{ $tag->name }}</option>
                                 @endforeach
-                            </select>
+                            </x-multiselect>
                         </div>
 
                         <div class="mb-3">
@@ -146,13 +140,14 @@
                         </div>
 
                         <div id="recurSettings" style="display: none;">
-                            <select name="recurring_interval"
-                                class="form-select bg-transparent text-white border-secondary form-select-sm">
+                            <x-select name="recurring_interval"
+                                class="form-select bg-transparent text-white border-secondary form-select-sm"
+                                placeholder="Select Interval">
                                 <option value="daily" class="bg-dark">Daily</option>
                                 <option value="weekly" class="bg-dark">Weekly</option>
                                 <option value="monthly" class="bg-dark">Monthly</option>
                                 <option value="yearly" class="bg-dark">Yearly</option>
-                            </select>
+                            </x-select>
                         </div>
                     </div>
                 </div>
@@ -181,44 +176,6 @@
             $('.alert-success,.alert-danger').fadeOut('fast');
         }, 3000);
 
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        const isDark = savedTheme === 'dark';
-
-        tinymce.init({
-            selector: '#mytextarea,#longtextarea',
-            height: 400,
-            skin: isDark ? 'oxide-dark' : 'oxide',
-            content_css: isDark ? 'dark' : 'default',
-            branding: false,
-            placeholder: 'Describe the task in detail...',
-            plugins: [
-                'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor', 'pagebreak',
-                'searchreplace', 'wordcount', 'visualblocks', 'visualchars', 'code', 'fullscreen',
-                'insertdatetime',
-                'media', 'table', 'emoticons', 'help'
-            ],
-            menubar: true,
-            toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code | styleselect',
-            extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
-            valid_elements: '*[*]',
-            content_css: false,
-            content_style: isDark ?
-                'body { background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent), #1a2436; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; } body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: rgba(255, 255, 255, 0.4); }' :
-                'body { background: #ffffff; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; }',
-            entity_encoding: 'raw',
-            remove_trailing_brs: false,
-            valid_children: '+body[style|i]',
-            setup: function(editor) {
-                editor.on('init', function() {
-                    const container = editor.getContainer();
-                    if (container) {
-                        container.style.border = isDark ? '1px solid rgba(99, 102, 241, 0.3)' :
-                            '1px solid #ced4da';
-                        container.style.borderRadius = '8px';
-                    }
-                });
-            }
-        });
 
         feather.replace();
 
@@ -229,7 +186,13 @@
             const structure = JSON.parse(selectedOption.getAttribute('data-structure'));
 
             if (structure.title) document.getElementsByName('title')[0].value = structure.title;
-            if (structure.priority) document.getElementsByName('priority')[0].value = structure.priority;
+
+            if (structure.priority) {
+                const el = document.getElementsByName('priority')[0];
+                el.value = structure.priority;
+                if (el.tomselect) el.tomselect.sync();
+            }
+
             if (structure.estimated_hours) document.getElementsByName('estimated_hours')[0].value = structure
                 .estimated_hours;
 
@@ -240,9 +203,14 @@
             if (structure.tags && Array.isArray(structure.tags)) {
                 const tagSelect = document.getElementsByName('tags[]')[0];
                 if (tagSelect) {
-                    Array.from(tagSelect.options).forEach(option => {
-                        option.selected = structure.tags.includes(parseInt(option.value));
-                    });
+                    const values = structure.tags.map(t => String(t));
+                    if (tagSelect.tomselect) {
+                        tagSelect.tomselect.setValue(values);
+                    } else {
+                        Array.from(tagSelect.options).forEach(option => {
+                            option.selected = values.includes(option.value);
+                        });
+                    }
                 }
             }
         });

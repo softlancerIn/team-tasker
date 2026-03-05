@@ -131,8 +131,8 @@
                         <form action="{{ route('client.tasks.reply', $task->id) }}" method="POST">
                             @csrf
                             <div class="mb-4">
-                                <textarea id="reply-editor" name="note" class="form-premium-control" rows="4"
-                                    placeholder="Type your message here..."></textarea>
+                                <x-textarea id="reply-editor" name="note" class="form-premium-control" rows="4"
+                                    placeholder="Type your message here..." texteditor="true"></x-textarea>
                             </div>
                             <div class="text-end">
                                 <button type="submit" class="btn-premium btn-premium-primary">
@@ -287,26 +287,4 @@
         }
     </style>
 
-    <!-- Init TinyMCE -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            const isDark = savedTheme === 'dark';
-
-            tinymce.init({
-                selector: '#reply-editor',
-                height: 250,
-                skin: isDark ? 'oxide-dark' : 'oxide',
-                content_css: isDark ? 'dark' : 'default',
-                menubar: false,
-                statusbar: false,
-                branding: false,
-                plugins: 'autolink lists link image charmap preview anchor',
-                toolbar: 'undo redo | bold italic | bullist numlist | removeformat',
-                content_style: isDark ?
-                    'body { background: transparent; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; margin: 10px; }' :
-                    'body { background: transparent; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; margin: 10px; }'
-            });
-        });
-    </script>
 </x-client>

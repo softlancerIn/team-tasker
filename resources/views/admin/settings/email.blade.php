@@ -22,14 +22,17 @@
                 </div>
                 <div class="col-md-3 mb-3">
                     <label class="heading-label mb-2">Encryption</label>
-                    <select name="imap_encryption" class="form-premium-control">
-                        <option value="ssl" {{ ($settings['imap_encryption'] ?? '') == 'ssl' ? 'selected' : '' }}>SSL
+                    <x-select name="imap_encryption" placeholder="Select Encryption">
+                        <option value="ssl" {{ ($settings['imap_encryption'] ?? '') == 'ssl' ? 'selected' : '' }}
+                            class="bg-dark">SSL
                         </option>
-                        <option value="tls" {{ ($settings['imap_encryption'] ?? '') == 'tls' ? 'selected' : '' }}>TLS
+                        <option value="tls" {{ ($settings['imap_encryption'] ?? '') == 'tls' ? 'selected' : '' }}
+                            class="bg-dark">TLS
                         </option>
-                        <option value="null" {{ ($settings['imap_encryption'] ?? '') == 'null' ? 'selected' : '' }}>
+                        <option value="null" {{ ($settings['imap_encryption'] ?? '') == 'null' ? 'selected' : '' }}
+                            class="bg-dark">
                             None</option>
-                    </select>
+                    </x-select>
                 </div>
             </div>
             <div class="row">
@@ -63,14 +66,17 @@
                 </div>
                 <div class="col-md-3 mb-3">
                     <label class="heading-label mb-2">Encryption</label>
-                    <select name="smtp_encryption" class="form-premium-control">
-                        <option value="tls" {{ ($settings['smtp_encryption'] ?? '') == 'tls' ? 'selected' : '' }}>
+                    <x-select name="smtp_encryption" placeholder="Select Encryption">
+                        <option value="tls" {{ ($settings['smtp_encryption'] ?? '') == 'tls' ? 'selected' : '' }}
+                            class="bg-dark">
                             TLS</option>
-                        <option value="ssl" {{ ($settings['smtp_encryption'] ?? '') == 'ssl' ? 'selected' : '' }}>
+                        <option value="ssl" {{ ($settings['smtp_encryption'] ?? '') == 'ssl' ? 'selected' : '' }}
+                            class="bg-dark">
                             SSL</option>
-                        <option value="null" {{ ($settings['smtp_encryption'] ?? '') == 'null' ? 'selected' : '' }}>
+                        <option value="null" {{ ($settings['smtp_encryption'] ?? '') == 'null' ? 'selected' : '' }}
+                            class="bg-dark">
                             None</option>
-                    </select>
+                    </x-select>
                 </div>
             </div>
             <div class="row">

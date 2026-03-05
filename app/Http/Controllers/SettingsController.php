@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Setting;
 use App\Models\Status;
+use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -18,6 +19,7 @@ class SettingsController extends Controller
     {
         // Fetch all settings
         $settings = Setting::all()->pluck('value', 'key');
+
         return view('admin.settings.email', compact('settings'));
     }
 
@@ -25,6 +27,7 @@ class SettingsController extends Controller
     {
         // Fetch existing statuses
         $statuses = Status::orderBy('order')->get();
+
         return view('admin.settings.statuses', compact('statuses'));
     }
 
@@ -42,7 +45,7 @@ class SettingsController extends Controller
             'imap_user' => 'required|string',
             'imap_password' => 'required|string',
             'imap_encryption' => 'nullable|string|in:ssl,tls,null',
-            
+
             'smtp_host' => 'nullable|string',
             'smtp_port' => 'nullable|integer',
             'smtp_user' => 'nullable|string',
@@ -116,5 +119,54 @@ class SettingsController extends Controller
         $status->delete();
 
         return back()->with('success', 'Status deleted successfully.');
+    }
+
+    // Tag Management
+    public function tags()
+    {
+        $tags = Tag::all();
+
+        return view('admin.settings.tags', compact('tags'));
+    }
+
+    public function storeTag(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'color' => 'required|string',
+        ]);
+
+        Tag::create([
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+            'color' => $request->color,
+        ]);
+
+        return back()->with('success', 'Tag created successfully.');
+    }
+
+    public function updateTag(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'color' => 'required|string',
+        ]);
+
+        $tag = Tag::findOrFail($id);
+        $tag->update([
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+            'color' => $request->color,
+        ]);
+
+        return back()->with('success', 'Tag updated successfully.');
+    }
+
+    public function destroyTag($id)
+    {
+        $tag = Tag::findOrFail($id);
+        $tag->delete();
+
+        return back()->with('success', 'Tag deleted successfully.');
     }
 }

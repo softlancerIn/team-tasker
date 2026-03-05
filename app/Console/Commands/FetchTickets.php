@@ -29,9 +29,10 @@ class FetchTickets extends Command
      */
     public function handle()
     {
-        if (!function_exists('imap_open')) {
+        if (! function_exists('imap_open')) {
             $this->error('PHP IMAP extension is missing. Please enable it to fetch emails.');
             Log::error('FetchTickets: PHP IMAP extension missing.');
+
             return 1;
         }
 
@@ -41,8 +42,9 @@ class FetchTickets extends Command
         $pass = Setting::where('key', 'imap_password')->value('value');
         $enc = Setting::where('key', 'imap_encryption')->value('value'); // ssl, tls, or null
 
-        if (!$host || !$user || !$pass) {
+        if (! $host || ! $user || ! $pass) {
             $this->error('IMAP settings not configured.');
+
             return 1;
         }
 
@@ -52,11 +54,11 @@ class FetchTickets extends Command
         if ($enc == 'ssl') {
             $protocol .= '/ssl';
         } elseif ($enc == 'tls') {
-             $protocol .= '/tls';
+            $protocol .= '/tls';
         } else {
-             $protocol .= '/notls';
+            $protocol .= '/notls';
         }
-        
+
         $mailbox = "{{$host}:{$port}{$protocol}}INBOX";
 
         $this->info("Connecting to $mailbox as $user...");
@@ -65,38 +67,41 @@ class FetchTickets extends Command
             // Suppress warnings for connection errors
             $inbox = @imap_open($mailbox, $user, $pass);
         } catch (\Throwable $e) {
-            $this->error('Connection failed: ' . $e->getMessage());
-            Log::error('FetchTickets: ' . $e->getMessage());
+            $this->error('Connection failed: '.$e->getMessage());
+            Log::error('FetchTickets: '.$e->getMessage());
+
             return 1;
         }
 
-        if (!$inbox) {
-             $this->error('Connection failed: ' . imap_last_error());
-             return 1;
+        if (! $inbox) {
+            $this->error('Connection failed: '.imap_last_error());
+
+            return 1;
         }
 
         $emails = imap_search($inbox, 'UNSEEN');
 
-        if (!$emails) {
+        if (! $emails) {
             $this->info('No new emails found.');
             imap_close($inbox);
+
             return 0;
         }
 
-        $this->info('Found ' . count($emails) . ' new emails.');
+        $this->info('Found '.count($emails).' new emails.');
 
         foreach ($emails as $emailId) {
             $header = imap_headerinfo($inbox, $emailId);
             $subject = isset($header->subject) ? $header->subject : '(No Subject)';
-            $fromEmail = $header->from[0]->mailbox . "@" . $header->from[0]->host;
-            
+            $fromEmail = $header->from[0]->mailbox.'@'.$header->from[0]->host;
+
             // Should properly decode subject/body if encoded, keeping it simple for now
             // $structure = imap_fetchstructure($inbox, $emailId);
             $body = imap_fetchbody($inbox, $emailId, 1); // Get body section 1 (usually plain text if multipart)
-            
+
             // Basic cleanup of body
             $body = trim($body);
-            if (!$body) {
+            if (! $body) {
                 // Try section 1.1 if 1 failed (e.g. multipart/alternative)
                 $body = imap_fetchbody($inbox, $emailId, 1.1);
             }
@@ -107,7 +112,7 @@ class FetchTickets extends Command
                 $ticket = Ticket::find($ticketId);
                 if ($ticket) {
                     $this->info("Processing reply to Ticket #$ticketId from $fromEmail");
-                    
+
                     // Identify user
                     $user = User::where('email', $fromEmail)->first();
 
@@ -117,16 +122,17 @@ class FetchTickets extends Command
                         'type' => 'client_reply',
                     ]);
 
-                    if($ticket->status == 'closed' || $ticket->status == 'resolved') {
+                    if ($ticket->status == 'closed' || $ticket->status == 'resolved') {
                         $ticket->update(['status' => 'open']);
                     }
+
                     continue;
                 }
             }
 
             // Create new ticket
             $this->info("Creating new ticket from $fromEmail: $subject");
-            
+
             $user = User::where('email', $fromEmail)->first();
 
             Ticket::create([
@@ -141,6 +147,7 @@ class FetchTickets extends Command
 
         imap_close($inbox);
         $this->info('Done.');
+
         return 0;
     }
 }

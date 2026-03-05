@@ -12,16 +12,17 @@
                     </div>
                     <div class="mb-4">
                         <label class="heading-label mb-2">Priority</label>
-                        <select name="priority" class="form-premium-control">
-                            <option value="low">Low - General Question</option>
-                            <option value="medium">Medium - Detailed Issue</option>
-                            <option value="high">High - Urgent Problem</option>
-                            <option value="urgent">Urgent - System Down</option>
-                        </select>
+                        <x-select name="priority" class="form-premium-control" placeholder="Select Priority">
+                            <option value="low" class="bg-dark">Low - General Question</option>
+                            <option value="medium" class="bg-dark">Medium - Detailed Issue</option>
+                            <option value="high" class="bg-dark">High - Urgent Problem</option>
+                            <option value="urgent" class="bg-dark">Urgent - System Down</option>
+                        </x-select>
                     </div>
                     <div class="mb-4">
                         <label class="heading-label mb-2">Detailed Description</label>
-                        <textarea id="ticket-body" name="body" class="form-premium-control" rows="8"></textarea>
+                        <x-textarea id="ticket-body" name="body" class="form-premium-control" rows="8"
+                            texteditor="true"></x-textarea>
                     </div>
                     <div class="d-flex align-items-center gap-3 mt-4">
                         <button type="submit" class="btn-premium btn-premium-primary">
@@ -34,25 +35,4 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            const isDark = savedTheme === 'dark';
-
-            tinymce.init({
-                selector: '#ticket-body',
-                height: 300,
-                skin: isDark ? 'oxide-dark' : 'oxide',
-                content_css: isDark ? 'dark' : 'default',
-                menubar: false,
-                statusbar: false,
-                branding: false,
-                plugins: 'autolink lists link image charmap preview anchor',
-                toolbar: 'undo redo | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat',
-                content_style: isDark ?
-                    'body { background: transparent; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; margin: 10px; }' :
-                    'body { background: transparent; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; margin: 10px; }'
-            });
-        });
-    </script>
 </x-client>

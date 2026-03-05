@@ -739,6 +739,7 @@ select option,
         margin-left: 0;
     }
 }
+
 /* --- Mobile Navigation Fixes --- */
 .mobile-toggle-premium {
     width: 40px;
@@ -784,15 +785,214 @@ select option,
         transform: translateX(0);
         box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
     }
-    
+
     .top-bar-premium {
         padding-left: var(--space-3);
         padding-right: var(--space-3);
     }
-    
+
     .header-search {
         width: 100%;
         max-width: none;
         margin-right: var(--space-2);
     }
+}
+
+/* --- Tom Select Premium Styles --- */
+.ts-wrapper {
+    position: relative !important;
+}
+
+.ts-wrapper.form-premium-control {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.ts-control {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-high) !important;
+    padding: 0.6rem 2.5rem 0.6rem 1rem !important;
+    transition: all var(--transition-base) !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 0.95rem !important;
+    min-height: 42px !important;
+    /* Matched with search input */
+    display: flex !important;
+    align-items: center !important;
+    position: relative !important;
+}
+
+/* Dropdown Arrow - SVG chevron on .ts-control (native select style) */
+:root {
+    --ts-arrow-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%2364748b'/%3E%3C/svg%3E");
+    --ts-arrow-dark-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 4l5 5H1z' fill='%2364748b'/%3E%3C/svg%3E");
+    --ts-arrow-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23475569'/%3E%3C/svg%3E");
+    --ts-arrow-light-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 4l5 5H1z' fill='%23475569'/%3E%3C/svg%3E");
+}
+
+.ts-wrapper {
+    --ts-arrow-bg: var(--ts-arrow-dark);
+}
+
+.ts-control,
+.ts-wrapper.single .ts-control,
+.ts-wrapper.multi .ts-control {
+    background-color: var(--bg-input) !important;
+    background-image: var(--ts-arrow-bg) !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.85rem center !important;
+    background-size: 12px 12px !important;
+}
+
+.ts-wrapper.dropdown-active .ts-control {
+    background-image: var(--ts-arrow-dark-up) !important;
+}
+
+/* Remove the old ::after pseudo-element arrow */
+.ts-wrapper::after {
+    display: none !important;
+}
+
+.ts-wrapper.single .ts-control::after,
+.ts-wrapper.multi .ts-control::after {
+    display: none !important;
+}
+
+.ts-wrapper.focus .ts-control,
+.ts-wrapper.focus.single .ts-control {
+    border-color: var(--primary) !important;
+    background-color: var(--bg-surface) !important;
+    box-shadow: none !important;
+}
+
+.ts-dropdown {
+    background: rgba(26, 36, 54, 0.95) !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(20px) !important;
+    margin-top: 5px !important;
+    color: var(--text-high) !important;
+    z-index: 2000 !important;
+}
+
+.ts-dropdown .option {
+    padding: 0.6rem 1rem !important;
+    transition: all var(--transition-base) !important;
+    cursor: pointer !important;
+    color: var(--text-high) !important;
+}
+
+.ts-dropdown .option.active {
+    background: rgba(var(--primary-rgb), 0.1) !important;
+    color: var(--primary) !important;
+}
+
+.ts-dropdown .option:hover {
+    background: rgba(var(--primary-rgb), 0.05) !important;
+}
+
+/* Multi-select Tags */
+.ts-control .item {
+    background: var(--primary) !important;
+    color: #fff !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 2px 8px !important;
+    margin: 2px !important;
+    font-size: 0.85rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+
+.ts-control .item .remove {
+    border-left: 1px solid rgba(255, 255, 255, 0.2) !important;
+    margin-left: 5px !important;
+    padding-left: 5px !important;
+    opacity: 0.7 !important;
+}
+
+.ts-control .item .remove:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    opacity: 1 !important;
+}
+
+/* Search Input */
+.ts-wrapper .ts-control input {
+    color: var(--text-high) !important;
+    font-family: 'Outfit', sans-serif !important;
+    background: transparent !important;
+}
+
+/* Clear Button */
+.ts-wrapper .clear-button {
+    color: var(--text-low) !important;
+    margin-right: 25px !important;
+    /* Move left of the arrow */
+    opacity: 0.6 !important;
+    background: transparent !important;
+    z-index: 25 !important;
+    /* Ensure it is clickable above the arrow */
+}
+
+.ts-wrapper .clear-button:hover {
+    color: var(--danger) !important;
+    opacity: 1 !important;
+}
+
+/* Light Theme Adjustments */
+[data-theme="light"] .ts-control {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .ts-wrapper.focus .ts-control {
+    background: #ffffff !important;
+    border-color: var(--primary) !important;
+}
+
+[data-theme="light"] .ts-control .item {
+    background: rgba(var(--primary-rgb), 0.1) !important;
+    color: var(--primary) !important;
+}
+
+[data-theme="light"] .ts-wrapper .ts-control input {
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .ts-dropdown {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .ts-dropdown .option {
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .ts-wrapper {
+    --ts-arrow-bg: var(--ts-arrow-light);
+}
+
+[data-theme="light"] .ts-wrapper.dropdown-active .ts-control {
+    background-image: var(--ts-arrow-light-up) !important;
+}
+
+[data-theme="light"] .ts-control,
+[data-theme="light"] .ts-wrapper.single .ts-control,
+[data-theme="light"] .ts-wrapper.multi .ts-control {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .ts-wrapper.focus .ts-control {
+    background-color: #ffffff !important;
+    border-color: var(--primary) !important;
 }

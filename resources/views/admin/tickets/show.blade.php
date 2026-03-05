@@ -130,7 +130,8 @@
                     enctype="multipart/form-data">
                     @csrf
                     <div class="mb-4">
-                        <textarea id="reply-editor" name="body" class="form-premium-control" rows="5"></textarea>
+                        <x-textarea id="reply-editor" name="body" class="form-premium-control" rows="5"
+                            texteditor="true"></x-textarea>
                     </div>
 
                     <div class="row align-items-center">
@@ -164,34 +165,43 @@
                 <form action="{{ route('admin.tickets.update', $ticket->id) }}" method="POST" class="mb-4">
                     @csrf
                     <label class="heading-label mb-2" style="font-size: 0.7rem;">Update Status</label>
-                    <select name="status" class="form-premium-control py-2 px-3" onchange="this.form.submit()"
-                        style="font-size: 0.85rem; background: var(--bg-input);">
-                        <option value="open" {{ $ticket->status == 'open' ? 'selected' : '' }}>Open Ticket</option>
-                        <option value="in_progress" {{ $ticket->status == 'in_progress' ? 'selected' : '' }}>In
+                    <x-select name="status" class="form-premium-control" onchange="this.form.submit()"
+                        style="font-size: 0.85rem; background: var(--bg-input);" placeholder="Update Status">
+                        <option value="open" {{ $ticket->status == 'open' ? 'selected' : '' }} class="bg-dark">Open
+                            Ticket</option>
+                        <option value="in_progress" {{ $ticket->status == 'in_progress' ? 'selected' : '' }}
+                            class="bg-dark">In
                             Progress</option>
                         <option value="waiting_for_client"
-                            {{ $ticket->status == 'waiting_for_client' ? 'selected' : '' }}>Awaiting Feedback</option>
-                        <option value="closed" {{ $ticket->status == 'closed' ? 'selected' : '' }}>Close Discussion
+                            {{ $ticket->status == 'waiting_for_client' ? 'selected' : '' }} class="bg-dark">Awaiting
+                            Feedback</option>
+                        <option value="closed" {{ $ticket->status == 'closed' ? 'selected' : '' }} class="bg-dark">
+                            Close Discussion
                         </option>
-                        <option value="resolved" {{ $ticket->status == 'resolved' ? 'selected' : '' }}>Mark Resolved
+                        <option value="resolved" {{ $ticket->status == 'resolved' ? 'selected' : '' }}
+                            class="bg-dark">Mark Resolved
                         </option>
-                    </select>
+                    </x-select>
                 </form>
 
                 <form action="{{ route('admin.tickets.update', $ticket->id) }}" method="POST" class="mb-4">
                     @csrf
                     <label class="heading-label mb-2" style="font-size: 0.7rem;">Ticket Priority</label>
-                    <select name="priority" class="form-premium-control py-2 px-3" onchange="this.form.submit()"
-                        style="font-size: 0.85rem; background: var(--bg-input);">
-                        <option value="low" {{ $ticket->priority == 'low' ? 'selected' : '' }}>Low Priority
+                    <x-select name="priority" class="form-premium-control" onchange="this.form.submit()"
+                        style="font-size: 0.85rem; background: var(--bg-input);" placeholder="Ticket Priority">
+                        <option value="low" {{ $ticket->priority == 'low' ? 'selected' : '' }} class="bg-dark">Low
+                            Priority
                         </option>
-                        <option value="medium" {{ $ticket->priority == 'medium' ? 'selected' : '' }}>Medium Priority
+                        <option value="medium" {{ $ticket->priority == 'medium' ? 'selected' : '' }} class="bg-dark">
+                            Medium Priority
                         </option>
-                        <option value="high" {{ $ticket->priority == 'high' ? 'selected' : '' }}>High Priority
+                        <option value="high" {{ $ticket->priority == 'high' ? 'selected' : '' }} class="bg-dark">
+                            High Priority
                         </option>
-                        <option value="urgent" {{ $ticket->priority == 'urgent' ? 'selected' : '' }}>Urgent Priority
+                        <option value="urgent" {{ $ticket->priority == 'urgent' ? 'selected' : '' }} class="bg-dark">
+                            Urgent Priority
                         </option>
-                    </select>
+                    </x-select>
                 </form>
 
                 <div class="mb-4">
@@ -266,16 +276,17 @@
                     @csrf
                     <div class="mb-4">
                         <label class="heading-label mb-2" style="font-size: 0.7rem;">Select Responsible Agent</label>
-                        <select name="assigned_to" class="form-premium-control py-2 px-3"
-                            style="font-size: 0.85rem; background: var(--bg-input);">
-                            <option value="">-- No Assignment --</option>
+                        <x-select name="assigned_to" class="form-premium-control"
+                            style="font-size: 0.85rem; background: var(--bg-input);"
+                            placeholder="-- No Assignment --">
+                            <option value="" class="bg-dark">-- No Assignment --</option>
                             @foreach ($users as $user)
                                 <option value="{{ $user->id }}"
-                                    {{ $ticket->assigned_to == $user->id ? 'selected' : '' }}>
+                                    {{ $ticket->assigned_to == $user->id ? 'selected' : '' }} class="bg-dark">
                                     {{ $user->name }}
                                 </option>
                             @endforeach
-                        </select>
+                        </x-select>
                     </div>
                     <button type="submit"
                         class="btn-premium btn-premium-primary w-100 py-3 d-flex align-items-center justify-content-center gap-2">

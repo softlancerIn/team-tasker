@@ -22,6 +22,10 @@
     <script src='https://cdn.jsdelivr.net/npm/tinymce@5/tinymce.min.js' referrerpolicy="origin"></script>
     <script src="https://unpkg.com/feather-icons"></script>
 
+    <!-- Tom Select -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
     <script>
         // Global Chat Editor Component for Alpine.js
         // Global Chat Editor Component for Alpine.js
@@ -36,18 +40,23 @@
                 this.mountEditor();
 
                 // Listen for theme changes
-                this.themeChangeListener = () => {
-                    this.mountEditor();
+                this.themeChangeListener = (e) => {
+                    const newTheme = e.detail && e.detail.theme ? e.detail.theme : localStorage.getItem(
+                        'theme');
+                    this.mountEditor(newTheme);
                 };
                 window.addEventListener('theme-changed', this.themeChangeListener);
             },
 
-            mountEditor() {
+            mountEditor(theme = null) {
                 // Ensure TinyMCE is loaded
                 if (typeof tinymce === 'undefined') {
                     console.error('TinyMCE not loaded');
                     return;
                 }
+
+                const savedTheme = theme || localStorage.getItem('theme') || 'dark';
+                const isDark = savedTheme === 'dark';
 
                 // Remove existing instance if any (safety check)
                 let existingEditor = tinymce.get(this.editorStr);
@@ -62,20 +71,6 @@
                     }
                 }
 
-                // Aggressively clean up stale editors
-                if (tinymce.editors) {
-                    for (let i = tinymce.editors.length - 1; i >= 0; i--) {
-                        let ed = tinymce.editors[i];
-                        if (!document.getElementById(ed.id)) {
-                            try {
-                                ed.remove();
-                            } catch (e) {}
-                        }
-                    }
-                }
-
-                const savedTheme = localStorage.getItem('theme') || 'dark';
-                const isDark = savedTheme === 'dark';
 
                 tinymce.init({
                     selector: '#' + this.editorStr,
@@ -97,13 +92,27 @@
                     toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | forecolor backcolor | table | bullist numlist',
                     extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
                     valid_elements: '*[*]',
-                    content_css: false,
-                    content_style: isDark ?
-                        'body { background: transparent; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; margin: 0; padding: 0 10px; line-height: 1.4; height: 100%; display: flex; flex-direction: column; justify-content: center; } p { margin: 0; } i { font-style: italic; } .mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { text-align: left; position: absolute; top: 50%; transform: translateY(-50%); left: 10px; color: rgba(255, 255, 255, 0.5); }' :
-                        'body { background: transparent; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; margin: 0; padding: 0 10px; line-height: 1.4; height: 100%; display: flex; flex-direction: column; justify-content: center; } p { margin: 0; } i { font-style: italic; } .mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { text-align: left; position: absolute; top: 50%; transform: translateY(-50%); left: 10px; color: #aaa; }',
                     entity_encoding: 'raw',
                     remove_trailing_brs: false,
                     valid_children: '+body[style|i]',
+                    content_style: `
+                        body { 
+                            background: transparent !important; 
+                            color: ${isDark ? '#f8fafc' : '#0f172a'}; 
+                            font-family: 'Outfit', sans-serif; 
+                            font-size: 14px; 
+                            margin: 0; 
+                            padding: 10px; 
+                            line-height: 1.5; 
+                        } 
+                        p { margin: 0; } 
+                        i { font-style: italic; } 
+                        .mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { 
+                            color: ${isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)'} !important; 
+                            font-family: 'Outfit', sans-serif;
+                            font-style: normal;
+                        }
+                    `,
                     setup: (editor) => {
                         editor.on('change keyup', () => {
                             let content = editor.getContent();
@@ -138,6 +147,7 @@
                             const container = editor.getContainer();
                             if (container) {
                                 container.style.border = 'none';
+                                container.style.background = 'transparent';
                             }
                             // Restore content if reloading
                             if (currentContent) {
@@ -147,6 +157,71 @@
                     }
                 });
             }
+        });
+
+        // Global Initialization for other editors (Task Description, etc.)
+        window.initGlobalEditors = (theme = null) => {
+            if (typeof tinymce === 'undefined') return;
+
+            const savedTheme = theme || localStorage.getItem('theme') || 'dark';
+            const isDark = savedTheme === 'dark';
+
+            // Remove existing instances to avoid duplicates on re-init
+            document.querySelectorAll('.rich-editor').forEach(el => {
+                if (el.id) {
+                    const ed = tinymce.get(el.id);
+                    if (ed) ed.remove();
+                }
+            });
+
+            tinymce.init({
+                selector: '.rich-editor',
+                height: 400,
+                skin: isDark ? 'oxide-dark' : 'oxide',
+                content_css: isDark ? 'dark' : 'default',
+                branding: false,
+                placeholder: 'Describe in detail...',
+                plugins: [
+                    'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor',
+                    'pagebreak',
+                    'searchreplace', 'wordcount', 'visualblocks', 'visualchars', 'code', 'fullscreen',
+                    'insertdatetime',
+                    'media', 'table', 'emoticons', 'help'
+                ],
+                menubar: true,
+                toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code | styleselect',
+                extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
+                valid_elements: '*[*]',
+                content_style: isDark ?
+                    'body { background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent), #1a2436; color: rgba(255, 255, 255, 0.8); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; } body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: rgba(255, 255, 255, 0.4); }' :
+                    'body { background: #ffffff; color: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; } i { font-style: italic; }',
+                entity_encoding: 'raw',
+                remove_trailing_brs: false,
+                valid_children: '+body[style|i]',
+                setup: function(editor) {
+                    editor.on('init', function() {
+                        const container = editor.getContainer();
+                        if (container) {
+                            container.style.border = isDark ? '1px solid rgba(99, 102, 241, 0.3)' :
+                                '1px solid #ced4da';
+                            container.style.borderRadius = '8px';
+                        }
+                    });
+                }
+            });
+        };
+
+        // Initialize on load if editors exist
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.querySelector('.rich-editor')) {
+                window.initGlobalEditors();
+            }
+        });
+
+        // Listen for theme changes globally
+        window.addEventListener('theme-changed', (e) => {
+            const newTheme = e.detail && e.detail.theme ? e.detail.theme : localStorage.getItem('theme');
+            window.initGlobalEditors(newTheme);
         });
 
         // Global Chat Messages Component

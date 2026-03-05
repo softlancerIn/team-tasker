@@ -11,7 +11,7 @@ class ClientController extends Controller
     public function dashboard()
     {
         $tickets = Ticket::where('user_id', Auth::id())->latest()->get();
-        
+
         $ticketIds = $tickets->pluck('id');
         $tasks = \App\Models\Task::whereIn('ticket_id', $ticketIds)
             ->with(['status', 'assignedTo'])
@@ -48,14 +48,15 @@ class ClientController extends Controller
     public function show($id)
     {
         $ticket = Ticket::with(['replies.user'])->where('user_id', Auth::id())->findOrFail($id);
+
         return view('client.tickets.show', compact('ticket'));
     }
 
     public function showTask($id)
     {
-        $task = \App\Models\Task::with(['status', 'assignedTo', 'attachments', 'logs' => function($q) {
+        $task = \App\Models\Task::with(['status', 'assignedTo', 'attachments', 'logs' => function ($q) {
             $q->where('type', 'message')->with('user')->latest();
-        }])->whereHas('ticket', function($q) {
+        }])->whereHas('ticket', function ($q) {
             $q->where('user_id', Auth::id());
         })->findOrFail($id);
 
@@ -68,7 +69,7 @@ class ClientController extends Controller
             'note' => 'required|string',
         ]);
 
-        $task = \App\Models\Task::whereHas('ticket', function($q) {
+        $task = \App\Models\Task::whereHas('ticket', function ($q) {
             $q->where('user_id', Auth::id());
         })->findOrFail($id);
 
@@ -102,7 +103,7 @@ class ClientController extends Controller
         return back()->with('success', 'Reply sent successfully.');
     }
 
-    // Login page for client if distinct from general login, 
+    // Login page for client if distinct from general login,
     // but plan uses standard auth.
     // We might want a specific layout for client dashboard though.
 }

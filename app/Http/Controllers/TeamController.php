@@ -132,7 +132,7 @@ class TeamController extends Controller
                 break;
             case 'change_role':
                 $roleId = $request->role_id;
-                if (!$roleId) {
+                if (! $roleId) {
                     return back()->with('error', 'Please select a role.');
                 }
                 User::whereIn('id', $ids)->update(['role_id' => $roleId]);

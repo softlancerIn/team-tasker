@@ -118,28 +118,28 @@ new class extends Component {
                 </div>
             </div>
             <div class="col-md-2">
-                <select wire:model.live="status_id" class="form-premium-control">
-                    <option value="">All Statuses</option>
+                <x-select wire:model.live="status_id" name="status_id" id="status_id" placeholder="All Statuses">
+                    <option value="" class="bg-dark">All Statuses</option>
                     @foreach ($statuses as $status)
-                        <option value="{{ $status->id }}">{{ $status->name }}</option>
+                        <option value="{{ $status->id }}" class="bg-dark">{{ $status->name }}</option>
                     @endforeach
-                </select>
+                </x-select>
             </div>
             <div class="col-md-2">
-                <select wire:model.live="priority" class="form-premium-control">
-                    <option value="">All Priorities</option>
+                <x-select wire:model.live="priority" placeholder="All Priorities">
+                    <option value="" class="bg-dark">All Priorities</option>
                     @foreach ($priorities as $p)
-                        <option value="{{ $p }}">{{ $p }}</option>
+                        <option value="{{ $p }}" class="bg-dark">{{ $p }}</option>
                     @endforeach
-                </select>
+                </x-select>
             </div>
             <div class="col-md-2">
-                <select wire:model.live="tag_id" class="form-premium-control">
-                    <option value="">All Tags</option>
+                <x-select wire:model.live="tag_id" placeholder="All Tags">
+                    <option value="" class="bg-dark">All Tags</option>
                     @foreach ($tags as $tag)
-                        <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                        <option value="{{ $tag->id }}" class="bg-dark">{{ $tag->name }}</option>
                     @endforeach
-                </select>
+                </x-select>
             </div>
             <div class="col-md-2 text-end">
                 <button
@@ -166,13 +166,13 @@ new class extends Component {
             <div class="d-flex flex-wrap align-items-center gap-4">
                 <!-- Status Update -->
                 <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <select wire:model.live="bulkStatus" class="form-premium-control py-2"
+                    <x-select wire:model.live="bulkStatus" class="form-premium-control" placeholder="Status..."
                         style="width: 150px; font-size: 0.8rem; background: var(--bg-input);">
-                        <option value="">Status...</option>
+                        <option value="" class="bg-dark">Status...</option>
                         @foreach ($statuses as $status)
-                            <option value="{{ $status->id }}">{{ $status->name }}</option>
+                            <option value="{{ $status->id }}" class="bg-dark">{{ $status->name }}</option>
                         @endforeach
-                    </select>
+                    </x-select>
                     <button wire:click="bulkChangeStatus" class="btn-premium btn-premium-primary py-2 px-3"
                         style="font-size: 0.8rem;" @if (!$bulkStatus) disabled @endif>
                         Apply
@@ -181,13 +181,13 @@ new class extends Component {
 
                 <!-- Priority Update -->
                 <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <select wire:model.live="bulkPriority" class="form-premium-control py-2"
+                    <x-select wire:model.live="bulkPriority" class="form-premium-control" placeholder="Priority..."
                         style="width: 150px; font-size: 0.8rem; background: var(--bg-input);">
-                        <option value="">Priority...</option>
+                        <option value="" class="bg-dark">Priority...</option>
                         @foreach ($priorities as $p)
-                            <option value="{{ $p }}">{{ $p }}</option>
+                            <option value="{{ $p }}" class="bg-dark">{{ $p }}</option>
                         @endforeach
-                    </select>
+                    </x-select>
                     <button wire:click="bulkChangePriority" class="btn-premium btn-premium-primary py-2 px-3"
                         style="font-size: 0.8rem;" @if (!$bulkPriority) disabled @endif>
                         Apply
@@ -201,8 +201,6 @@ new class extends Component {
                         style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2); font-size: 0.8rem;">
                         <i class="fas fa-trash-alt me-1"></i> Delete
                     </button>
-                    <button wire:click="$set('selectedTasks', [])" class="btn-premium btn-premium-secondary py-2 px-3"
-                        style="font-size: 0.8rem;">Deselect</button>
                 </div>
             </div>
         </div>

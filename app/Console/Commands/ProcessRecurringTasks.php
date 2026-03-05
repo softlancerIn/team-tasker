@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Task;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
 
 class ProcessRecurringTasks extends Command
 {
@@ -56,9 +56,9 @@ class ProcessRecurringTasks extends Command
 
         // Update the current task's next_occurrence_at
         $nextDate = $this->calculateNextDate($task->next_occurrence_at ?? now(), $task->recurring_interval);
-        
+
         $task->update([
-            'next_occurrence_at' => $nextDate
+            'next_occurrence_at' => $nextDate,
         ]);
 
         $this->info("Generated new occurrence for task: {$task->title}");

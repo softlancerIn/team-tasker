@@ -18,29 +18,37 @@
                         class="fas fa-filter me-1"></i> Filters:</span>
             </div>
             <div class="col-md-3">
-                <select name="priority" class="form-premium-control" onchange="this.form.submit()"
-                    style="font-size: 0.85rem;">
-                    <option value="">All Priorities</option>
-                    <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low Priority</option>
-                    <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }}>Medium Priority
+                <x-select name="priority" class="form-premium-control" onchange="this.form.submit()"
+                    style="font-size: 0.85rem;" placeholder="All Priorities">
+                    <option value="" class="bg-dark">All Priorities</option>
+                    <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }} class="bg-dark">Low
+                        Priority</option>
+                    <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }} class="bg-dark">
+                        Medium Priority
                     </option>
-                    <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }}>High Priority</option>
-                    <option value="urgent" {{ request('priority') == 'urgent' ? 'selected' : '' }}>Urgent Priority
+                    <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }} class="bg-dark">High
+                        Priority</option>
+                    <option value="urgent" {{ request('priority') == 'urgent' ? 'selected' : '' }} class="bg-dark">
+                        Urgent Priority
                     </option>
-                </select>
+                </x-select>
             </div>
             <div class="col-md-3">
-                <select name="status" class="form-premium-control" onchange="this.form.submit()"
-                    style="font-size: 0.85rem;">
-                    <option value="">All Statuses</option>
-                    <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>Open Tickets</option>
-                    <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>In Progress
+                <x-select name="status" class="form-premium-control" onchange="this.form.submit()"
+                    style="font-size: 0.85rem;" placeholder="All Statuses">
+                    <option value="" class="bg-dark">All Statuses</option>
+                    <option value="open" {{ request('status') == 'open' ? 'selected' : '' }} class="bg-dark">Open
+                        Tickets</option>
+                    <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}
+                        class="bg-dark">In Progress
                     </option>
-                    <option value="waiting_for_client"
-                        {{ request('status') == 'waiting_for_client' ? 'selected' : '' }}>Waiting for Client</option>
-                    <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
-                    <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
-                </select>
+                    <option value="waiting_for_client" {{ request('status') == 'waiting_for_client' ? 'selected' : '' }}
+                        class="bg-dark">Waiting for Client</option>
+                    <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }} class="bg-dark">
+                        Resolved</option>
+                    <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }} class="bg-dark">Closed
+                    </option>
+                </x-select>
             </div>
             @if (request('priority') || request('status'))
                 <div class="col-md-auto">
