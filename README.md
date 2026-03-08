@@ -104,5 +104,5 @@ We welcome contributions that push the boundaries of productivity tools. Please 
 Team Tasker is open-source software licensed under the [MIT License](LICENSE).
 
 ## 📮 Contact
-**Rohit Pal** - [iamrohitpalg@gmail.com](mailto:iamrohitpalg@gmail.com)  
+**Softlancer Pvt Ltd** - [softlancer.in@gmail.com](mailto:softlancer.in@gmail.com)  
 Noida, Uttar Pradesh, India
