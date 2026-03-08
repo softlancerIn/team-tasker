@@ -2,7 +2,7 @@
 
 **Team Tasker** is a state-of-the-art, Laravel-based project management and support platform designed for high-performance teams. It combines robust task management with a unified support ticket system and real-time communication, all wrapped in a premium, highly-customizable user interface.
 
-![Team Tasker Header](/home/rohit-pal/.gemini/antigravity/brain/d150379a-367d-4d48-95b5-5a4bf5eab78a/header_redesign_verification_1772736739659.png)
+![Team Tasker Header](/.gemini/antigravity/brain/d150379a-367d-4d48-95b5-5a4bf5eab78a/header_redesign_verification_1772736739659.png)
 
 ## 🚀 Key Modules & Features
 
@@ -59,7 +59,7 @@
 
 1. **Clone & Install Dependencies:**
    ```bash
-   git clone https://github.com/iamrohitpal/team-tasker.git
+   git clone https://github.com/softlancerIn/team-tasker.git
    cd team-tasker
    composer install
    npm install
@@ -104,5 +104,5 @@ We welcome contributions that push the boundaries of productivity tools. Please 
 Team Tasker is open-source software licensed under the [MIT License](LICENSE).
 
 ## 📮 Contact
-**Rohit Pal** - [iamrohitpalg@gmail.com](mailto:iamrohitpalg@gmail.com)  
+**Softlancer Pvt Ltd** - [softlancer.in@gmail.com](mailto:softlancer.in@gmail.com)  
 Noida, Uttar Pradesh, India

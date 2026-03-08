@@ -1,14 +1,18 @@
 {
-    "name": "iamrohitpal/team-tasker",
+    "name": "softlancer/team-tasker",
     "description": "Laravel Todo app, team-tasker",
     "type": "project",
-    "keywords": ["laravel", "todo", "team-tasker"],
+    "keywords": [
+        "laravel",
+        "todo",
+        "team-tasker"
+    ],
     "homepage": "http://localhost/team-tasker/public",
     "license": "MIT",
     "authors": [
         {
-            "name": "Rohit Pal",
-            "email": "iamrohitpalg@gmail.com"
+            "name": "Softlancer Pvt Ltd",
+            "email": "softlancer.in@gmail.com"
         }
     ],
     "require": {
