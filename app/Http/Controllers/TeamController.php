@@ -31,7 +31,7 @@ class TeamController extends Controller
             $query->where('is_approved', $status);
         }
 
-        $users = $query->get();
+        $users = $query->paginate(15);
         $roles = Role::all();
 
         return view('admin.users.index', compact('users', 'roles'));

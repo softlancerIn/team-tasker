@@ -150,20 +150,17 @@ new class extends Component {
     #[On('global-message-received')]
     public function refreshList()
     {
-        // Volts automatically re-renders on event if we use $refresh or just method call
-        $this->dispatch('$refresh');
+        // Calling any Volt method triggers a re-render of the component automatically
+        // No need to manually dispatch $refresh
     }
 }; ?>
 
 <div class="d-flex flex-column h-100" style="background: var(--bg-surface);" x-data="{
-    onlineUsers: [],
+    onlineUsers: window.onlineUsers ? window.onlineUsers.map(String) : [],
     init() {
-        if (window.socket) {
-            window.socket.on('online_users', (users) => {
-                this.onlineUsers = users.map(String);
-            });
-            window.socket.emit('user_connected', {{ auth()->id() }});
-        }
+        window.addEventListener('online-users-updated', (e) => {
+            this.onlineUsers = e.detail.map(String);
+        });
     }
 }">
     <div class="p-3 border-bottom border-main">
@@ -200,7 +197,7 @@ new class extends Component {
         @if ($clientGroups->isNotEmpty())
             @foreach ($clientGroups as $group)
                 <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $selectedConversationId == $group->id ? 'active' : '' }}"
-                    wire:click="selectConversation({{ $group->id }})">
+                    wire:click="selectConversation({{ $group->id }})" wire:key="group-{{ $group->id }}">
                     <div class="avatar-premium"
                         style="width: 42px; height: 42px; background: linear-gradient(135deg, var(--primary), var(--accent));">
                         <i class="fas fa-user-tie text-white" style="font-size: 1rem;"></i>
@@ -231,7 +228,8 @@ new class extends Component {
             <!-- Direct Messages -->
             @foreach ($users as $user)
                 <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'active' : '' }}"
-                    wire:click="selectUser({{ $user->id }})" data-user-id="{{ $user->id }}">
+                    wire:click="selectUser({{ $user->id }})" wire:key="user-{{ $user->id }}"
+                    data-user-id="{{ $user->id }}">
                     <div class="position-relative">
                         <div class="avatar-premium" style="width: 42px; height: 42px;">
                             @if ($user->profile_image)
@@ -267,7 +265,8 @@ new class extends Component {
                     style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle);">Staff Groups</div>
                 @foreach ($conversations as $group)
                     <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $selectedConversationId == $group->id ? 'active' : '' }}"
-                        wire:click="selectConversation({{ $group->id }})">
+                        wire:click="selectConversation({{ $group->id }})"
+                        wire:key="staff-group-{{ $group->id }}">
                         <div class="avatar-premium" style="width: 42px; height: 42px; background: var(--bg-input);">
                             <i class="fas fa-users" style="color: var(--primary);"></i>
                         </div>

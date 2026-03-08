@@ -29,7 +29,22 @@ class TicketAssigned extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['mail', 'database', Channels\FirebaseChannel::class];
+    }
+
+    /**
+     * Get the Firebase representation of the notification.
+     */
+    public function toFirebase(object $notifiable): array
+    {
+        return [
+            'title' => 'Ticket Assigned: #'.$this->ticket->id,
+            'body' => 'You have been assigned a new ticket: '.$this->ticket->subject,
+            'data' => [
+                'ticket_id' => (string) $this->ticket->id,
+                'action' => 'ticket_assigned',
+            ],
+        ];
     }
 
     /**

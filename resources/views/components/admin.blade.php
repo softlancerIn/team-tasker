@@ -5,6 +5,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? 'Admin Dashboard | Team Tasker' }}</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
+
     @livewireStyles
 
     <!-- Fonts -->
@@ -267,6 +273,8 @@
             userId: props ? props.userId : null,
             userName: props ? props.userName : null,
             themeChangeListener: null,
+            isTypingSent: false,
+            typingTimeout: null,
 
             init() {
                 this.mountEditor();
@@ -346,17 +354,31 @@
                         }
                     `,
                     setup: (editor) => {
-                        editor.on('change keyup', () => {
-                            let content = editor.getContent();
-                            if (wire) wire.set('body', content);
-                            // Emit typing event to socket
-                            if (window.socket && this.conversationId) {
-                                window.socket.emit('typing', {
-                                    room: 'chat.' + this.conversationId,
-                                    userId: this.userId,
-                                    userName: this.userName
-                                });
+                        editor.on('input change keyup', () => {
+                            // Always emit typing event (debounced stop)
+                            if (this.conversationId && this.userId) {
+                                window.dispatchEvent(new CustomEvent('user-typing-to-node', {
+                                    detail: {
+                                        room: this.conversationId,
+                                        userId: this.userId,
+                                        userName: this.userName
+                                    }
+                                }));
                             }
+
+                            // Reset the stop-typing timer
+                            if (this.typingTimeout) clearTimeout(this.typingTimeout);
+                            this.typingTimeout = setTimeout(() => {
+                                if (this.conversationId && this.userId) {
+                                    window.dispatchEvent(new CustomEvent(
+                                        'user-stop-typing-to-node', {
+                                            detail: {
+                                                room: this.conversationId,
+                                                userId: this.userId
+                                            }
+                                        }));
+                                }
+                            }, 3000);
                         });
                         editor.on('keydown', async (e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
@@ -372,6 +394,15 @@
                                         await wire.sendMessage(content);
                                     }
                                     editor.resetContent();
+
+                                    // Stop typing via global CustomEvent
+                                    window.dispatchEvent(new CustomEvent(
+                                        'user-stop-typing-to-node', {
+                                            detail: {
+                                                room: this.conversationId,
+                                                userId: this.userId
+                                            }
+                                        }));
                                 }
                             }
                         });
@@ -398,7 +429,7 @@
             const savedTheme = theme || localStorage.getItem('theme') || 'dark';
             const isDark = savedTheme === 'dark';
 
-            // Remove existing instances from elements with rich-editor class
+            // Remove existing instances to avoid duplicates on re-init
             document.querySelectorAll('.rich-editor').forEach(el => {
                 if (el.id) {
                     const ed = tinymce.get(el.id);
@@ -412,7 +443,7 @@
                 skin: isDark ? 'oxide-dark' : 'oxide',
                 content_css: isDark ? 'dark' : 'default',
                 branding: false,
-                placeholder: 'Describe the task in detail...',
+                placeholder: 'Describe in detail...',
                 plugins: [
                     'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor',
                     'pagebreak',
@@ -482,65 +513,29 @@
                     });
                 }
 
-                if (typeof io !== 'undefined') {
-                    const host = window.location.hostname;
-                    this.socket = window.socket || io(`http://${host}:3000`);
-                    const roomId = `chat.${this.conversationId}`;
+                window.addEventListener('user-typing-indicator', (event) => {
+                    const roomMatch = String(event.detail.room) === String(this.conversationId);
+                    const isNotMe = String(event.detail.userId) !== String(this.userId);
 
-                    this.socket.emit('join_room', roomId);
+                    if (roomMatch && isNotMe) {
+                        this.isTyping = true;
+                        this.typingUser = event.detail.userName;
 
-                    const onReceiveMessage = (data) => {
-                        if (data.action === 'delete') {
-                            if (wire) wire.call('loadConversation', this.conversationId);
-                        } else if (data.user_id != this.userId) {
-                            if (wire) wire.call('loadConversation', this.conversationId);
-                        }
-
-                        window.dispatchEvent(new CustomEvent('global-message-received'));
-                    };
-
-                    const onUserTyping = (data) => {
-                        if (data.userId != this.userId) {
-                            this.isTyping = true;
-                            this.typingUser = data.userName;
-                            clearTimeout(this.typingTimeout);
-                            this.typingTimeout = setTimeout(() => {
-                                this.isTyping = false;
-                            }, 3000);
-                        }
-                    };
-
-                    const onUserStopTyping = (data) => {
-                        if (data.userId != this.userId) {
+                        if (this.typingTimeout) clearTimeout(this.typingTimeout);
+                        this.typingTimeout = setTimeout(() => {
                             this.isTyping = false;
-                        }
-                    };
+                        }, 3000);
+                    }
+                });
 
-                    this.socket.on('receive_message', onReceiveMessage);
-                    this.socket.on('user_typing', onUserTyping);
-                    this.socket.on('user_stop_typing', onUserStopTyping);
+                window.addEventListener('user-stop-typing-indicator', (event) => {
+                    const roomMatch = String(event.detail.room) === String(this.conversationId);
+                    const isNotMe = String(event.detail.userId) !== String(this.userId);
 
-                    const onSendMessageToNode = (event) => {
-                        const data = event.detail[0] || event.detail;
-                        if (data && data.room && data.message) {
-                            this.socket.emit('send_message', data);
-                            this.socket.emit('stop_typing', {
-                                room: roomId,
-                                userId: this.userId
-                            });
-                        }
-                    };
-                    window.addEventListener('send-message-to-node', onSendMessageToNode);
-
-                    // Cleanup function
-                    return () => {
-                        this.socket.off('receive_message', onReceiveMessage);
-                        this.socket.off('user_typing', onUserTyping);
-                        this.socket.off('user_stop_typing', onUserStopTyping);
-                        window.removeEventListener('send-message-to-node', onSendMessageToNode);
-                        this.socket.emit('leave_room', roomId);
-                    };
-                }
+                    if (roomMatch && isNotMe) {
+                        this.isTyping = false;
+                    }
+                });
             },
 
             scrollToBottom() {
@@ -1138,34 +1133,106 @@
                 once: true
             });
 
-            // Socket.IO Connection
-            if (typeof io !== 'undefined') {
-                const userId = {{ auth()->id() }};
-                const host = window.location.hostname;
-                const socket = io(`http://${host}:3000`);
-                window.socket = socket; // Make available globally
+            // Socket.IO Initialization
+            window.onlineUsers = [];
+            const socketUrl = window.location.protocol + '//' + window.location.hostname + ':3000';
+            window.socket = io(socketUrl);
 
-                socket.on('connect', () => {
-                    console.log('Connected to Socket.IO server');
-                    socket.emit('user_connected', userId);
-                });
+            window.socket.on('connect', () => {
+                console.log('Connected to Socket.IO server:', window.socket.id);
+                @if (auth()->check())
+                    window.socket.emit('user_connected', {{ auth()->id() }});
 
-                // Online Users Tracking
-                socket.on('online_users', (users) => {
-                    // Update UI for online users
-                    document.querySelectorAll('[data-user-id]').forEach(el => {
-                        const uid = parseInt(el.getAttribute('data-user-id'));
-                        const dot = el.querySelector('.status-dot');
-                        if (users.includes(uid)) {
-                            if (dot) dot.classList.remove('bg-secondary');
-                            if (dot) dot.classList.add('bg-success');
-                        } else {
-                            if (dot) dot.classList.remove('bg-success');
-                            if (dot) dot.classList.add('bg-secondary');
-                        }
+                    // Auto-join all user's conversation rooms so we receive
+                    // typing indicators, messages, and read receipts for ALL conversations
+                    @php
+                        $userConversationIds = auth()->user()->conversations()->pluck('conversations.id')->toArray();
+                    @endphp
+                    const myRooms = @json($userConversationIds);
+                    myRooms.forEach(roomId => {
+                        window.socket.emit('join_room', roomId);
+                        console.log('Auto-joined room:', roomId);
                     });
+                @endif
+            });
+
+            window.socket.on('online_users', (users) => {
+                window.onlineUsers = users;
+                window.dispatchEvent(new CustomEvent('online-users-updated', {
+                    detail: users
+                }));
+            });
+
+            window.socket.on('receive_message', (data) => {
+                Livewire.dispatch('socket-message-received', {
+                    data
                 });
-            }
+                // Refresh the chat-list unread counts
+                Livewire.dispatch('global-message-received');
+            });
+
+            // When the other user is online in the room, mark as delivered (double gray tick)
+            window.socket.on('message_delivered', (data) => {
+                Livewire.dispatch('socket-message-delivered', {
+                    data
+                });
+            });
+
+            window.socket.on('user_typing', (data) => {
+                console.log('Socket typing event:', data);
+                window.dispatchEvent(new CustomEvent('user-typing-indicator', {
+                    detail: data
+                }));
+            });
+
+            window.socket.on('user_stop_typing', (data) => {
+                console.log('Socket stop typing event:', data);
+                window.dispatchEvent(new CustomEvent('user-stop-typing-indicator', {
+                    detail: data
+                }));
+            });
+
+            window.socket.on('messages_read_by_user', (data) => {
+                Livewire.dispatch('socket-messages-read', {
+                    data
+                });
+            });
+
+            // Catch dispatch from Livewire to emit to Node
+            window.addEventListener('join-chat-room', event => {
+                if (window.socket) {
+                    const data = Array.isArray(event.detail) ? event.detail[0] : event.detail;
+                    window.socket.emit('join_room', data);
+                }
+            });
+
+            window.addEventListener('send-message-to-node', event => {
+                if (window.socket) {
+                    const data = Array.isArray(event.detail) ? event.detail[0] : event.detail;
+                    window.socket.emit('send_message', data);
+                }
+            });
+
+            window.addEventListener('user-typing-to-node', event => {
+                if (window.socket) {
+                    const data = Array.isArray(event.detail) ? event.detail[0] : event.detail;
+                    window.socket.emit('typing', data);
+                }
+            });
+
+            window.addEventListener('user-stop-typing-to-node', event => {
+                if (window.socket) {
+                    const data = Array.isArray(event.detail) ? event.detail[0] : event.detail;
+                    window.socket.emit('stop_typing', data);
+                }
+            });
+
+            window.addEventListener('messages-read-to-node', event => {
+                if (window.socket) {
+                    const data = Array.isArray(event.detail) ? event.detail[0] : event.detail;
+                    window.socket.emit('messages_read', data);
+                }
+            });
 
             // Submenu Toggle JS
             window.toggleSubmenu = function(el) {
@@ -1180,6 +1247,89 @@
                     icon.classList.add('rotate');
                 }
             };
+
+            // Firebase Cloud Messaging Integration
+            const firebaseConfig = {
+                apiKey: "{{ config('services.firebase.api_key') }}",
+                authDomain: "{{ config('services.firebase.auth_domain') }}",
+                projectId: "{{ config('services.firebase.project_id') }}",
+                storageBucket: "{{ config('services.firebase.storage_bucket') }}",
+                messagingSenderId: "{{ config('services.firebase.messaging_sender_id') }}",
+                appId: "{{ config('services.firebase.app_id') }}",
+                measurementId: "{{ config('services.firebase.measurement_id') }}"
+            };
+
+            if (firebaseConfig.apiKey) {
+                firebase.initializeApp(firebaseConfig);
+                const messaging = firebase.messaging();
+
+                function requestPermission() {
+                    console.log('Requesting FCM permission...');
+                    Notification.requestPermission().then((permission) => {
+                        if (permission === 'granted') {
+                            console.log('Notification permission granted.');
+                            messaging.getToken({
+                                vapidKey: "{{ config('services.firebase.vapid_key') }}"
+                            }).then((currentToken) => {
+                                if (currentToken) {
+                                    sendTokenToServer(currentToken);
+                                } else {
+                                    console.warn(
+                                        'No registration token available. Request permission to generate one.'
+                                        );
+                                }
+                            }).catch((err) => {
+                                console.error('An error occurred while retrieving token. ', err);
+                            });
+                        } else {
+                            console.warn('Notification permission denied.');
+                        }
+                    });
+                }
+
+                function sendTokenToServer(token) {
+                    fetch("{{ route('update.fcm_token') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({
+                                token: token
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => console.log('FCM Token sync:', data))
+                        .catch(err => console.error('Error syncing FCM token:', err));
+                }
+
+                if (Notification.permission === 'granted') {
+                    requestPermission();
+                } else {
+                    document.addEventListener('click', () => {
+                        if (Notification.permission === 'default') {
+                            requestPermission();
+                        }
+                    }, {
+                        once: true
+                    });
+                }
+
+                messaging.onMessage((payload) => {
+                    console.log('Message received. ', payload);
+                    const notificationTitle = payload.notification.title;
+                    const notificationOptions = {
+                        body: payload.notification.body,
+                        icon: '/images/logo.png',
+                    };
+
+                    new Notification(notificationTitle, notificationOptions);
+
+                    if (window.Livewire) {
+                        window.Livewire.dispatch('notification-received');
+                    }
+                });
+            }
         });
     </script>
     <div id="sidebarOverlay" class="sidebar-overlay d-lg-none"></div>

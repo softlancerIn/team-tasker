@@ -30,7 +30,14 @@ Route::controller(AuthController::class)->group(function () {
 Route::middleware(['web', 'auth'])->get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.global');
 
 // Notifications
-Route::middleware(['web', 'auth'])->post('/notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+    Route::post('/update-fcm-token', function (Illuminate\Http\Request $request) {
+        $request->validate(['token' => 'required|string']);
+        auth()->user()->update(['fcm_token' => $request->token]);
+        return response()->json(['success' => true]);
+    })->name('update.fcm_token');
+});
 
 // Public Enquiry Route
 Route::get('/enquire', [App\Http\Controllers\EnquiryController::class, 'create'])->name('enquiry.create');

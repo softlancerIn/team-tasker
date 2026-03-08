@@ -11,6 +11,11 @@ use Livewire\WithPagination;
 new class extends Component {
     use WithPagination;
 
+    public function paginationView()
+    {
+        return 'vendor.pagination.premium';
+    }
+
     public $search = '';
     public $status_id = '';
     public $priority = '';

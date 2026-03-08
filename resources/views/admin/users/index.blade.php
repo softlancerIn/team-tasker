@@ -224,6 +224,11 @@
                     </tbody>
                 </table>
             </div>
+            @if ($users->hasPages())
+                <div class="p-4 border-top border-main">
+                    {{ $users->links() }}
+                </div>
+            @endif
         </div>
     </form>
 

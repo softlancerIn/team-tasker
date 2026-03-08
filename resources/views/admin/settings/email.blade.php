@@ -3,8 +3,39 @@
         <h2 class="h4 fw-bold mb-0" style="color: var(--text-high);">Email Integration Settings</h2>
     </div>
 
+    @if (!function_exists('imap_open'))
+        <div class="alert alert-warning shadow-premium mb-4"
+            style="border-radius: 12px; border: none; background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-3 fa-lg"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">IMAP Extension Missing</h6>
+                    <p class="mb-0 small">The PHP IMAP extension is not enabled on your server. Automatic ticket creation
+                        from emails will not work until this extension is installed and enabled.</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <form action="{{ route('admin.settings.email.store') }}" method="POST">
         @csrf
+
+        @if ($errors->any())
+            <div class="alert alert-danger shadow-premium mb-4"
+                style="border-radius: 12px; border: none; background: rgba(220, 53, 69, 0.1); color: #ff8585;">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-circle me-3 fa-lg"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Configuration Error</h6>
+                        <ul class="mb-0 small ps-3">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        @endif
         <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
             <h5 class="fw-bold mb-4" style="color: var(--text-high);">
                 <i class="fas fa-inbox me-2" style="color: var(--primary);"></i> Incoming Mail (IMAP)
@@ -12,8 +43,13 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="heading-label mb-2">IMAP Host</label>
-                    <input type="text" name="imap_host" class="form-premium-control"
-                        value="{{ $settings['imap_host'] ?? '' }}" placeholder="imap.gmail.com" required>
+                    <input type="text" name="imap_host"
+                        class="form-premium-control @error('imap_host') is-invalid @enderror"
+                        value="{{ old('imap_host', $settings['imap_host'] ?? '') }}" placeholder="imap.gmail.com"
+                        required>
+                    @error('imap_host')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
                 <div class="col-md-3 mb-3">
                     <label class="heading-label mb-2">Port</label>
@@ -56,8 +92,12 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="heading-label mb-2">SMTP Host</label>
-                    <input type="text" name="smtp_host" class="form-premium-control"
-                        value="{{ $settings['smtp_host'] ?? '' }}" placeholder="smtp.gmail.com">
+                    <input type="text" name="smtp_host"
+                        class="form-premium-control @error('smtp_host') is-invalid @enderror"
+                        value="{{ old('smtp_host', $settings['smtp_host'] ?? '') }}" placeholder="smtp.gmail.com">
+                    @error('smtp_host')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
                 <div class="col-md-3 mb-3">
                     <label class="heading-label mb-2">Port</label>

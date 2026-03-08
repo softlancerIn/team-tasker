@@ -7,6 +7,9 @@ use App\Models\Status;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Mime\Email;
 
 class SettingsController extends Controller
 {
@@ -75,6 +78,24 @@ class SettingsController extends Controller
             'from_name' => 'nullable|string',
         ]);
 
+        // Validate SMTP connectivity if host is provided
+        if (!empty($data['smtp_host'])) {
+            try {
+                $this->testSmtpConnection($data);
+            } catch (\Exception $e) {
+                return back()->withInput()->withErrors(['smtp_host' => 'SMTP Connection failed: ' . $e->getMessage()]);
+            }
+        }
+
+        // Validate IMAP connectivity
+        if (!empty($data['imap_host'])) {
+            try {
+                $this->testImapConnection($data);
+            } catch (\Exception $e) {
+                return back()->withInput()->withErrors(['imap_host' => 'IMAP Connection failed: ' . $e->getMessage()]);
+            }
+        }
+
         foreach ($data as $key => $value) {
             Setting::updateOrCreate(
                 ['key' => $key],
@@ -82,7 +103,76 @@ class SettingsController extends Controller
             );
         }
 
-        return back()->with('success', 'Email settings updated successfully.');
+        return back()->with('success', 'Email settings validated and updated successfully.');
+    }
+
+    private function testSmtpConnection($config)
+    {
+        $encryption = $config['smtp_encryption'] ?? 'null';
+        $scheme = 'smtp';
+        
+        if ($encryption === 'ssl') {
+            $scheme = 'smtps';
+        }
+
+        $dsn = sprintf(
+            '%s://%s:%s@%s:%s',
+            $scheme,
+            urlencode($config['smtp_user'] ?? ''),
+            urlencode($config['smtp_password'] ?? ''),
+            $config['smtp_host'],
+            $config['smtp_port'] ?? 587
+        );
+
+        $transport = Transport::fromDsn($dsn);
+        $mailer = new Mailer($transport);
+
+        $email = (new Email())
+            ->from($config['from_email'] ?? 'test@example.com')
+            ->to('test@example.com')
+            ->subject('SMTP Connection Test')
+            ->text('Checking connection...');
+
+        // We don't actually send, just verify the transport can connect
+        // Symfony Mailer doesn't have a direct 'connect' method in TransportInterface
+        // But attempt to send a dummy message will trigger connection
+        // Alternatively, use EsmtpTransport specifically if available to call start()
+        if (method_exists($transport, 'start')) {
+             $transport->start();
+             $transport->stop();
+        } else {
+            // For general transports, we might need a dummy send or better verification
+            // Since Esmtp is almost certainly used for 'smtp://' DSN:
+            try {
+                $transport->send($email);
+            } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
+                // If it's just a transport error (like connection refused), throw it
+                throw $e;
+            } catch (\Exception $e) {
+                // Ignore errors related to local sending if connection worked
+                if (str_contains($e->getMessage(), 'Connection refused') || str_contains($e->getMessage(), 'could not connect')) {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    private function testImapConnection($config)
+    {
+        $encryption = $config['imap_encryption'] ?? 'null';
+        
+        $client = \Webklex\IMAP\Facades\Client::make([
+            'host'          => $config['imap_host'],
+            'port'          => $config['imap_port'],
+            'encryption'    => $encryption === 'null' ? false : $encryption,
+            'validate_cert' => false, // Set to false for easier initial setup, or true for production
+            'username'      => $config['imap_user'],
+            'password'      => $config['imap_password'],
+            'protocol'      => 'imap'
+        ]);
+
+        $client->connect();
+        $client->disconnect();
     }
 
     // Status Management

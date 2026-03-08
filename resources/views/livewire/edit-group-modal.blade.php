@@ -88,21 +88,26 @@ new class extends Component {
 
     <script>
         document.addEventListener('livewire:initialized', () => {
-            @this.on('open-modal', (event) => {
-                const modalEl = document.getElementById(event.id);
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
-            });
-            @this.on('close-modal', (event) => {
-                const modalEl = document.getElementById(event.id);
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                if (modal) {
-                    modal.hide();
+            Livewire.on('open-modal', (event) => {
+                const data = Array.isArray(event) ? event[0] : event;
+                const modalEl = document.getElementById(data.id);
+                if (modalEl) {
+                    const modal = new bootstrap.Modal(modalEl);
+                    modal.show();
                 }
-                // Also hide explicitly if getInstance fails (sometimes happens if not fully init)
-                if (!modal) {
-                    const bsModal = new bootstrap.Modal(modalEl);
-                    bsModal.hide();
+            });
+            Livewire.on('close-modal', (event) => {
+                const data = Array.isArray(event) ? event[0] : event;
+                const modalEl = document.getElementById(data.id);
+                if (modalEl) {
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) {
+                        modal.hide();
+                    }
+                    if (!modal) {
+                        const bsModal = new bootstrap.Modal(modalEl);
+                        bsModal.hide();
+                    }
                 }
                 document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
             });

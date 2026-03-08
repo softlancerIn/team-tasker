@@ -1,96 +1,108 @@
-# Team Tasker
+# Team Tasker - Premium AI-Enabled Task & Support Platform
 
-**Team Tasker** is a Laravel-based Todo application designed to help teams manage tasks effectively. This application offers a straightforward and intuitive interface for task management, ideal for enhancing team collaboration and productivity.
+**Team Tasker** is a state-of-the-art, Laravel-based project management and support platform designed for high-performance teams. It combines robust task management with a unified support ticket system and real-time communication, all wrapped in a premium, highly-customizable user interface.
 
-## Features
+![Team Tasker Header](/home/rohit-pal/.gemini/antigravity/brain/d150379a-367d-4d48-95b5-5a4bf5eab78a/header_redesign_verification_1772736739659.png)
 
-- Create, update, and delete tasks.
-- Assign tasks to team members.
-- Set due dates and priorities.
-- Track task progress.
-- Responsive and user-friendly interface.
+## 🚀 Key Modules & Features
 
-## Installation
+### 💻 Admin Dashboard
+- **Analytics at a Glance**: Real-time statistics on task completion, ticket volume, and team performance.
+- **Dynamic Widgets**: Interactive charts and cards providing a 360-degree view of your operations.
 
-To set up Team Tasker, follow these steps:
+### 📝 Strategic Task Management
+- **Multiple Views**: Manage tasks via professional **List**, **Kanban Board**, **Calendar**, and **Gantt Chart** views.
+- **Smart Logic**: Recurring tasks, status tracking with customizable colors, and priority-based sorting.
+- **Detailed Insights**: Extensive logging, time tracking, and attachment support for every task.
 
-1. **Create the Project:**
+### 🎫 Advanced Support Ticket System
+- **Omnichannel Support**: Centralized ticket management with priority levels and custom status flows.
+- **SLA Tracking**: Automated notifications for upcoming deadlines and SLA breaches.
+- **Client Collaboration**: Convert tickets directly into tasks and collaborate seamlessly.
 
-   If you want to create a new instance of the project, use Composer to create it:
+### 💬 Unified Team Chat
+- **Real-Time Communication**: Integrated chat system for instant collaboration.
+- **Attachment Support**: Share files, images, and documents directly within conversations.
+- **Privacy Controls**: Secure messaging with blocking and presence features.
 
+### 🚪 Dedicated Client Portal
+- **White-Label Experience**: Custom branding for clients to submit tickets and track their task progress.
+- **Simplified Interface**: Focused dashboard for clients to manage their interactions without complexity.
+
+### 🛠️ Premium UI & SEO
+- **Glassmorphism Design**: A stunning, modern interface with smooth transitions and interactive elements.
+- **Adaptive Theming**: Full support for **Dark Mode** and **Light Mode**.
+- **SEO Optimized**: Built-in best practices for metadata, semantic HTML, and fast performance.
+
+---
+
+## 🛠️ Technical Stack
+
+- **Framework**: Laravel 11 (PHP 8.2+)
+- **Frontend**: Livewire 3, Alpine.js, Bootstrap 5.3
+- **Styling**: Vanilla CSS (Premium Design System)
+- **Database**: MySQL / PostgreSQL
+- **Build Tool**: Vite
+- **Real-Time**: Reverb / Firebase Integration
+
+---
+
+## 🔧 Installation & Setup
+
+### Prerequisites
+- PHP >= 8.2
+- Composer
+- Node.js & NPM
+- MySQL
+
+### Step-by-Step Installation
+
+1. **Clone & Install Dependencies:**
    ```bash
-   composer create-project iamrohitpal/team-tasker
+   git clone https://github.com/iamrohitpal/team-tasker.git
+   cd team-tasker
+   composer install
+   npm install
    ```
 
-   Alternatively, if you have cloned the repository directly, proceed to install dependencies as shown in the next step.
-
-
-2. **Configure the Environment:**
-
-   Open the `.env` file and set up your environment configuration. For database setup, update the following entries:
-
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=team_tasker
-   DB_USERNAME=your_database_username
-   DB_PASSWORD=your_database_password
-   ```
-
-3. **Create the Database:**
-
-   Create a database named `team_tasker` on your MySQL server. You can do this using a MySQL client or via command line:
-
-   ```sql
-   CREATE DATABASE team_tasker;
-   ```
-
-4. **Run Database Migrations:**
-
-   Set up the database schema by running migrations:
-
+2. **Environment Configuration:**
+   Copy the sample environment file and update your database credentials:
    ```bash
-   php artisan migrate
+   cp .env.example .env
+   php artisan key:generate
    ```
 
-5. **Start the Development Server:**
+3. **Database Setup:**
+   ```bash
+   php artisan migrate --seed
+   ```
 
-   Launch the Laravel development server:
+4. **Asset Compilation:**
+   ```bash
+   npm run build
+   ```
 
+5. **Start the Application:**
    ```bash
    php artisan serve
    ```
 
-   Open your web browser and visit `http://localhost:8000` to see the application in action.
+---
 
-## Usage
+## 🎨 Branding & Customization
+Team Tasker includes a powerful **Settings Module** localized in the Admin Panel.
+- **Dynamic Logo & Name**: Change the application logo and title across the platform instantly.
+- **Email Configuration**: Built-in Mailpit/SMTP setup for system-wide notifications.
+- **Status Management**: Define custom lifecycles for your tasks and tickets.
 
-Once the application is set up, you can use it to:
+---
 
-- **Create Tasks:** Add tasks with titles, descriptions, and due dates.
-- **Assign Tasks:** Assign tasks to team members and set priorities.
-- **Track Progress:** Monitor the status and progress of tasks.
+## 🤝 Contributing
+We welcome contributions that push the boundaries of productivity tools. Please refer to our contribution guidelines for more details on pull requests and code standards.
 
+## 📄 License
+Team Tasker is open-source software licensed under the [MIT License](LICENSE).
 
-## Contributing
-
-We welcome contributions to improve Team Tasker. To contribute:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Make your changes.
-4. Commit your changes (`git commit -am 'Add new feature'`).
-5. Push to your branch (`git push origin feature-branch`).
-6. Open a pull request on GitHub.
-
-## License
-
-Team Tasker is licensed under the [MIT License](LICENSE).
-
-## Contact
-
-For any questions or issues, please reach out to:
-
-- **Name:** Rohit Pal
-- **Email:** [iamrohitpalg@gmail.com](mailto:iamrohitpalg@gmail.com)
+## 📮 Contact
+**Rohit Pal** - [iamrohitpalg@gmail.com](mailto:iamrohitpalg@gmail.com)  
+Noida, Uttar Pradesh, India

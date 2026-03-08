@@ -11,27 +11,56 @@ class SearchController extends Controller
         $query = $request->input('q');
         $tasks = collect();
         $users = collect();
+        $user = \Auth::user();
+        $isClient = $user->hasRole('client');
 
         if ($query) {
             // Search Tasks
-            $tasks = \App\Models\Task::where('title', 'like', "%{$query}%")
-                ->orWhere('description', 'like', "%{$query}%")
-                ->where(function ($q) {
+            $taskQuery = \App\Models\Task::where(function ($q) use ($query) {
+                $q->where('title', 'like', "%{$query}%")
+                    ->orWhere('description', 'like', "%{$query}%");
+            });
+
+            if ($isClient) {
+                // Clients only see tasks linked to their tickets
+                $ticketIds = \App\Models\Ticket::where('user_id', $user->id)->pluck('id');
+                $taskQuery->whereIn('ticket_id', $ticketIds);
+            } else {
+                // Admins/Staff
+                $taskQuery->where(function ($q) {
                     $q->where('user_id', \Auth::id())
                         ->orWhere('assigned_to', \Auth::id());
-                })
-                ->with(['status', 'assignedTo'])
-                ->get();
+                });
+            }
 
-            // Search Users (if admin has permission)
-            if (\Auth::user()->hasPermission('users.view')) {
+            $tasks = $taskQuery->with(['status', 'assignedTo'])->get();
+
+            // Search Tickets
+            $ticketQuery = \App\Models\Ticket::where(function ($q) use ($query) {
+                $q->where('subject', 'like', "%{$query}%")
+                    ->orWhere('body', 'like', "%{$query}%")
+                    ->orWhere('id', 'like', "%{$query}%");
+            });
+
+            if ($isClient) {
+                $ticketQuery->where('user_id', $user->id);
+            }
+
+            $tickets = $ticketQuery->with(['user'])->latest()->get();
+
+            // Search Users (if has permission)
+            if ($user->hasPermission('users.view')) {
                 $users = \App\Models\User::where('name', 'like', "%{$query}%")
                     ->orWhere('email', 'like', "%{$query}%")
                     ->with('role')
                     ->get();
             }
+        } else {
+            $tickets = collect();
         }
 
-        return view('admin.search.results', compact('tasks', 'users', 'query'));
+        $layout = $isClient ? 'client' : 'admin';
+
+        return view('admin.search.results', compact('tasks', 'users', 'tickets', 'query', 'layout'));
     }
 }

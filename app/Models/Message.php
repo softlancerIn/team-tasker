@@ -14,6 +14,13 @@ class Message extends Model
         'deleted_at' => 'datetime',
     ];
 
+    protected $appends = ['is_read'];
+
+    public function getIsReadAttribute()
+    {
+        return !is_null($this->read_at);
+    }
+
     public function conversation()
     {
         return $this->belongsTo(Conversation::class);

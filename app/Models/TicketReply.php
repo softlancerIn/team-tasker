@@ -9,6 +9,7 @@ class TicketReply extends Model
     protected $fillable = [
         'ticket_id',
         'user_id',
+        'email_source',
         'body',
         'type',
         'attachments',

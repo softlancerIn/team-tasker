@@ -15,7 +15,7 @@ class MessageRead implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct(public int $messageId, public int $userId)
+    public function __construct(public int $conversationId, public int $userId)
     {
         //
     }
@@ -28,7 +28,7 @@ class MessageRead implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('App.Models.User.'.$this->userId),
+            new PrivateChannel('chat.'.$this->conversationId),
         ];
     }
 }

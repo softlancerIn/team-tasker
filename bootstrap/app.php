@@ -22,4 +22,5 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
         $schedule->command('tasks:process-recurring')->daily();
         $schedule->command('tasks:process-sla')->hourly();
+        $schedule->command('tickets:fetch')->everyMinute();
     })->create();

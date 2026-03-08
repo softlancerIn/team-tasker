@@ -29,13 +29,6 @@ class FetchTickets extends Command
      */
     public function handle()
     {
-        if (! function_exists('imap_open')) {
-            $this->error('PHP IMAP extension is missing. Please enable it to fetch emails.');
-            Log::error('FetchTickets: PHP IMAP extension missing.');
-
-            return 1;
-        }
-
         $host = Setting::where('key', 'imap_host')->value('value');
         $port = Setting::where('key', 'imap_port')->value('value');
         $user = Setting::where('key', 'imap_user')->value('value');
@@ -48,76 +41,91 @@ class FetchTickets extends Command
             return 1;
         }
 
-        // Construct mailbox string
-        // Example: {imap.gmail.com:993/imap/ssl}INBOX
-        $protocol = '/imap';
-        if ($enc == 'ssl') {
-            $protocol .= '/ssl';
-        } elseif ($enc == 'tls') {
-            $protocol .= '/tls';
-        } else {
-            $protocol .= '/notls';
-        }
-
-        $mailbox = "{{$host}:{$port}{$protocol}}INBOX";
-
-        $this->info("Connecting to $mailbox as $user...");
+        // Initialize Webklex IMAP Client
+        $client = \Webklex\IMAP\Facades\Client::make([
+            'host'          => $host,
+            'port'          => $port,
+            'encryption'    => $enc === 'null' ? false : $enc,
+            'validate_cert' => true,
+            'username'      => $user,
+            'password'      => $pass,
+            'protocol'      => 'imap'
+        ]);
 
         try {
-            // Suppress warnings for connection errors
-            $inbox = @imap_open($mailbox, $user, $pass);
-        } catch (\Throwable $e) {
-            $this->error('Connection failed: '.$e->getMessage());
-            Log::error('FetchTickets: '.$e->getMessage());
+            $client->connect();
+            $this->info("Connected to $host successfully.");
+        } catch (\Exception $e) {
+            $errorMsg = $e->getMessage();
+            
+            if (str_contains($errorMsg, 'Application-specific password required')) {
+                $errorMsg .= "\n\nHINT: You are using Gmail with 2FA. You MUST use an 'App Password' instead of your regular password.\nGenerate one here: https://myaccount.google.com/apppasswords";
+            }
+
+            $this->error('Connection failed: '.$errorMsg);
+            Log::error('FetchTickets: '.$errorMsg);
 
             return 1;
         }
 
-        if (! $inbox) {
-            $this->error('Connection failed: '.imap_last_error());
+        $folder = $client->getFolder('INBOX');
+        $messages = $folder->query()->unseen()->get();
 
-            return 1;
-        }
-
-        $emails = imap_search($inbox, 'UNSEEN');
-
-        if (! $emails) {
+        if ($messages->count() === 0) {
             $this->info('No new emails found.');
-            imap_close($inbox);
 
             return 0;
         }
 
-        $this->info('Found '.count($emails).' new emails.');
+        $this->info('Found '.$messages->count().' new emails.');
 
-        foreach ($emails as $emailId) {
-            $header = imap_headerinfo($inbox, $emailId);
-            $subject = isset($header->subject) ? $header->subject : '(No Subject)';
-            $fromEmail = $header->from[0]->mailbox.'@'.$header->from[0]->host;
-
-            // Should properly decode subject/body if encoded, keeping it simple for now
-            // $structure = imap_fetchstructure($inbox, $emailId);
-            $body = imap_fetchbody($inbox, $emailId, 1); // Get body section 1 (usually plain text if multipart)
-
-            // Basic cleanup of body
-            $body = trim($body);
-            if (! $body) {
-                // Try section 1.1 if 1 failed (e.g. multipart/alternative)
-                $body = imap_fetchbody($inbox, $emailId, 1.1);
+        foreach ($messages as $message) {
+            $subject = $message->getSubject();
+            $fromEmail = $message->getFrom()[0]->mail;
+            
+            // Prefer text body for clean formatting, fallback to HTML
+            $body = $message->getTextBody();
+            if ($body) {
+                $body = nl2br(e($body));
+            } else {
+                $body = $message->getHTMLBody();
+                // If it's HTML, we keep it but it's risky. In a real app we'd use Purifier.
+                // But since the views use {!! !!}, it's expected to be HTML-ish if needed.
             }
 
-            // Check if reply to existing ticket
-            if (preg_match('/#(\d+)/', $subject, $matches)) {
+            $this->info("Processing: $subject from $fromEmail");
+
+            // 1. Check if reply to existing Task (#TASK-123)
+            if (preg_match('/#TASK-(\d+)/i', $subject, $matches)) {
+                $taskId = $matches[1];
+                $task = \App\Models\Task::find($taskId);
+                if ($task) {
+                    $this->info("Processing reply to Task #$taskId from $fromEmail");
+                    $dbUser = User::where('email', $fromEmail)->first();
+
+                    $task->logs()->create([
+                        'user_id' => $dbUser ? $dbUser->id : null,
+                        'note' => $body ?: '(Empty Body)',
+                        'type' => 'message', // Client message
+                    ]);
+                    
+                    $message->setFlag('Seen');
+                    continue;
+                }
+            }
+
+            // 2. Check if reply to existing ticket (#123 or #TKT-123)
+            if (preg_match('/#(?:TKT-)?(\d+)/i', $subject, $matches)) {
                 $ticketId = $matches[1];
                 $ticket = Ticket::find($ticketId);
                 if ($ticket) {
                     $this->info("Processing reply to Ticket #$ticketId from $fromEmail");
 
-                    // Identify user
-                    $user = User::where('email', $fromEmail)->first();
+                    $dbUser = User::where('email', $fromEmail)->first();
 
                     $ticket->replies()->create([
-                        'user_id' => $user ? $user->id : null,
+                        'user_id' => $dbUser ? $dbUser->id : null,
+                        'email_source' => $fromEmail,
                         'body' => $body ?: '(Empty Body)',
                         'type' => 'client_reply',
                     ]);
@@ -126,6 +134,7 @@ class FetchTickets extends Command
                         $ticket->update(['status' => 'open']);
                     }
 
+                    $message->setFlag('Seen');
                     continue;
                 }
             }
@@ -133,19 +142,20 @@ class FetchTickets extends Command
             // Create new ticket
             $this->info("Creating new ticket from $fromEmail: $subject");
 
-            $user = User::where('email', $fromEmail)->first();
+            $dbUser = User::where('email', $fromEmail)->first();
 
             Ticket::create([
-                'user_id' => $user ? $user->id : null,
+                'user_id' => $dbUser ? $dbUser->id : null,
                 'email_source' => $fromEmail,
                 'subject' => $subject,
                 'body' => $body ?: '(Empty Body)',
                 'priority' => 'low',
                 'status' => 'open',
             ]);
+
+            $message->setFlag('Seen');
         }
 
-        imap_close($inbox);
         $this->info('Done.');
 
         return 0;

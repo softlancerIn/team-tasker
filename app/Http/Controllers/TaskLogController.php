@@ -20,12 +20,17 @@ class TaskLogController extends Controller
             'type' => 'nullable|string|in:log,message',
         ]);
 
-        TaskLog::create([
+        $task = Task::with('ticket.user', 'assignedTo')->findOrFail($taskId);
+
+        $log = TaskLog::create([
             'task_id' => $taskId,
             'user_id' => Auth::id(),
             'note' => $request->note,
             'type' => $request->type ?? 'log',
         ]);
+
+        // Notify relevant parties
+        $this->notifyParties($task, $log);
 
         return back()->with('success', 'Note added successfully');
     }
@@ -39,17 +44,48 @@ class TaskLogController extends Controller
             'message' => 'required|string',
         ]);
 
-        $task = Task::findOrFail($taskId);
+        $task = Task::with('ticket.user', 'assignedTo')->findOrFail($taskId);
 
         // Store the message as a log entry of type 'message'
-        TaskLog::create([
+        $log = TaskLog::create([
             'task_id' => $taskId,
             'user_id' => Auth::id(),
             'note' => $request->message,
             'type' => 'message',
         ]);
 
+        // Notify relevant parties
+        $this->notifyParties($task, $log);
+
         return back()->with('success', 'Message sent to admin successfully');
+    }
+
+    /**
+     * Helper to notify parties about task updates.
+     */
+    private function notifyParties($task, $log)
+    {
+        try {
+            // 1. Notify Client if linked to a Ticket
+            if ($task->ticket) {
+                $ticket = $task->ticket;
+                $notification = new \App\Notifications\TaskReplyNotification($task, $log);
+
+                if ($ticket->user) {
+                    $ticket->user->notify($notification);
+                } elseif ($ticket->email_source) {
+                    \Illuminate\Support\Facades\Notification::route('mail', $ticket->email_source)
+                        ->notify($notification);
+                }
+            }
+
+            // 2. Notify Assigned User if log is by someone else
+            if ($task->assignedTo && $task->assignedTo->id !== Auth::id()) {
+                $task->assignedTo->notify(new \App\Notifications\TaskReplyNotification($task, $log));
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send task log notification: '.$e->getMessage());
+        }
     }
 
     /**

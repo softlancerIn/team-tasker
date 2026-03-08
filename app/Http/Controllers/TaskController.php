@@ -10,6 +10,7 @@ use App\Models\TaskDependency;
 use App\Models\TaskTemplate;
 use App\Models\TimeLog;
 use App\Models\User;
+use App\Notifications\TaskAssigned;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -293,6 +294,11 @@ class TaskController extends Controller
             'completed_at' => ($status && $status->is_completed) ? now() : null,
         ]);
 
+        // Notify Assigned User
+        if ($task->assigned_to && $task->assigned_to != Auth::id()) {
+            $task->assignedTo->notify(new TaskAssigned($task));
+        }
+
         if ($request->tags) {
             $task->tags()->sync($request->tags);
         }
@@ -415,6 +421,11 @@ class TaskController extends Controller
             'recurring_interval' => $request->recurring_interval,
             'completed_at' => $completed_at,
         ]);
+
+        // Notify Assigned User if changed
+        if ($task->wasChanged('assigned_to') && $task->assigned_to && $task->assigned_to != Auth::id()) {
+            $task->assignedTo->notify(new TaskAssigned($task));
+        }
 
         if ($request->has('tags')) {
             $task->tags()->sync($request->tags);

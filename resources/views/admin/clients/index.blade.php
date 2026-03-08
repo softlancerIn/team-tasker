@@ -114,8 +114,10 @@
                 </tbody>
             </table>
         </div>
-        <div class="mt-3">
-            {{ $clients->links() }}
-        </div>
+        @if ($clients->hasPages())
+            <div class="p-4 border-top border-main">
+                {{ $clients->links() }}
+            </div>
+        @endif
     </div>
 </x-admin>

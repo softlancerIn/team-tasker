@@ -15,6 +15,7 @@ use Livewire\WithFileUploads;
 new class extends Component {
     use WithFileUploads;
 
+    public $selectedConversationId;
     public $conversation;
     public $body = '';
     public $attachment;
@@ -27,7 +28,20 @@ new class extends Component {
     public $showGroupInfo = false;
     public $perPage = 10; // Added for pagination
 
-    #[On('conversationSelected')]
+    public function mount($selectedConversationId = null)
+    {
+        if ($selectedConversationId) {
+            $this->loadConversation($selectedConversationId);
+        }
+    }
+
+    public function updatedSelectedConversationId($value)
+    {
+        if ($value) {
+            $this->loadConversation($value);
+        }
+    }
+
     public function loadConversation($conversationId)
     {
         $this->showGroupInfo = false; // Reset on conversation change
@@ -57,6 +71,9 @@ new class extends Component {
             ->toArray();
 
         $this->dispatch('scroll-bottom');
+
+        // Join the Socket.IO room for this conversation
+        $this->dispatch('join-chat-room', $this->conversation->id);
 
         // Mark as read
         $this->markAsRead();
@@ -112,9 +129,26 @@ new class extends Component {
     protected function markAsRead()
     {
         if ($this->conversation) {
+            // Update pivot for last read
             Auth::user()
                 ->conversations()
                 ->updateExistingPivot($this->conversation->id, ['last_read_at' => now()]);
+
+            // Update individual messages from others
+            $unreadCount = $this->conversation
+                ->messages()
+                ->where('user_id', '!=', Auth::id())
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+
+            if ($unreadCount > 0) {
+                // Determine the correct way to inform the sender that we read their messages
+                // Instead of broadcast(new MessageRead...), we use Socket.IO
+                $this->dispatch('messages-read-to-node', [
+                    'room' => $this->conversation->id,
+                    'userId' => Auth::id(),
+                ]);
+            }
         }
     }
 
@@ -150,6 +184,15 @@ new class extends Component {
             'body' => $messageBody,
         ]);
 
+        // Notify Participants
+        \Illuminate\Support\Facades\Log::info('ChatBox: Dispatching notifications for message ' . $message->id . ' to ' . ($this->conversation->participants->count() - 1) . ' participants.');
+        foreach ($this->conversation->participants as $participant) {
+            if ($participant->id != auth()->id()) {
+                \Illuminate\Support\Facades\Log::info('ChatBox: Notifying user ' . $participant->id . ' (' . $participant->email . ')');
+                $participant->notify(new \App\Notifications\ChatMessageNotification($message));
+            }
+        }
+
         if ($this->attachment) {
             // Handle single file upload
             $file = is_array($this->attachment) ? $this->attachment[0] : $this->attachment;
@@ -164,23 +207,63 @@ new class extends Component {
             $this->attachment = null;
         }
 
-        // Broadcast to Socket.IO
+        // Broadcast via Socket.IO (Custom Node Server)
         $this->dispatch('send-message-to-node', [
-            'room' => 'chat.' . $this->conversation->id,
-            'message' => [
-                'id' => $message->id,
-                'user_id' => auth()->id(),
-                'user_name' => auth()->user()->name,
-                'user_avatar' => auth()->user()->profile_image,
-                'body' => $message->body,
-                'created_at' => $message->created_at->toISOString(),
-                'attachments' => $message->attachments()->get(), // Fetch fresh attachments
-            ],
+            'room' => $this->conversation->id,
+            'message' => $message->load('user', 'attachments')->toArray(),
         ]);
 
-        $this->messages[] = $message->load('user', 'attachments')->toArray(); // Load attachments for local display
+        $this->messages[] = $message->load('user', 'attachments')->toArray();
         $this->body = '';
         $this->dispatch('scroll-bottom');
+    }
+
+    #[On('socket-message-received')]
+    public function onSocketMessageReceived($data)
+    {
+        $message = $data['message'];
+
+        if ($this->conversation && $message['conversation_id'] == $this->conversation->id) {
+            if (!collect($this->messages)->contains('id', $message['id'])) {
+                $this->messages[] = $message;
+                $this->dispatch('scroll-bottom');
+                $this->markAsRead();
+            }
+        }
+    }
+
+    #[On('socket-message-delivered')]
+    public function onSocketMessageDelivered($data)
+    {
+        $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : $data;
+        $messageId = $payload['messageId'] ?? null;
+
+        if ($messageId && $this->conversation) {
+            foreach ($this->messages as &$msg) {
+                if ($msg['id'] == $messageId && $msg['user_id'] == Auth::id()) {
+                    $msg['delivered_at'] = now()->toDateTimeString();
+                    break;
+                }
+            }
+        }
+    }
+
+    #[On('socket-messages-read')]
+    public function onSocketMessagesRead($data)
+    {
+        // The sender receives this when the receiver views the messages
+        // Here we update the local messages array to show blue ticks instantly
+        $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : $data;
+
+        if ($this->conversation && $payload['room'] == $this->conversation->id) {
+            foreach ($this->messages as &$msg) {
+                // If it's my message and it hasn't been read yet
+                if ($msg['user_id'] == Auth::id()) {
+                    $msg['read_at'] = now()->toDateTimeString();
+                    $msg['is_read'] = true;
+                }
+            }
+        }
     }
 
     public function deleteMessage($messageId)
@@ -201,13 +284,6 @@ new class extends Component {
                 }
             }
 
-            // Sync with other clients via sockets to instantly show deletion placeholder
-            $this->dispatch('send-message-to-node', [
-                'room' => 'chat.' . $this->conversation->id,
-                'action' => 'delete',
-                'message_id' => $messageId,
-            ]);
-
             $this->dispatch('alert', ['type' => 'success', 'message' => 'Message deleted.']);
         }
     }
@@ -224,14 +300,14 @@ new class extends Component {
             // Mark as read immediately since we are in the chat
             $message->update(['read_at' => now(), 'delivered_at' => now()]);
 
-            broadcast(new MessageRead($message->id, $message->user_id))->toOthers();
+            broadcast(new MessageRead($message->id, $message->user_id));
 
             $this->dispatch('messageReceived'); // For unread counts update in list
         } else {
             // Mark as delivered
             if (!$message->delivered_at) {
                 $message->update(['delivered_at' => now()]);
-                broadcast(new MessageDelivered($message->id, $message->user_id))->toOthers();
+                broadcast(new MessageDelivered($message->id, $message->user_id));
             }
             $this->dispatch('messageReceived'); // Update unread counts globally even if not in this chat
         }
@@ -275,31 +351,81 @@ new class extends Component {
 
         <!-- Header -->
         <div class="p-3 border-bottom border-main d-flex justify-content-between align-items-center"
-            style="min-height: 73px; background: var(--bg-surface);" x-data="{
+            wire:key="chat-header-{{ $conversation->id }}" style="min-height: 73px; background: var(--bg-surface);"
+            x-data="{
                 status: 'Offline',
+                isTyping: false,
+                typingUser: '',
+                typingTimeout: null,
                 userId: {{ $conversation->type == 'private' && $receiver ? $receiver->id : 'null' }},
+                conversationId: '{{ $conversation->id }}',
+                currentUserId: {{ auth()->id() }},
                 init() {
-                    if (this.userId && window.socket) {
-                        window.socket.on('online_users', (users) => {
-                            if (users.includes(String(this.userId))) {
+                    if (this.userId) {
+                        this.status = window.onlineUsers && window.onlineUsers.includes(Number(this.userId)) ? 'Online' : 'Offline';
+            
+                        window.addEventListener('online-users-updated', (e) => {
+                            const users = e.detail;
+                            if (users.includes(Number(this.userId))) {
                                 this.status = 'Online';
                             } else {
                                 this.status = 'Offline';
                             }
                         });
                     }
+            
+                    window.addEventListener('user-typing-indicator', (event) => {
+                        const roomMatch = String(event.detail.room) === String(this.conversationId);
+                        const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
+            
+                        console.log('Typing event in header:', {
+                            roomMatch,
+                            isNotMe,
+                            eventRoom: event.detail.room,
+                            myRoom: this.conversationId,
+                            eventUser: event.detail.userId,
+                            me: this.currentUserId
+                        });
+            
+                        if (roomMatch && isNotMe) {
+                            this.isTyping = true;
+                            this.typingUser = event.detail.userName;
+            
+                            if (this.typingTimeout) clearTimeout(this.typingTimeout);
+                            this.typingTimeout = setTimeout(() => {
+                                this.isTyping = false;
+                            }, 3000);
+                        }
+                    });
+            
+                    window.addEventListener('user-stop-typing-indicator', (event) => {
+                        const roomMatch = String(event.detail.room) === String(this.conversationId);
+                        const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
+            
+                        if (roomMatch && isNotMe) {
+                            this.isTyping = false;
+                        }
+                    });
                 }
             }">
             <div class="d-flex align-items-center">
+                <!-- Mobile Back Button -->
+                <button class="btn btn-link p-0 me-3 d-md-none text-high" wire:click="$dispatch('backToUserList')"
+                    style="font-size: 1.2rem; border: none; background: none;">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
                 @if ($conversation->type == 'group' || $conversation->type == 'client_group')
                     <div class="avatar-premium me-3" style="width: 45px; height: 45px; background: var(--bg-input);">
                         <i class="fas fa-users" style="color: var(--primary);"></i>
                     </div>
                     <div>
                         <h6 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $conversation->name }}</h6>
-                        <small
+                        <small x-show="!isTyping"
                             style="color: var(--text-low); font-size: 0.75rem;">{{ $conversation->participants->count() }}
                             members</small>
+                        <small x-show="isTyping" class="text-primary fw-bold"
+                            style="font-size: 0.75rem; font-style: italic;" x-cloak
+                            x-text="typingUser + ' is typing...'"></small>
                     </div>
                 @else
                     @php
@@ -319,11 +445,15 @@ new class extends Component {
                                 <h6 class="mb-0 fw-bold" style="color: var(--text-high);">
                                     {{ $otherParticipant->name ?? 'User' }}</h6>
                                 <div class="d-flex align-items-center gap-1">
-                                    <span class="rounded-circle"
+                                    <span class="rounded-circle" x-show="!isTyping"
                                         :class="status == 'Online' ? 'bg-success' : 'bg-secondary'"
                                         style="width: 8px; height: 8px;"></span>
-                                    <small :class="status == 'Online' ? 'text-success' : 'text-low'"
+                                    <small x-show="!isTyping" :class="status == 'Online' ? 'text-success' : 'text-low'"
                                         style="font-size: 0.7rem;" x-text="status"></small>
+
+                                    <small x-show="isTyping" class="text-primary fw-bold"
+                                        style="font-size: 0.75rem; font-style: italic;"
+                                        x-text="typingUser + ' is typing...'"></small>
                                 </div>
                             </div>
                         </div>
@@ -524,7 +654,8 @@ new class extends Component {
         </div>
 
         <!-- Input Area -->
-        <div class="p-3 border-top border-main" style="background: var(--bg-surface);">
+        <div class="p-3 border-top border-main" wire:key="chat-input-{{ $conversation->id }}"
+            style="background: var(--bg-surface);">
             @if ($isBlocked || $isBlockedBy)
                 <div class="text-center py-3 text-low" style="font-size: 0.85rem;">
                     <i class="fas fa-lock me-2"></i> Chat is disabled.
@@ -591,6 +722,7 @@ new class extends Component {
                                         class="position-absolute bottom-100 end-0 mb-3 rounded-premium shadow-premium border-main overflow-hidden"
                                         style="z-index: 1050; width: 340px; height: 400px; background: var(--bg-surface);">
                                         <emoji-picker
+                                            data-source="https://cdn.jsdelivr.net/npm/emoji-picker-element-data@1/en/emojibase/data.json"
                                             @emoji-click="
                                                 let editor = tinymce.get('message-editor-{{ $conversation->id }}');
                                                 if(editor) {

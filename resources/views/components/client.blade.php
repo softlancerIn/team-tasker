@@ -7,6 +7,10 @@
     <title>{{ $title ?? 'Admin Dashboard | Team Tasker' }}</title>
     @livewireStyles
 
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -696,8 +700,6 @@
             </div>
         @endif
     </div>
-
-    {{ $slot }}
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -775,9 +777,90 @@
                         }
                     });
                 });
-
             }
         });
+
+        // Firebase Cloud Messaging Integration
+        const firebaseConfig = {
+            apiKey: "{{ config('services.firebase.api_key') }}",
+            authDomain: "{{ config('services.firebase.auth_domain') }}",
+            projectId: "{{ config('services.firebase.project_id') }}",
+            storageBucket: "{{ config('services.firebase.storage_bucket') }}",
+            messagingSenderId: "{{ config('services.firebase.messaging_sender_id') }}",
+            appId: "{{ config('services.firebase.app_id') }}",
+            measurementId: "{{ config('services.firebase.measurement_id') }}"
+        };
+
+        if (firebaseConfig.apiKey) {
+            firebase.initializeApp(firebaseConfig);
+            const messaging = firebase.messaging();
+
+            function requestPermission() {
+                console.log('Requesting FCM permission...');
+                Notification.requestPermission().then((permission) => {
+                    if (permission === 'granted') {
+                        console.log('Notification permission granted.');
+                        messaging.getToken({
+                            vapidKey: "{{ config('services.firebase.vapid_key') }}"
+                        }).then((currentToken) => {
+                            if (currentToken) {
+                                sendTokenToServer(currentToken);
+                            } else {
+                                console.warn(
+                                    'No registration token available. Request permission to generate one.'
+                                    );
+                            }
+                        }).catch((err) => {
+                            console.error('An error occurred while retrieving token. ', err);
+                        });
+                    } else {
+                        console.warn('Notification permission denied.');
+                    }
+                });
+            }
+
+            function sendTokenToServer(token) {
+                fetch("{{ route('update.fcm_token') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                        },
+                        body: JSON.stringify({
+                            token: token
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => console.log('FCM Token sync:', data))
+                    .catch(err => console.error('Error syncing FCM token:', err));
+            }
+
+            if (Notification.permission === 'granted') {
+                requestPermission();
+            } else {
+                document.addEventListener('click', () => {
+                    if (Notification.permission === 'default') {
+                        requestPermission();
+                    }
+                }, {
+                    once: true
+                });
+            }
+
+            messaging.onMessage((payload) => {
+                const notificationTitle = payload.notification.title;
+                const notificationOptions = {
+                    body: payload.notification.body,
+                    icon: '/images/logo.png',
+                };
+
+                new Notification(notificationTitle, notificationOptions);
+
+                if (window.Livewire) {
+                    window.Livewire.dispatch('notification-received');
+                }
+            });
+        }
     </script>
     @livewireScripts
 </body>

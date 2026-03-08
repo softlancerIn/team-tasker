@@ -89,11 +89,14 @@ new class extends Component {
 
     <script>
         document.addEventListener('livewire:initialized', () => {
-            @this.on('close-modal', (event) => {
-                const modalEl = document.getElementById(event.id);
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                if (modal) {
-                    modal.hide();
+            Livewire.on('close-modal', (event) => {
+                const data = Array.isArray(event) ? event[0] : event;
+                const modalEl = document.getElementById(data.id);
+                if (modalEl) {
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) {
+                        modal.hide();
+                    }
                 }
             });
         });
