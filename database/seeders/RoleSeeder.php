@@ -41,7 +41,7 @@ class RoleSeeder extends Seeder
             'roles.view',
         ];
 
-        $developerPermissions = [
+        $clientPermissions = [
             'dashboard.view',
             'tasks.view',
             'tasks.create',
@@ -52,7 +52,7 @@ class RoleSeeder extends Seeder
         $roles = [
             ['name' => 'Super Admin', 'slug' => 'super-admin', 'permissions' => $allPermissions],
             ['name' => 'Manager', 'slug' => 'manager', 'permissions' => $managerPermissions],
-            ['name' => 'Developer', 'slug' => 'developer', 'permissions' => $developerPermissions],
+            ['name' => 'Client', 'slug' => 'client', 'permissions' => $clientPermissions],
         ];
 
         foreach ($roles as $role) {

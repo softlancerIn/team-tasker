@@ -6,88 +6,100 @@
     <div class="row g-4 mb-4">
         <!-- Project Overall Stats -->
         <div class="col-md-3">
-            <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
-                <div class="stat-icon-premium icon-primary-premium mb-3">
-                    <i class="fas fa-project-diagram"></i>
-                </div>
-                <div class="heading-label" style="font-size: 0.75rem;">Total Project Tasks</div>
-                <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $totalTasks }}</h3>
-                <div class="mt-3 progress-premium" style="height: 6px;">
-                    <div class="progress-bar-premium" style="width: 100%"></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
-                <div class="stat-icon-premium icon-success-premium mb-3">
-                    <i class="fas fa-check-double"></i>
-                </div>
-                <div class="heading-label" style="font-size: 0.75rem;">Completed Tasks</div>
-                <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $completedTasksCount }}</h3>
-                <div class="mt-3 progress-premium" style="height: 6px;">
-                    <div class="progress-bar-premium"
-                        style="width: {{ $totalTasks > 0 ? ($completedTasksCount / $totalTasks) * 100 : 0 }}%; background: var(--accent);">
+            <a href="{{ url('admin/tasks') }}" class="text-decoration-none text-reset d-block h-100">
+                <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
+                    <div class="stat-icon-premium icon-primary-premium mb-3">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <div class="heading-label" style="font-size: 0.75rem;">Total Project Tasks</div>
+                    <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $totalTasks }}</h3>
+                    <div class="mt-3 progress-premium" style="height: 6px;">
+                        <div class="progress-bar-premium" style="width: 100%"></div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
-                <div class="stat-icon-premium mb-3"
-                    style="background: rgba(var(--accent-h), var(--accent-s), var(--accent-l), 0.1); color: var(--accent);">
-                    <i class="fas fa-ticket-alt"></i>
+            <a href="{{ url('admin/tasks') }}?status_id={{ \App\Models\Status::where('slug', 'completed')->orWhere('name', 'Completed')->first()->id ?? '' }}" class="text-decoration-none text-reset d-block h-100">
+                <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
+                    <div class="stat-icon-premium icon-success-premium mb-3">
+                        <i class="fas fa-check-double"></i>
+                    </div>
+                    <div class="heading-label" style="font-size: 0.75rem;">Completed Tasks</div>
+                    <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $completedTasksCount }}</h3>
+                    <div class="mt-3 progress-premium" style="height: 6px;">
+                        <div class="progress-bar-premium"
+                            style="width: {{ $totalTasks > 0 ? ($completedTasksCount / $totalTasks) * 100 : 0 }}%; background: var(--accent);">
+                        </div>
+                    </div>
                 </div>
-                <div class="heading-label" style="font-size: 0.75rem;">Total Tickets</div>
-                <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $totalTickets }}</h3>
-                <div class="mt-2 text-low" style="font-size: 0.7rem;">Across all clients</div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
-                <div class="stat-icon-premium icon-primary-premium mb-3">
-                    <i class="fas fa-users"></i>
+            <a href="{{ url('admin/tickets') }}" class="text-decoration-none text-reset d-block h-100">
+                <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
+                    <div class="stat-icon-premium mb-3"
+                        style="background: rgba(var(--accent-h), var(--accent-s), var(--accent-l), 0.1); color: var(--accent);">
+                        <i class="fas fa-ticket-alt"></i>
+                    </div>
+                    <div class="heading-label" style="font-size: 0.75rem;">Total Tickets</div>
+                    <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $totalTickets }}</h3>
+                    <div class="mt-2 text-low" style="font-size: 0.7rem;">Across all clients</div>
                 </div>
-                <div class="heading-label" style="font-size: 0.75rem;">Team Members</div>
-                <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $totalUsers }}</h3>
-                <div class="mt-2 text-low" style="font-size: 0.7rem;">Active in system</div>
-            </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url('admin/users') }}" class="text-decoration-none text-reset d-block h-100">
+                <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
+                    <div class="stat-icon-premium icon-primary-premium mb-3">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="heading-label" style="font-size: 0.75rem;">Team Members</div>
+                    <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $totalUsers }}</h3>
+                    <div class="mt-2 text-low" style="font-size: 0.7rem;">Active in system</div>
+                </div>
+            </a>
         </div>
     </div>
 
     <!-- Health & Progress Row -->
     <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <div class="glass-card"
-                style="border: 1px solid rgba(var(--danger-rgb), 0.2); background: rgba(var(--danger-rgb), 0.02);">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="heading-label" style="color: var(--danger); font-size: 0.75rem;">Critical Tasks
+            <a href="{{ url('admin/tasks') }}?priority=Critical" class="text-decoration-none text-reset d-block h-100">
+                <div class="glass-card h-100"
+                    style="border: 1px solid rgba(var(--danger-rgb), 0.2); background: rgba(var(--danger-rgb), 0.02);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="heading-label" style="color: var(--danger); font-size: 0.75rem;">Critical Tasks
+                            </div>
+                            <h4 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $criticalTasksCount }}</h4>
                         </div>
-                        <h4 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $criticalTasksCount }}</h4>
+                        <div class="stat-icon-premium mb-0"
+                            style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
                     </div>
-                    <div class="stat-icon-premium mb-0"
-                        style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2);">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
+                    <p class="text-low small mt-2 mb-0" style="font-size: 0.8rem;">Tasks requiring immediate attention
+                        across the project.</p>
                 </div>
-                <p class="text-low small mt-2 mb-0" style="font-size: 0.8rem;">Tasks requiring immediate attention
-                    across the project.</p>
-            </div>
+            </a>
         </div>
         <div class="col-md-6">
-            <div class="glass-card" style="border: 1px solid var(--border-main);">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="heading-label" style="font-size: 0.75rem;">Project Completion Trend</div>
-                    <span class="fw-bold" style="color: var(--primary);">{{ round($projectProgress, 1) }}%</span>
-                </div>
-                <div class="progress-premium" style="height: 8px;">
-                    <div class="progress-bar-premium"
-                        style="width: {{ $projectProgress }}%; background: var(--primary); box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.3);">
+            <a href="{{ url('admin/tasks') }}" class="text-decoration-none text-reset d-block h-100">
+                <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="heading-label" style="font-size: 0.75rem;">Project Completion Trend</div>
+                        <span class="fw-bold" style="color: var(--primary);">{{ round($projectProgress, 1) }}%</span>
                     </div>
+                    <div class="progress-premium" style="height: 8px;">
+                        <div class="progress-bar-premium"
+                            style="width: {{ $projectProgress }}%; background: var(--primary); box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.3);">
+                        </div>
+                    </div>
+                    <p class="text-low small mt-3 mb-0" style="font-size: 0.8rem;">Weighted average progress of all tracked
+                        project tasks.</p>
                 </div>
-                <p class="text-low small mt-3 mb-0" style="font-size: 0.8rem;">Weighted average progress of all tracked
-                    project tasks.</p>
-            </div>
+            </a>
         </div>
     </div>
 

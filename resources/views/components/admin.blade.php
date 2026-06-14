@@ -5,7 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? 'Admin Dashboard | Team Tasker' }}</title>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    @if(env('ENABLE_WEBSOCKETS', false))
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    @endif
 
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
@@ -933,12 +935,6 @@
                     </div>
                 </div>
             @endif
-
-            <div style="margin-top: auto; padding-top: 2rem;">
-                <a href="{{ route('logout') }}" class="nav-link-premium text-danger">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
         </nav>
     </aside>
 
@@ -1133,6 +1129,7 @@
                 once: true
             });
 
+            @if(env('ENABLE_WEBSOCKETS', false))
             // Socket.IO Initialization
             window.onlineUsers = [];
             const socketUrl = window.location.protocol + '//' + window.location.hostname + ':3000';
@@ -1197,6 +1194,7 @@
                     data
                 });
             });
+            @endif
 
             // Catch dispatch from Livewire to emit to Node
             window.addEventListener('join-chat-room', event => {

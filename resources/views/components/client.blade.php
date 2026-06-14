@@ -246,7 +246,7 @@
                     });
                 }
 
-                if (typeof io !== 'undefined') {
+                if (typeof io !== 'undefined' && {{ env('ENABLE_WEBSOCKETS', false) ? 'true' : 'false' }}) {
                     const host = window.location.hostname;
                     this.socket = window.socket || io(`http://${host}:3000`);
                     const roomId = `chat.${this.conversationId}`;
@@ -549,12 +549,6 @@
                     <i class="fas fa-comments"></i> Chat
                 </a>
             @endif
-
-            <div style="margin-top: auto; padding-top: 2rem;">
-                <a href="{{ route('logout') }}" class="nav-link-premium text-danger">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
         </nav>
     </aside>
 
@@ -751,7 +745,7 @@
             });
 
             // Socket.IO Connection
-            if (typeof io !== 'undefined') {
+            if (typeof io !== 'undefined' && {{ env('ENABLE_WEBSOCKETS', false) ? 'true' : 'false' }}) {
                 const userId = {{ auth()->id() }};
                 const host = window.location.hostname;
                 const socket = io(`http://${host}:3000`);

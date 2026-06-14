@@ -3,7 +3,7 @@
         Task Details | Team Tasker
     </x-slot:title>
 
-    <div class="top-bar d-flex justify-content-between align-items-center mb-5">
+    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
         <div class="d-flex align-items-center gap-3">
             <a href="{{ route('index') }}"
                 class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
@@ -321,8 +321,8 @@
                                             <td class="bg-transparent py-3">
                                                 <span class="text-main-50 small">
                                                     Worked on {{ $timeLog->start_time->format('d-F-Y') }}
-                                                    ({{ $timeLog->start_time->format('H:i:s') }} To
-                                                    {{ $timeLog->end_time ? $timeLog->end_time->format('H:i:s') : 'Now' }})
+                                                    ({{ $timeLog->start_time->format('h:i A') }} To
+                                                    {{ $timeLog->end_time ? $timeLog->end_time->format('h:i A') : 'Now' }})
                                                 </span>
                                                 @if ($timeLog->description)
                                                     <div class="text-main small mt-1">
@@ -332,8 +332,8 @@
                                             <td class="bg-transparent py-3">
                                                 <span class="fw-bold text-primary small">
                                                     @if ($timeLog->end_time)
-                                                        {{ floor($timeLog->duration / 3600) }}h
-                                                        {{ floor(($timeLog->duration % 3600) / 60) }}m
+                                                        {{ floor(abs($timeLog->duration) / 3600) }}h
+                                                        {{ floor((abs($timeLog->duration) % 3600) / 60) }}m
                                                     @else
                                                         Active
                                                     @endif

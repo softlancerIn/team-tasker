@@ -1,15 +1,26 @@
 <x-admin title="Add New Client">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4">Add New Client</h2>
-        <a href="{{ route('admin.clients.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Back to List
-        </a>
+    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{{ route('admin.clients.index') }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center rounded-circle" style="width: 40px; height: 40px; border-color: var(--border-subtle);">
+                <i class="fas fa-chevron-left text-high"></i>
+            </a>
+            <div>
+                <h2 class="h5 fw-bold mb-0 text-high">Add New Client</h2>
+                <p class="text-low mb-0" style="font-size: 0.8rem;">Create a new client profile.</p>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.clients.index') }}" class="btn px-4" style="border: 1px solid var(--border-subtle); color: var(--text-high); background: transparent;">Cancel</a>
+            <button type="submit" form="createClientForm" class="btn btn-primary px-4 fw-medium">
+                Create Client
+            </button>
+        </div>
     </div>
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="glass-card">
-                <form action="{{ route('admin.clients.store') }}" method="POST">
+                <form id="createClientForm" action="{{ route('admin.clients.store') }}" method="POST">
                     @csrf
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -52,11 +63,7 @@
                         <div class="form-text text-muted">Inactive clients cannot log in.</div>
                     </div>
 
-                    <div class="d-flex justify-content-end mt-4">
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="fas fa-save me-1"></i> Create Client
-                        </button>
-                    </div>
+
                 </form>
             </div>
         </div>

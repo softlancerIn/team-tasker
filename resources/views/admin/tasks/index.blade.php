@@ -1,5 +1,5 @@
 <x-admin title="Task Repository">
-    <div class="d-flex justify-content-between align-items-center mb-5">
+    <div class="sticky-header shadow-sm rounded-3 mb-5 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
         <div>
             <h2 class="h3 fw-bold mb-1" style="color: var(--text-high);">Administrative Tasks</h2>
             <p class="text-low mb-0" style="font-size: 0.85rem;">Global task repository and operational management</p>

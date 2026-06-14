@@ -1089,3 +1089,262 @@ select option,
     background-color: #ffffff !important;
     border-color: var(--primary) !important;
 }
+
+/* --- Premium Data Grid Customizations --- */
+.data-grid-wrapper {
+    background: var(--bg-surface);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-premium);
+    /* overflow: hidden removed to allow dropdowns to overflow */
+}
+
+.data-grid-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-main);
+    background: transparent;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.data-grid-search {
+    position: relative;
+    width: 280px;
+}
+.data-grid-search input {
+    width: 100%;
+    padding: 8px 16px 8px 36px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-md);
+    color: var(--text-high);
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+.data-grid-search input:focus {
+    border-color: var(--primary);
+    outline: none;
+    background: var(--bg-surface);
+}
+.data-grid-search i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-low);
+    font-size: 0.8rem;
+}
+
+.data-grid-results {
+    font-size: 0.85rem;
+    color: var(--text-medium);
+    font-weight: 600;
+}
+
+.data-grid-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.data-grid-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-md);
+    color: var(--text-high);
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.data-grid-filter-btn:hover, .data-grid-filter-btn.active {
+    background: rgba(var(--primary-rgb), 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.data-grid-per-page {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-medium);
+}
+.data-grid-per-page select {
+    padding: 6px 30px 6px 12px !important;
+    min-height: auto !important;
+    background: var(--bg-input);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-md);
+    color: var(--text-high);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.data-grid-pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.data-grid-table.table {
+    margin-bottom: 0;
+}
+.data-grid-table.table thead th {
+    background: transparent !important;
+    border-bottom: 1px solid var(--border-main) !important;
+    color: var(--text-low) !important;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 16px 20px !important;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.data-grid-table.table tbody td {
+    padding: 16px 20px !important;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    font-size: 0.85rem;
+    color: var(--text-high);
+}
+.data-grid-table.table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+.filter-slideover {
+    position: fixed;
+    top: 70px;
+    right: -400px;
+    width: 360px;
+    height: calc(100vh - 70px);
+    background: var(--bg-surface);
+    backdrop-filter: blur(20px);
+    border-left: 1px solid var(--border-main);
+    z-index: 1040;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+}
+.filter-slideover.show {
+    right: 0;
+}
+.filter-slideover-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border-main);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.filter-slideover-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-high);
+}
+.filter-slideover-close {
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-medium);
+}
+.filter-slideover-body {
+    padding: 24px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+.filter-slideover-footer {
+    padding: 24px;
+    border-top: 1px solid var(--border-main);
+    display: flex;
+    gap: 12px;
+}
+
+.action-link {
+    color: var(--text-low);
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    transition: color 0.2s;
+    display: inline-block;
+}
+.action-link:hover {
+    color: var(--primary);
+}
+.action-link.delete:hover {
+    color: var(--danger);
+}
+
+.data-grid-bulk-actions {
+    background: #0ea5e9;
+    color: white;
+    padding: 12px 24px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+}
+.data-grid-bulk-actions.active {
+    display: flex;
+}
+.data-grid-bulk-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.data-grid-bulk-count {
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+.btn-bulk-danger {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.btn-bulk-outline {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.btn-deselect-all {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-deselect-all:hover {
+    text-decoration: underline;
+}

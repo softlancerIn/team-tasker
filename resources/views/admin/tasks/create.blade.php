@@ -18,9 +18,26 @@
         </div>
     </div>
 
+    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{{ route('index') }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center rounded-circle" style="width: 40px; height: 40px; border-color: var(--border-subtle);">
+                <i class="fas fa-chevron-left text-high"></i>
+            </a>
+            <div>
+                <h2 class="h5 fw-bold mb-0 text-high">Create New Task</h2>
+                <p class="text-low mb-0" style="font-size: 0.8rem;">Add a new task to the system.</p>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('index') }}" class="btn px-4" style="border: 1px solid var(--border-subtle); color: var(--text-high); background: transparent;">Cancel</a>
+            <button type="submit" form="createTaskForm" class="btn btn-primary px-4 fw-medium">
+                Create Task
+            </button>
+        </div>
+    </div>
+
     <div class="glass-card">
-        <h4 class="mb-4">Create New Task</h4>
-        <form action="{{ route('store') }}" method="post" enctype="multipart/form-data">
+        <form id="createTaskForm" action="{{ route('store') }}" method="post" enctype="multipart/form-data">
             @csrf
             <div class="row">
                 <div class="col-lg-8">
@@ -151,12 +168,7 @@
                 </div>
             </div>
 
-            <div class="d-flex justify-content-end gap-2 mt-4">
-                <a href="{{ route('index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
-                <button type="submit" class="btn btn-primary px-4">
-                    <i class="fas fa-plus me-1"></i> Create Task
-                </button>
-            </div>
+
         </form>
     </div>
 

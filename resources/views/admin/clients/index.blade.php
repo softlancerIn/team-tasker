@@ -1,123 +1,166 @@
-<x-admin title="Client Management">
-    <div class="d-flex justify-content-between align-items-center mb-5">
-        <h2 class="h3 fw-bold mb-0 text-high">Client Management</h2>
+<x-admin title="Our Projects">
+    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
+        <h2 class="h3 fw-bold mb-0 text-high">Our Projects</h2>
         @if (Auth::user()->hasPermission('clients.create'))
-            <a href="{{ route('admin.clients.create') }}" class="btn-premium btn-premium-primary">
-                <i class="fas fa-plus-circle me-1"></i> Add New Client
+            <a href="{{ route('admin.clients.create') }}" class="btn-premium btn-premium-primary" style="background: #0ea5e9; border-color: #0ea5e9; border-radius: 8px;">
+                <i class="fas fa-plus me-1"></i> Create Projects
             </a>
         @endif
     </div>
 
-    {{-- ── Filter Bar ── --}}
-    <form action="{{ route('admin.clients.index') }}" method="GET"
-        class="glass-card mb-4 d-flex flex-wrap align-items-center gap-3" style="border: 1px solid var(--border-main);">
-
-        <span class="heading-label mb-0 me-1" style="font-size: 0.7rem; white-space: nowrap;">
-            <i class="fas fa-filter me-1"></i> Filters:
-        </span>
-
-        <div class="position-relative flex-grow-1" style="max-width: 400px; min-width: 250px;">
-            <i class="fas fa-search position-absolute text-low"
-                style="left: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem;"></i>
-            <input type="text" name="search" value="{{ request('search') }}" class="form-premium-control ps-5"
-                placeholder="Search by name, email, or company..." style="font-size: 0.85rem;">
-        </div>
-
-        <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
-            @if (request('search'))
-                <a href="{{ route('admin.clients.index') }}"
-                    class="text-low text-decoration-none small hover-primary transition-base"
-                    style="white-space: nowrap;">
-                    <i class="fas fa-times me-1"></i> Clear
-                </a>
-            @endif
-            <button type="submit" class="btn-premium btn-premium-primary px-4"
-                style="font-size: 0.85rem; white-space: nowrap;">
-                <i class="fas fa-search me-1"></i> Filter Results
+    <div class="data-grid-wrapper mb-5">
+        <div class="data-grid-top">
+            <div class="data-grid-search">
+                <i class="fas fa-search"></i>
+                <form action="{{ route('admin.clients.index') }}" method="GET" id="searchForm">
+                    <input type="text" name="search" placeholder="Search..." value="{{ request('search') }}" onchange="document.getElementById('searchForm').submit()">
+                </form>
+            </div>
+            <div class="data-grid-results">{{ $clients->total() }} Results</div>
+            <div class="data-grid-actions">
+                <button class="data-grid-filter-btn" type="button" onclick="document.getElementById('filterSlideover').classList.add('show')">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+                <div class="data-grid-per-page">
+                    <select onchange="window.location.href='?per_page='+this.value">
+                        <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                    </select>
+                    <span>Per Page</span>
+                </div>
+                <div class="data-grid-pagination">
+                    <span class="data-grid-pagination-info">{{ $clients->firstItem() ?? 0 }} - {{ $clients->lastItem() ?? 0 }} of {{ $clients->total() }}</span>
+                    <div class="data-grid-pagination-controls">
+                        <a href="{{ $clients->previousPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! $clients->onFirstPage() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i></a>
+                        <a href="{{ $clients->nextPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! !$clients->hasMorePages() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i></a>
+                    </div>
+                </div>
+            </div>
+        <div class="data-grid-bulk-actions" id="bulkActionBar">
+            <div class="data-grid-bulk-left">
+                <span class="data-grid-bulk-count"><span id="selectedCount">0</span> Items Selected</span>
+                <button type="button" class="btn-bulk-danger" onclick="submitBulkAction('delete')">
+                    <i class="fas fa-trash-alt"></i> Bulk Delete
+                </button>
+                <button type="button" class="btn-bulk-outline" onclick="submitBulkAction('edit')">
+                    <i class="fas fa-edit"></i> Bulk Edit
+                </button>
+            </div>
+            <button type="button" class="btn-deselect-all" onclick="document.getElementById('selectAll').click()">
+                Deselect All
             </button>
         </div>
-    </form>
 
-    <div class="glass-card border-main p-0 overflow-hidden">
         <div class="table-responsive">
-            <table class="table mb-0">
+            <table class="table data-grid-table">
                 <thead>
-                    <tr class="heading-label">
-                        <th class="ps-4 py-3">Name</th>
-                        <th class="py-3">Email</th>
-                        <th class="py-3">Phone</th>
-                        <th class="py-3">Company</th>
-                        <th class="py-3">Tickets</th>
-                        <th class="py-3">Status</th>
-                        <th class="py-3">Created</th>
-                        <th class="pe-4 py-3 text-end">Actions</th>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" id="selectAll"></th>
+                        <th>ID <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>PROJECT TITLE <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>CLIENT <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>STATUS <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>CREATED AT <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th class="text-end">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($clients as $client)
                         <tr>
+                            <td><input type="checkbox" name="ids[]" value="{{ $client->id }}" class="data-grid-checkbox item-checkbox"></td>
+                            <td class="text-low" style="color: #64748b !important;">#{{ $client->id }}</td>
+                            <td class="text-high fw-medium">{{ $client->company ?? $client->name }}</td>
+                            <td class="text-high">{{ $client->name }}</td>
                             <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="avatar-premium"
-                                        style="width: 32px; height: 32px; font-size: 0.8rem; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
-                                        {{ substr($client->name, 0, 1) }}
-                                    </div>
-                                    <span class="fw-bold text-high">{{ $client->name }}</span>
-                                </div>
+                                @if($client->is_approved)
+                                    <span class="badge-premium" style="background: rgba(16,185,129,0.1); color: #10b981; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">ACTIVE</span>
+                                @else
+                                    <span class="badge-premium" style="background: #f1f5f9; color: #64748b; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">INACTIVE</span>
+                                @endif
                             </td>
-                            <td class="text-medium">{{ $client->email }}</td>
-                            <td class="text-medium">{{ $client->phone ?? '-' }}</td>
-                            <td class="text-medium">{{ $client->company ?? '-' }}</td>
-                            <td>
-                                <span class="badge-premium"
-                                    style="background: var(--bg-input); color: var(--text-low);">{{ $client->tickets_count }}
-                                    Tickets</span>
-                            </td>
-                            <td>
-                                <span class="badge-premium"
-                                    style="background: {{ $client->is_approved ? 'rgba(var(--accent-rgb), 0.1)' : 'rgba(var(--danger-rgb), 0.1)' }}; color: {{ $client->is_approved ? 'var(--accent)' : 'var(--danger)' }}; border: 1px solid {{ $client->is_approved ? 'rgba(var(--accent-rgb), 0.2)' : 'rgba(var(--danger-rgb), 0.2)' }};">
-                                    {{ $client->is_approved ? 'Active' : 'Inactive' }}
-                                </span>
-                            </td>
-                            <td class="text-low">{{ $client->created_at->format('M d, Y') }}</td>
-                            <td class="pe-4 text-end">
-                                <div class="d-flex justify-content-end gap-2">
-                                    @if (Auth::user()->hasPermission('clients.edit'))
-                                        <a href="{{ route('admin.clients.edit', $client->id) }}"
-                                            class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
-                                            style="width: 32px; height: 32px; border-radius: 50%;">
-                                            <i class="fas fa-edit" style="font-size: 0.8rem;"></i>
-                                        </a>
-                                    @endif
-                                    @if (Auth::user()->hasPermission('clients.delete'))
-                                        <button type="button"
-                                            class="btn-premium btn-sm p-0 d-inline-flex align-items-center justify-content-center"
-                                            style="width: 32px; height: 32px; border-radius: 50%; background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2);"
-                                            onclick="if(confirm('Are you sure you want to delete this client?')) document.getElementById('delete-client-{{ $client->id }}').submit()">
-                                            <i class="fas fa-trash" style="font-size: 0.8rem;"></i>
-                                        </button>
-                                    @endif
-                                </div>
-                                <form id="delete-client-{{ $client->id }}"
-                                    action="{{ route('admin.clients.delete', $client->id) }}" method="POST"
-                                    class="d-none">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
+                            <td class="text-high">{{ $client->created_at->format('Y-m-d H:i:s') }}</td>
+                            <td class="text-end pe-4">
+                                @if (Auth::user()->hasPermission('clients.edit'))
+                                    <a href="{{ route('admin.clients.edit', $client->id) }}" class="action-link"><i class="fas fa-pencil-alt"></i></a>
+                                @endif
+                                @if (Auth::user()->hasPermission('clients.delete'))
+                                    <button onclick="if(confirm('Delete?')) document.getElementById('del-{{ $client->id }}').submit()" class="action-link delete border-0 bg-transparent"><i class="fas fa-trash"></i></button>
+                                    <form id="del-{{ $client->id }}" action="{{ route('admin.clients.delete', $client->id) }}" method="POST" class="d-none">@csrf @method('DELETE')</form>
+                                @endif
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">No clients found.</td>
-                        </tr>
+                        <tr><td colspan="7" class="text-center py-5 text-medium">No projects found.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        @if ($clients->hasPages())
-            <div class="p-4 border-top border-main">
-                {{ $clients->links() }}
-            </div>
-        @endif
     </div>
+
+    <!-- Filter Slideover -->
+    <div class="filter-slideover" id="filterSlideover">
+        <form action="{{ route('admin.clients.index') }}" method="GET" class="h-100 d-flex flex-column">
+            <div class="filter-slideover-header">
+                <h4><i class="fas fa-sliders-h text-low me-2"></i> Advanced Filters</h4>
+                <div class="filter-slideover-close" onclick="document.getElementById('filterSlideover').classList.remove('show')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="filter-slideover-body">
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">SEARCH QUERY</label>
+                    <input type="text" name="search" value="{{ request('search') }}" class="form-premium-control bg-white text-dark border-main" placeholder="Search anything...">
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">STATUS</label>
+                    <select name="status" class="form-select bg-white text-dark border-main">
+                        <option value="">All Status</option>
+                        <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Active</option>
+                        <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-slideover-footer">
+                <a href="{{ route('admin.clients.index') }}" class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</a>
+                <button type="submit" class="btn-premium btn-premium-primary w-50 justify-content-center" style="background: #0ea5e9;">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.item-checkbox');
+            const bulkActionBar = document.getElementById('bulkActionBar');
+            const selectedCount = document.getElementById('selectedCount');
+            const topBar = document.querySelector('.data-grid-top');
+
+            function updateBulkBar() {
+                const checked = document.querySelectorAll('.item-checkbox:checked').length;
+                selectedCount.textContent = checked;
+
+                if (checked > 0) {
+                    bulkActionBar.classList.add('active');
+                } else {
+                    bulkActionBar.classList.remove('active');
+                }
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                    updateBulkBar();
+                });
+            }
+
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', updateBulkBar);
+            });
+        });
+
+        function submitBulkAction(action) {
+            alert('Bulk action: ' + action);
+        }
+    </script>
 </x-admin>

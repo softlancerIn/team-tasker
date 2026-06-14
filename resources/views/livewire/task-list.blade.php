@@ -114,243 +114,133 @@ new class extends Component {
 ?>
 
 <div>
-    <div class="glass-card mb-4">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <div class="search-container-premium">
-                    <i class="fas fa-search"></i>
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search tasks...">
+    <div class="data-grid-wrapper mb-5">
+        <div class="data-grid-top">
+            <div class="data-grid-search">
+                <i class="fas fa-search"></i>
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search tasks...">
+            </div>
+            <div class="data-grid-results">{{ $tasks->total() }} Results</div>
+            <div class="data-grid-actions">
+                <button class="data-grid-filter-btn" type="button" onclick="document.getElementById('filterSlideoverTasks').classList.add('show')">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+                <div class="data-grid-pagination">
+                    <span class="data-grid-pagination-info">{{ $tasks->firstItem() ?? 0 }} - {{ $tasks->lastItem() ?? 0 }} of {{ $tasks->total() }}</span>
                 </div>
             </div>
-            <div class="col-md-2">
-                <x-select wire:model.live="status_id" name="status_id" id="status_id" placeholder="All Statuses">
-                    <option value="" class="bg-dark">All Statuses</option>
-                    @foreach ($statuses as $status)
-                        <option value="{{ $status->id }}" class="bg-dark">{{ $status->name }}</option>
-                    @endforeach
-                </x-select>
-            </div>
-            <div class="col-md-2">
-                <x-select wire:model.live="priority" placeholder="All Priorities">
-                    <option value="" class="bg-dark">All Priorities</option>
-                    @foreach ($priorities as $p)
-                        <option value="{{ $p }}" class="bg-dark">{{ $p }}</option>
-                    @endforeach
-                </x-select>
-            </div>
-            <div class="col-md-2">
-                <x-select wire:model.live="tag_id" placeholder="All Tags">
-                    <option value="" class="bg-dark">All Tags</option>
-                    @foreach ($tags as $tag)
-                        <option value="{{ $tag->id }}" class="bg-dark">{{ $tag->name }}</option>
-                    @endforeach
-                </x-select>
-            </div>
-            <div class="col-md-2 text-end">
-                <button
-                    wire:click="$set('search', ''); $set('status_id', ''); $set('priority', ''); $set('tag_id', '');"
-                    class="btn-premium btn-premium-secondary w-100">
-                    <i class="fas fa-redo me-1"></i> Reset
+        </div>
+
+        <div class="data-grid-bulk-actions {{ count($selectedTasks) > 0 ? 'active' : '' }}">
+            <div class="data-grid-bulk-left">
+                <span class="data-grid-bulk-count"><span>{{ count($selectedTasks) }}</span> Items Selected</span>
+                
+                <div class="d-flex align-items-center gap-2 border-start border-white-50 ps-3 ms-1">
+                    <select wire:model.live="bulkStatus" class="form-select form-select-sm" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 28px 4px 10px; width: 120px; cursor: pointer;">
+                        <option value="" style="color: black;">Status...</option>
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status->id }}" style="color: black;">{{ $status->name }}</option>
+                        @endforeach
+                    </select>
+                    <button wire:click="bulkChangeStatus" class="btn-bulk-outline" @if (!$bulkStatus) disabled @endif>
+                        Apply
+                    </button>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 border-start border-white-50 ps-3 ms-1">
+                    <select wire:model.live="bulkPriority" class="form-select form-select-sm" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 28px 4px 10px; width: 120px; cursor: pointer;">
+                        <option value="" style="color: black;">Priority...</option>
+                        @foreach ($priorities as $p)
+                            <option value="{{ $p }}" style="color: black;">{{ $p }}</option>
+                        @endforeach
+                    </select>
+                    <button wire:click="bulkChangePriority" class="btn-bulk-outline" @if (!$bulkPriority) disabled @endif>
+                        Apply
+                    </button>
+                </div>
+
+                <button wire:click="bulkDelete" onclick="return confirm('Are you sure?')" class="btn-bulk-danger border-start border-white-50 ps-3 ms-1" style="border-radius: 0 6px 6px 0;">
+                    <i class="fas fa-trash-alt"></i> Delete
                 </button>
             </div>
+            <button type="button" class="btn-deselect-all" wire:click="$set('selectedTasks', [])">
+                Deselect All
+            </button>
         </div>
-    </div>
 
-    <!-- Floating Bulk Action Bar -->
-    <div id="bulkActionBar" class="bulk-action-bar hidden shadow-premium {{ count($selectedTasks) > 0 ? 'show' : '' }}"
-        style="border: 1px solid var(--border-main); background: var(--bg-surface);">
-        <div class="container-fluid d-flex align-items-center justify-content-between py-3 px-4">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon-premium m-0 d-flex align-items-center justify-content-center"
-                    style="width: 40px; height: 40px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
-                    <span id="selectedCount" class="fw-bold">{{ count($selectedTasks) }}</span>
-                </div>
-                <span class="text-high fw-bold" style="font-size: 0.95rem;">Tasks Selected</span>
-            </div>
-
-            <div class="d-flex flex-wrap align-items-center gap-4">
-                <!-- Status Update -->
-                <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <x-select wire:model.live="bulkStatus" placeholder="Status..."
-                        style="width: 150px; font-size: 0.8rem; background: var(--bg-input);">
-                        <option value="" class="bg-dark">Status...</option>
-                        @foreach ($statuses as $status)
-                            <option value="{{ $status->id }}" class="bg-dark">{{ $status->name }}</option>
-                        @endforeach
-                    </x-select>
-                    <button wire:click="bulkChangeStatus" class="btn-premium btn-premium-primary py-2 px-3"
-                        style="font-size: 0.8rem;" @if (!$bulkStatus) disabled @endif>
-                        Apply
-                    </button>
-                </div>
-
-                <!-- Priority Update -->
-                <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <x-select wire:model.live="bulkPriority" placeholder="Priority..."
-                        style="width: 150px; font-size: 0.8rem; background: var(--bg-input);">
-                        <option value="" class="bg-dark">Priority...</option>
-                        @foreach ($priorities as $p)
-                            <option value="{{ $p }}" class="bg-dark">{{ $p }}</option>
-                        @endforeach
-                    </x-select>
-                    <button wire:click="bulkChangePriority" class="btn-premium btn-premium-primary py-2 px-3"
-                        style="font-size: 0.8rem;" @if (!$bulkPriority) disabled @endif>
-                        Apply
-                    </button>
-                </div>
-
-                <div class="d-flex gap-2">
-                    <button wire:click="bulkDelete"
-                        onclick="return confirm('Are you sure you want to delete these tasks?')"
-                        class="btn-premium py-2 px-4"
-                        style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2); font-size: 0.8rem;">
-                        <i class="fas fa-trash-alt me-1"></i> Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="glass-card p-0 overflow-hidden">
         <div class="table-responsive">
-            <table class="table mb-0 align-middle">
+            <table class="table data-grid-table">
                 <thead>
-                    <tr class="heading-label">
-                        <th class="border-0 px-4" style="width: 40px;">
-                            <input type="checkbox" class="form-check-input"
-                                onclick="let checked = this.checked; document.querySelectorAll('.task-checkbox').forEach(c => { c.checked = checked; c.dispatchEvent(new Event('change')); })">
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" onclick="let checked = this.checked; document.querySelectorAll('.task-checkbox').forEach(c => { c.checked = checked; c.dispatchEvent(new Event('change')); })"></th>
+                        <th class="cursor-pointer" wire:click="sortBy('title')">
+                            TITLE @if ($sortField === 'title') <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1" style="font-size: 10px;"></i> @endif
                         </th>
-                        <th class="border-0 cursor-pointer" wire:click="sortBy('title')"
-                            style="color: var(--text-high);">
-                            Title @if ($sortField === 'title')
-                                <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1"></i>
-                            @endif
+                        <th>ASSIGNED TO</th>
+                        <th class="cursor-pointer" wire:click="sortBy('status_id')">
+                            STATUS @if ($sortField === 'status_id') <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1" style="font-size: 10px;"></i> @endif
                         </th>
-                        <th class="border-0" style="color: var(--text-high);">Assigned To</th>
-                        <th class="border-0 cursor-pointer" wire:click="sortBy('status_id')"
-                            style="color: var(--text-high);">
-                            Status @if ($sortField === 'status_id')
-                                <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1"></i>
-                            @endif
+                        <th>PRIORITY</th>
+                        <th>TAGS</th>
+                        <th class="cursor-pointer" wire:click="sortBy('created_at')">
+                            CREATED @if ($sortField === 'created_at') <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1" style="font-size: 10px;"></i> @endif
                         </th>
-                        <th class="border-0" style="color: var(--text-high);">Priority</th>
-                        <th class="border-0" style="color: var(--text-high);">Tags</th>
-                        <th class="border-0 cursor-pointer" wire:click="sortBy('created_at')"
-                            style="color: var(--text-high);">
-                            Created @if ($sortField === 'created_at')
-                                <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1"></i>
-                            @endif
-                        </th>
-                        <th class="border-0 text-end px-4" style="color: var(--text-high);">Actions</th>
+                        <th class="text-end pe-4">ACTIONS</th>
                     </tr>
                 </thead>
-                <tbody style="border-top: none;">
+                <tbody>
                     @forelse($tasks as $task)
                         <tr wire:key="task-row-{{ $task->id }}"
                             class="{{ in_array($task->id, $selectedTasks) ? 'bg-primary-subtle' : '' }}"
                             style="border-bottom: 1px solid var(--border-subtle);">
-                            <td class="px-4">
-                                <input type="checkbox" wire:model.live="selectedTasks" value="{{ $task->id }}"
-                                    class="form-check-input task-checkbox">
-                            </td>
+                            <td><input type="checkbox" wire:model.live="selectedTasks" value="{{ $task->id }}" class="data-grid-checkbox task-checkbox"></td>
                             <td>
-                                <a href="{{ route('details', $task->id) }}"
-                                    class="text-decoration-none fw-medium d-block text-high">
+                                <a href="{{ route('details', $task->id) }}" class="text-decoration-none fw-medium d-block text-high">
                                     {{ $task->title }}
                                 </a>
                                 @if ($task->parent_id)
-                                    <span class="extra-small text-low"><i
-                                            class="fas fa-level-up-alt fa-rotate-90 me-1"></i>Subtask of
-                                        #{{ $task->parent_id }}</span>
+                                    <span class="extra-small text-low"><i class="fas fa-level-up-alt fa-rotate-90 me-1"></i>Subtask of #{{ $task->parent_id }}</span>
                                 @endif
                             </td>
                             <td>
                                 @if ($task->assignedTo)
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-premium"
-                                            style="width: 24px; height: 24px; font-size: 0.6rem;">
-                                            {{ substr($task->assignedTo->name, 0, 1) }}
-                                        </div>
-                                        <span class="small fw-medium">{{ $task->assignedTo->name }}</span>
-                                    </div>
+                                    <span class="text-high fw-medium">{{ $task->assignedTo->name }}</span>
                                 @else
-                                    <span class="text-low small italic">Unassigned</span>
+                                    <span class="text-low italic">Unassigned</span>
                                 @endif
                             </td>
                             <td>
                                 @php
-                                    $statusColorMap = [
-                                        'primary' => 'var(--primary)',
-                                        'success' => 'var(--accent)',
-                                        'danger' => 'var(--danger)',
-                                        'warning' => '#f59e0b',
-                                        'info' => '#0ea5e9',
-                                        'secondary' => 'var(--text-medium)',
-                                    ];
-                                    $statusColor = $task->status->color ?? 'secondary';
-                                    $themeColor = $statusColorMap[$statusColor] ?? 'var(--text-medium)';
+                                    $statusColorMap = ['primary' => 'var(--primary)', 'success' => 'var(--accent)', 'danger' => 'var(--danger)', 'warning' => '#f59e0b', 'info' => '#0ea5e9', 'secondary' => 'var(--text-medium)'];
+                                    $themeColor = $statusColorMap[$task->status->color ?? 'secondary'] ?? 'var(--text-medium)';
                                 @endphp
-                                <span class="badge-premium"
-                                    style="background: color-mix(in srgb, {{ $themeColor }} 15%, transparent); color: {{ $themeColor }}; border: 1px solid color-mix(in srgb, {{ $themeColor }} 30%, transparent);">
+                                <span class="badge-premium" style="background: color-mix(in srgb, {{ $themeColor }} 15%, transparent); color: {{ $themeColor }}; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">
                                     {{ $task->status->name ?? 'Unknown' }}
                                 </span>
                             </td>
                             <td>
                                 @php
-                                    $pColor =
-                                        $task->priority == 'Critical'
-                                            ? 'var(--danger)'
-                                            : ($task->priority == 'High'
-                                                ? 'var(--accent)'
-                                                : 'var(--primary)');
-                                    $pBg =
-                                        $task->priority == 'Critical'
-                                            ? 'rgba(var(--danger-rgb), 0.1)'
-                                            : ($task->priority == 'High'
-                                                ? 'rgba(var(--accent-rgb), 0.1)'
-                                                : 'rgba(var(--primary-rgb), 0.1)');
-                                    $pBorder =
-                                        $task->priority == 'Critical'
-                                            ? 'rgba(var(--danger-rgb), 0.2)'
-                                            : ($task->priority == 'High'
-                                                ? 'rgba(var(--accent-rgb), 0.2)'
-                                                : 'rgba(var(--primary-rgb), 0.2)');
+                                    $pColor = $task->priority == 'Critical' ? '#ef4444' : ($task->priority == 'High' ? '#10b981' : '#64748b');
+                                    $pBg = $task->priority == 'Critical' ? 'rgba(239,68,68,0.1)' : ($task->priority == 'High' ? 'rgba(16,185,129,0.1)' : '#f1f5f9');
                                 @endphp
-                                <span class="badge-premium"
-                                    style="background: {{ $pBg }}; color: {{ $pColor }}; border: 1px solid {{ $pBorder }}; font-size: 0.7rem;">
+                                <span class="badge-premium" style="background: {{ $pBg }}; color: {{ $pColor }}; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">
                                     {{ $task->priority ?? 'Medium' }}
                                 </span>
                             </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-1">
                                     @foreach ($task->tags->take(2) as $tag)
-                                        <span class="badge bg-opacity-10 extra-small px-2 py-0"
-                                            style="background-color: {{ $tag->color }}1a; color: {{ $tag->color }}; border: 1px solid {{ $tag->color }}40;">
-                                            {{ $tag->name }}
-                                        </span>
+                                        <span class="badge bg-opacity-10 extra-small px-2 py-0" style="background-color: {{ $tag->color }}1a; color: {{ $tag->color }}; border: 1px solid {{ $tag->color }}40;">{{ $tag->name }}</span>
                                     @endforeach
                                     @if ($task->tags->count() > 2)
                                         <span class="extra-small text-low">+{{ $task->tags->count() - 2 }}</span>
                                     @endif
                                 </div>
                             </td>
-                            <td class="text-low small">
-                                {{ $task->created_at->format('M d, Y') }}
-                            </td>
-                            <td class="text-end px-4">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('details', $task->id) }}"
-                                        class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
-                                        style="width: 32px; height: 32px; border-radius: 50%;" title="View Details">
-                                        <i class="fas fa-eye" style="font-size: 0.8rem;"></i>
-                                    </a>
-                                    <a href="{{ route('edit', $task->id) }}"
-                                        class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
-                                        style="width: 32px; height: 32px; border-radius: 50%; color: var(--primary);"
-                                        title="Edit Task">
-                                        <i class="fas fa-edit" style="font-size: 0.8rem;"></i>
-                                    </a>
-                                </div>
+                            <td class="text-low">{{ $task->created_at->format('M d, Y') }}</td>
+                            <td class="text-end pe-4">
+                                <a href="{{ route('details', $task->id) }}" class="action-link"><i class="fas fa-eye"></i></a>
+                                <a href="{{ route('edit', $task->id) }}" class="action-link"><i class="fas fa-pencil-alt"></i></a>
                             </td>
                         </tr>
                     @empty
@@ -366,10 +256,55 @@ new class extends Component {
         </div>
 
         @if ($tasks->hasPages())
-            <div class="p-4" style="border-top: 1px solid var(--border-subtle);">
+            <div class="p-4 border-top border-main">
                 {{ $tasks->links() }}
             </div>
         @endif
+    </div>
+
+    <!-- Filter Slideover -->
+    <div class="filter-slideover" id="filterSlideoverTasks">
+        <div class="h-100 d-flex flex-column">
+            <div class="filter-slideover-header">
+                <h4><i class="fas fa-sliders-h text-low me-2"></i> Advanced Filters</h4>
+                <div class="filter-slideover-close" onclick="document.getElementById('filterSlideoverTasks').classList.remove('show')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="filter-slideover-body">
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">STATUS</label>
+                    <x-select wire:model.live="status_id" name="status_id" id="status_id">
+                        <option value="">All Statuses</option>
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status->id }}">{{ $status->name }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">PRIORITY</label>
+                    <x-select wire:model.live="priority">
+                        <option value="">All Priorities</option>
+                        @foreach ($priorities as $p)
+                            <option value="{{ $p }}">{{ $p }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">TAGS</label>
+                    <x-select wire:model.live="tag_id">
+                        <option value="">All Tags</option>
+                        @foreach ($tags as $tag)
+                            <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+            </div>
+            <div class="filter-slideover-footer">
+                <button type="button" wire:click="$set('search', ''); $set('status_id', ''); $set('priority', ''); $set('tag_id', '');" class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</button>
+                <button type="button" onclick="document.getElementById('filterSlideoverTasks').classList.remove('show')" class="btn-premium btn-premium-primary w-50 justify-content-center" style="background: #0ea5e9;">Apply Filters</button>
+            </div>
+        </div>
     </div>
 
     <style>

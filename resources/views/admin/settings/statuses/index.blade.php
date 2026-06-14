@@ -45,68 +45,72 @@
 
                 <!-- Statuses Tab -->
                 <div class="tab-pane fade" id="v-pills-statuses" role="tabpanel">
-                    <div class="glass-card">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="mb-0">Task Statuses</h5>
-                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
-                                data-bs-target="#createStatusModal">
-                                <i class="fas fa-plus me-1"></i> Add Status
-                            </button>
+                    <div class="data-grid-wrapper mb-5">
+                        <div class="data-grid-top">
+                            <div class="data-grid-search">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Search statuses...">
+                            </div>
+                            <div class="data-grid-results">{{ $statuses->count() }} Results</div>
+                            <div class="data-grid-actions">
+                                <button type="button" class="btn-premium btn-premium-primary py-1 px-3" data-bs-toggle="modal" data-bs-target="#createStatusModal">
+                                    <i class="fas fa-plus me-1"></i> Add Status
+                                </button>
+                            </div>
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table text-main">
+                            <table class="table data-grid-table">
                                 <thead>
-                                    <tr class="text-white-50 small uppercase">
-                                        <th class="bg-transparent border-0">Order</th>
-                                        <th class="bg-transparent border-0">Name</th>
-                                        <th class="bg-transparent border-0">Slug</th>
-                                        <th class="bg-transparent border-0">Color</th>
-                                        <th class="bg-transparent border-0">Default</th>
-                                        <th class="bg-transparent border-0 text-end">Actions</th>
+                                    <tr>
+                                        <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" id="selectAll"></th>
+                                        <th>ORDER <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                                        <th>NAME <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                                        <th>SLUG <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                                        <th>COLOR <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                                        <th>DEFAULT <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                                        <th class="text-end pe-4">ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($statuses as $status)
-                                        <tr class="border-bottom border-secondary border-opacity-10 text-main">
-                                            <td class="bg-transparent align-middle text-main">{{ $status->order }}</td>
-                                            <td class="bg-transparent align-middle">
-                                                <span class="badge bg-{{ $status->color }}">{{ $status->name }}</span>
+                                    @forelse ($statuses as $status)
+                                        <tr>
+                                            <td><input type="checkbox" name="ids[]" value="{{ $status->id }}" class="data-grid-checkbox item-checkbox"></td>
+                                            <td class="text-low" style="color: #64748b !important;">#{{ $status->order }}</td>
+                                            <td class="text-high fw-medium">
+                                                <span class="badge-premium" style="background: rgba(var(--bs-{{ $status->color }}-rgb, 100, 116, 139), 0.1); color: var(--bs-{{ $status->color }}); font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">{{ $status->name }}</span>
                                             </td>
-                                            <td class="bg-transparent align-middle">{{ $status->slug }}</td>
-                                            <td class="bg-transparent align-middle">
+                                            <td class="text-high">{{ $status->slug }}</td>
+                                            <td>
                                                 <div class="d-flex align-items-center gap-2">
-                                                    <div
-                                                        style="width: 20px; height: 20px; background-color: var(--bs-{{ $status->color }}); border-radius: 4px;">
-                                                    </div>
-                                                    {{ ucfirst($status->color) }}
+                                                    <div style="width: 16px; height: 16px; background-color: var(--bs-{{ $status->color }}); border-radius: 4px;"></div>
+                                                    <span class="text-medium">{{ ucfirst($status->color) }}</span>
                                                 </div>
                                             </td>
-                                            <td class="bg-transparent align-middle">
+                                            <td>
                                                 @if ($status->is_default)
-                                                    <span class="badge bg-success">Default</span>
+                                                    <span class="badge-premium" style="background: rgba(16,185,129,0.1); color: #10b981; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">DEFAULT</span>
                                                 @endif
                                             </td>
-                                            <td class="bg-transparent align-middle text-end">
-                                                <button class="btn btn-sm btn-outline-info me-1"
-                                                    onclick="editStatus({{ $status->id }}, '{{ $status->name }}', '{{ $status->color }}', {{ $status->order }})">
-                                                    <i class="fas fa-edit"></i>
+                                            <td class="text-end pe-4">
+                                                <button class="action-link border-0 bg-transparent" onclick="editStatus({{ $status->id }}, '{{ $status->name }}', '{{ $status->color }}', {{ $status->order }})">
+                                                    <i class="fas fa-pencil-alt"></i>
                                                 </button>
 
                                                 @if (!$status->is_default && $status->tasks_count == 0)
-                                                    <form action="{{ route('admin.statuses.delete', $status->id) }}"
-                                                        method="POST" class="d-inline"
-                                                        onsubmit="return confirm('Are you sure you want to delete this status?');">
+                                                    <form action="{{ route('admin.statuses.delete', $status->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this status?');">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <button type="submit" class="action-link delete border-0 bg-transparent">
                                                             <i class="fas fa-trash-alt"></i>
                                                         </button>
                                                     </form>
                                                 @endif
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    @empty
+                                        <tr><td colspan="7" class="text-center py-5 text-medium">No statuses found.</td></tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>

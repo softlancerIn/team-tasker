@@ -3,7 +3,7 @@
         Role Management | Team Tasker
     </x-slot:title>
 
-    <div class="top-bar d-flex justify-content-between align-items-center mb-5">
+    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
         <h2 class="h3 fw-bold mb-0 text-high">Role Management</h2>
         <button class="btn-premium btn-premium-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
             <i class="fas fa-plus me-1"></i> Add Role
@@ -54,68 +54,72 @@
         </div>
     </x-modal>
 
-    <div class="row g-4 mt-4">
-        @foreach ($roles as $role)
-            <div class="col-md-4">
-                <div class="glass-card h-100 d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-start mb-4">
-                        <div class="stat-icon-premium icon-primary-premium m-0" style="width: 44px; height: 44px;">
-                            <i class="fas fa-shield-halved" style="font-size: 1.1rem;"></i>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-link text-low p-0 hover-opacity" data-bs-toggle="dropdown">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <button class="dropdown-item" data-bs-toggle="modal"
-                                        data-bs-target="#editRoleModal{{ $role->id }}">
-                                        <i class="fas fa-edit me-2"></i> Edit Role
-                                    </button>
-                                </li>
-                                @if ($role->users_count == 0)
-                                    <li>
-                                        <hr class="dropdown-divider">
-                                    </li>
-                                    <li>
-                                        <button class="dropdown-item text-danger" data-bs-toggle="modal"
-                                            data-bs-target="#deleteRoleModal{{ $role->id }}">
-                                            <i class="fas fa-trash-alt me-2"></i> Delete Role
-                                        </button>
-                                    </li>
-                                @endif
-                            </ul>
-                        </div>
-                    </div>
-
-                    <h4 class="text-high fw-bold mb-3">{{ $role->name }}</h4>
-
-                    <div class="mb-4">
-                        <span class="badge-premium"
-                            style="background: var(--bg-input); border: 1px solid var(--border-subtle);">
-                            <span class="text-low">Slug:</span> <span class="text-medium">{{ $role->slug }}</span>
-                        </span>
-                    </div>
-
-                    <div
-                        class="mt-auto pt-4 border-top border-subtle d-flex justify-content-between align-items-center">
-                        <button
-                            class="btn btn-sm btn-link text-primary p-0 text-decoration-none border-0 d-flex align-items-center gap-1"
-                            data-bs-toggle="modal" data-bs-target="#editRoleModal{{ $role->id }}">
-                            <span class="text-low small">Perms:</span>
-                            <span
-                                class="text-medium fw-bold small">{{ is_array($role->permissions) ? count($role->permissions) : 0 }}</span>
-                        </button>
-
-                        <a href="{{ route('admin.users.index', ['role_id' => $role->id]) }}"
-                            class="d-flex align-items-center gap-2 text-decoration-none hover-opacity">
-                            <i class="fas fa-users text-primary" style="font-size: 0.8rem;"></i>
-                            <span class="small text-medium fw-medium">{{ $role->users_count }} Users</span>
-                        </a>
-                    </div>
-                </div>
+    <div class="data-grid-wrapper mb-5">
+        <div class="data-grid-top">
+            <div class="data-grid-search">
+                <i class="fas fa-search"></i>
+                <form action="{{ route('admin.roles.index') }}" method="GET" id="searchForm">
+                    <input type="text" name="search" placeholder="Search roles..." value="{{ request('search') }}" onchange="document.getElementById('searchForm').submit()">
+                </form>
             </div>
-        @endforeach
+            <div class="data-grid-results">{{ $roles->count() }} Results</div>
+            <div class="data-grid-actions">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table data-grid-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" id="selectAll"></th>
+                        <th>ROLE NAME <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>SLUG <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>PERMISSIONS <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>USERS <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th class="text-end pe-4">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($roles as $role)
+                        <tr>
+                            <td><input type="checkbox" name="ids[]" value="{{ $role->id }}" class="data-grid-checkbox item-checkbox"></td>
+                            <td class="text-high fw-medium">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="stat-icon-premium icon-primary-premium m-0 d-inline-flex justify-content-center align-items-center" style="width: 24px; height: 24px;">
+                                        <i class="fas fa-shield-halved" style="font-size: 0.6rem;"></i>
+                                    </div>
+                                    {{ $role->name }}
+                                </div>
+                            </td>
+                            <td class="text-high">{{ $role->slug }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-link text-primary p-0 text-decoration-none border-0 fw-medium" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ $role->id }}">
+                                    {{ is_array($role->permissions) ? count($role->permissions) : 0 }} Perms
+                                </button>
+                            </td>
+                            <td>
+                                <a href="{{ route('admin.users.index', ['role_id' => $role->id]) }}" class="action-link d-flex align-items-center gap-1">
+                                    <i class="fas fa-users" style="font-size: 0.8rem;"></i>
+                                    <span class="small fw-medium">{{ $role->users_count }}</span>
+                                </a>
+                            </td>
+                            <td class="text-end pe-4">
+                                <button class="action-link border-0 bg-transparent" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ $role->id }}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                @if ($role->users_count == 0)
+                                    <button class="action-link delete border-0 bg-transparent" data-bs-toggle="modal" data-bs-target="#deleteRoleModal{{ $role->id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="text-center py-5 text-medium">No roles found.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     @foreach ($roles as $role)

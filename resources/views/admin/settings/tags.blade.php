@@ -1,6 +1,6 @@
 <x-admin title="Task Tag Settings">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 fw-bold mb-0" style="color: var(--text-high);">Task Tag Settings</h2>
+    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
+        <h2 class="h3 fw-bold mb-0 text-high">Task Tag Settings</h2>
     </div>
 
     <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
@@ -24,63 +24,72 @@
         </form>
     </div>
 
-    <div class="glass-card" style="border: 1px solid var(--border-main);">
-        <h5 class="fw-bold mb-4" style="color: var(--text-high);">Manage Tags</h5>
+    <div class="data-grid-wrapper mb-5">
+        <div class="data-grid-top">
+            <div class="data-grid-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search tags...">
+            </div>
+            <div class="data-grid-results">{{ $tags->count() }} Results</div>
+            <div class="data-grid-actions">
+            </div>
+        </div>
+
         <div class="table-responsive">
-            <table class="table mb-0">
+            <table class="table data-grid-table">
                 <thead>
-                    <tr style="background: var(--bg-input);">
-                        <th class="py-3 heading-label ps-3">Name</th>
-                        <th class="py-3 heading-label">Color</th>
-                        <th class="py-3 heading-label pe-3 text-end">Actions</th>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" id="selectAll"></th>
+                        <th>NAME <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>COLOR <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th class="text-end pe-4">ACTIONS</th>
                     </tr>
                 </thead>
-                <tbody style="border-top: none;">
+                <tbody>
                     @foreach ($tags as $tag)
-                        <tr class="align-middle" style="border-bottom: 1px solid var(--border-subtle);">
-                            <form action="{{ route('admin.settings.tag.update', $tag->id) }}" method="POST">
+                        <tr class="align-middle">
+                            <td><input type="checkbox" name="ids[]" value="{{ $tag->id }}" class="data-grid-checkbox item-checkbox"></td>
+                            <form action="{{ route('admin.settings.tag.update', $tag->id) }}" method="POST" id="update-tag-{{ $tag->id }}">
                                 @csrf
-                                <td class="ps-3">
+                                <td>
                                     <input type="text" name="name" class="form-premium-control"
-                                        value="{{ $tag->name }}" style="max-width: 250px;">
+                                        value="{{ $tag->name }}" style="max-width: 250px; background: transparent; border-color: var(--border-subtle);">
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-3">
                                         <input type="color" name="color" class="form-premium-control"
                                             value="{{ $tag->color }}"
-                                            style="width: 48px; height: 36px; padding: 3px; cursor: pointer; border-radius: var(--radius-sm);">
+                                            style="width: 48px; height: 36px; padding: 3px; cursor: pointer; border-radius: var(--radius-sm); background: transparent; border-color: var(--border-subtle);">
                                         <span class="badge-premium"
                                             style="background: {{ $tag->color }}22; color: {{ $tag->color }}; border: 1px solid {{ $tag->color }}44; font-size: 0.7rem;">
                                             {{ $tag->color }}
                                         </span>
                                     </div>
                                 </td>
-                                <td class="pe-3 text-end">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <button type="submit" class="btn-premium btn-premium-secondary px-3 py-1"
-                                            style="font-size: 0.8rem;" title="Save">
-                                            <i class="fas fa-save me-1"></i> Save
-                                        </button>
-                                        <button type="button" class="btn-premium px-3 py-1"
-                                            style="font-size: 0.8rem; background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2);"
+                            </form>
+                            <td class="pe-4 text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="submit" form="update-tag-{{ $tag->id }}" class="action-link border-0 bg-transparent" title="Save">
+                                        <i class="fas fa-save text-primary"></i>
+                                    </button>
+                                    <form id="delete-tag-{{ $tag->id }}"
+                                        action="{{ route('admin.settings.tag.delete', $tag->id) }}" method="POST"
+                                        class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" class="action-link delete border-0 bg-transparent"
                                             onclick="event.preventDefault(); if(confirm('Are you sure you want to delete this tag?')) document.getElementById('delete-tag-{{ $tag->id }}').submit();"
                                             title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
-                                    </div>
-                                </td>
-                            </form>
-                            <form id="delete-tag-{{ $tag->id }}"
-                                action="{{ route('admin.settings.tag.delete', $tag->id) }}" method="POST"
-                                class="d-none">
-                                @csrf
-                                @method('DELETE')
-                            </form>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                     @endforeach
                     @if ($tags->isEmpty())
                         <tr>
-                            <td colspan="3" class="text-center py-4 text-low">No tags found.</td>
+                            <td colspan="4" class="text-center py-5 text-medium">No tags found.</td>
                         </tr>
                     @endif
                 </tbody>

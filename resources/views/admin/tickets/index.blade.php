@@ -1,179 +1,205 @@
 <x-admin title="Support Tickets">
-    <div class="d-flex justify-content-between align-items-center mb-5">
-        <div>
-            <h2 class="h3 fw-bold mb-1" style="color: var(--text-high);">Support Tickets</h2>
-            <p class="text-low mb-0" style="font-size: 0.85rem;">Manage and respond to client support requests</p>
-        </div>
+    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
+        <h2 class="h3 fw-bold mb-0 text-high">Support Tickets</h2>
         @if (Auth::user()->hasPermission('tickets.create'))
-            <a href="{{ route('admin.tickets.create') }}" class="btn-premium btn-premium-primary px-4">
-                <i class="fas fa-plus-circle me-1"></i> Create Ticket
+            <a href="{{ route('admin.tickets.create') }}" class="btn-premium btn-premium-primary" style="background: #0ea5e9; border-color: #0ea5e9; border-radius: 8px;">
+                <i class="fas fa-plus me-1"></i> Create Ticket
             </a>
         @endif
     </div>
 
-    <div class="glass-card mb-5" style="border: 1px solid var(--border-main);">
-        <form method="GET" action="{{ route('admin.tickets.index') }}" class="row g-3 align-items-center">
-            <div class="col-md-auto">
-                <span class="heading-label" style="font-size: 0.7rem; color: var(--text-low);"><i
-                        class="fas fa-filter me-1"></i> Filters:</span>
+    <div class="data-grid-wrapper mb-5">
+        <div class="data-grid-top">
+            <div class="data-grid-search">
+                <i class="fas fa-search"></i>
+                <form action="{{ route('admin.tickets.index') }}" method="GET" id="searchFormTickets">
+                    <input type="text" name="search" placeholder="Search anything..." value="{{ request('search') }}" onchange="document.getElementById('searchFormTickets').submit()">
+                    <!-- Preserve existing filters -->
+                    @if(request('priority')) <input type="hidden" name="priority" value="{{ request('priority') }}"> @endif
+                    @if(request('status')) <input type="hidden" name="status" value="{{ request('status') }}"> @endif
+                </form>
             </div>
-            <div class="col-md-3">
-                <x-select name="priority" onchange="this.form.submit()" style="font-size: 0.85rem;"
-                    placeholder="All Priorities">
-                    <option value="" class="bg-dark">All Priorities</option>
-                    <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }} class="bg-dark">Low
-                        Priority</option>
-                    <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }} class="bg-dark">
-                        Medium Priority
-                    </option>
-                    <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }} class="bg-dark">High
-                        Priority</option>
-                    <option value="urgent" {{ request('priority') == 'urgent' ? 'selected' : '' }} class="bg-dark">
-                        Urgent Priority
-                    </option>
-                </x-select>
-            </div>
-            <div class="col-md-3">
-                <x-select name="status" onchange="this.form.submit()" style="font-size: 0.85rem;"
-                    placeholder="All Statuses">
-                    <option value="" class="bg-dark">All Statuses</option>
-                    <option value="open" {{ request('status') == 'open' ? 'selected' : '' }} class="bg-dark">Open
-                        Tickets</option>
-                    <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}
-                        class="bg-dark">In Progress
-                    </option>
-                    <option value="waiting_for_client" {{ request('status') == 'waiting_for_client' ? 'selected' : '' }}
-                        class="bg-dark">Waiting for Client</option>
-                    <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }} class="bg-dark">
-                        Resolved</option>
-                    <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }} class="bg-dark">Closed
-                    </option>
-                </x-select>
-            </div>
-            @if (request('priority') || request('status'))
-                <div class="col-md-auto">
-                    <a href="{{ route('admin.tickets.index') }}"
-                        class="text-low text-decoration-none small hover-primary transition-base">
-                        <i class="fas fa-times me-1"></i> Clear
-                    </a>
+            <div class="data-grid-results">{{ $tickets->total() }} Results</div>
+            <div class="data-grid-actions">
+                <button class="data-grid-filter-btn" type="button" onclick="document.getElementById('filterSlideover').classList.add('show')">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+                <div class="data-grid-per-page">
+                    <select onchange="window.location.href='?per_page='+this.value">
+                        <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                    </select>
+                    <span>Per Page</span>
                 </div>
-            @endif
-        </form>
-    </div>
+                <div class="data-grid-pagination">
+                    <span class="data-grid-pagination-info">{{ $tickets->firstItem() ?? 0 }} - {{ $tickets->lastItem() ?? 0 }} of {{ $tickets->total() }}</span>
+                    <div class="data-grid-pagination-controls">
+                        <a href="{{ $tickets->previousPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! $tickets->onFirstPage() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i></a>
+                        <a href="{{ $tickets->nextPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! !$tickets->hasMorePages() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i></a>
+                    </div>
+                </div>
+            </div>
+        <div class="data-grid-bulk-actions" id="bulkActionBar">
+            <div class="data-grid-bulk-left">
+                <span class="data-grid-bulk-count"><span id="selectedCount">0</span> Items Selected</span>
+                <button type="button" class="btn-bulk-danger" onclick="submitBulkAction('delete')">
+                    <i class="fas fa-trash-alt"></i> Bulk Delete
+                </button>
+                <button type="button" class="btn-bulk-outline" onclick="submitBulkAction('edit')">
+                    <i class="fas fa-edit"></i> Bulk Edit
+                </button>
+            </div>
+            <button type="button" class="btn-deselect-all" onclick="document.getElementById('selectAll').click()">
+                Deselect All
+            </button>
+        </div>
 
-    <div class="glass-card p-0 overflow-hidden" style="border: 1px solid var(--border-main);">
         <div class="table-responsive">
-            <table class="table mb-0">
+            <table class="table data-grid-table">
                 <thead>
-                    <tr style="background: var(--bg-input);">
-                        <th class="ps-4 py-3 heading-label">ID</th>
-                        <th class="py-3 heading-label">Subject & Excerpt</th>
-                        <th class="py-3 heading-label">Requester</th>
-                        <th class="py-3 heading-label">Status</th>
-                        <th class="py-3 heading-label">Priority</th>
-                        <th class="py-3 heading-label">Assigned Agent</th>
-                        <th class="py-3 heading-label">Created At</th>
-                        <th class="pe-4 py-3 heading-label text-end">Action</th>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" id="selectAll"></th>
+                        <th>ID <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>SUBJECT & EXCERPT <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>REQUESTER <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>STATUS <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>PRIORITY <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>ASSIGNED AGENT <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th>CREATED AT <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                        <th class="text-end">ACTIONS</th>
                     </tr>
                 </thead>
-                <tbody style="border-top: none;">
+                <tbody>
                     @forelse($tickets as $ticket)
-                        <tr class="align-middle" style="border-bottom: 1px solid var(--border-subtle);">
-                            <td class="ps-4 text-low" style="font-size: 0.85rem;">#{{ $ticket->id }}</td>
+                        <tr>
+                            <td><input type="checkbox" name="ids[]" value="{{ $ticket->id }}" class="data-grid-checkbox item-checkbox"></td>
+                            <td class="text-low" style="color: #64748b !important;">#{{ $ticket->id }}</td>
                             <td>
-                                <div class="fw-bold" style="color: var(--text-high);">
-                                    {{ Str::limit($ticket->subject, 40) }}</div>
-                                <div style="color: var(--text-low); font-size: 0.75rem;">
-                                    {{ Str::limit(strip_tags($ticket->body), 45) }}</div>
+                                <div class="text-high fw-medium">{{ Str::limit($ticket->subject, 30) }}</div>
+                                <div class="text-low" style="font-size: 0.75rem;">{{ Str::limit(strip_tags($ticket->body), 35) }}</div>
                             </td>
                             <td>
                                 @if ($ticket->user)
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-premium"
-                                            style="width: 28px; height: 28px; font-size: 0.7rem;">
-                                            {{ substr($ticket->user->name, 0, 1) }}
-                                        </div>
-                                        <span
-                                            style="color: var(--text-medium); font-size: 0.85rem;">{{ $ticket->user->name }}</span>
-                                    </div>
+                                    <span class="text-high">{{ $ticket->user->name }}</span>
                                 @else
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="stat-icon-premium m-0"
-                                            style="width: 28px; height: 28px; font-size: 0.7rem; background: var(--bg-input); color: var(--text-low);">
-                                            <i class="fas fa-envelope"></i>
-                                        </div>
-                                        <span class="text-low italic"
-                                            style="font-size: 0.85rem;">{{ Str::limit($ticket->email_source, 15) }}</span>
-                                    </div>
+                                    <span class="text-low italic">{{ Str::limit($ticket->email_source, 15) }}</span>
                                 @endif
                             </td>
                             <td>
-                                <span class="badge-premium"
-                                    style="background: {{ $ticket->status == 'open' ? 'rgba(var(--accent-rgb), 0.1)' : 'var(--bg-input)' }}; 
-                                           color: {{ $ticket->status == 'open' ? 'var(--accent)' : 'var(--text-low)' }}; white-space: nowrap;">
-                                    {{ ucfirst(str_replace('_', ' ', $ticket->status)) }}
-                                </span>
+                                @if(in_array($ticket->status, ['resolved', 'closed']))
+                                    <span class="badge-premium" style="background: rgba(16,185,129,0.1); color: #10b981; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">{{ str_replace('_', ' ', $ticket->status) }}</span>
+                                @elseif(in_array($ticket->status, ['open', 'in_progress']))
+                                    <span class="badge-premium" style="background: rgba(14,165,233,0.1); color: #0ea5e9; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">{{ str_replace('_', ' ', $ticket->status) }}</span>
+                                @else
+                                    <span class="badge-premium" style="background: #f1f5f9; color: #64748b; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">{{ str_replace('_', ' ', $ticket->status) }}</span>
+                                @endif
                             </td>
                             <td>
-                                @php
-                                    $tPColor = match ($ticket->priority) {
-                                        'urgent' => 'var(--danger)',
-                                        'high' => 'var(--accent)',
-                                        default => 'var(--text-medium)',
-                                    };
-                                    $tPBg = match ($ticket->priority) {
-                                        'urgent' => 'rgba(var(--danger-rgb), 0.1)',
-                                        'high' => 'rgba(var(--accent-rgb), 0.1)',
-                                        default => 'var(--bg-input)',
-                                    };
-                                    $tPBorder = match ($ticket->priority) {
-                                        'urgent' => 'rgba(var(--danger-rgb), 0.2)',
-                                        'high' => 'rgba(var(--accent-rgb), 0.2)',
-                                        default => 'var(--border-subtle)',
-                                    };
-                                @endphp
-                                <span class="badge-premium"
-                                    style="background: {{ $tPBg }}; color: {{ $tPColor }}; border: 1px solid {{ $tPBorder }};">
-                                    {{ ucfirst($ticket->priority) }}
-                                </span>
+                                @if($ticket->priority == 'urgent')
+                                    <span class="badge-premium" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">{{ $ticket->priority }}</span>
+                                @elseif($ticket->priority == 'high')
+                                    <span class="badge-premium" style="background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">{{ $ticket->priority }}</span>
+                                @else
+                                    <span class="badge-premium" style="background: #f1f5f9; color: #64748b; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">{{ $ticket->priority }}</span>
+                                @endif
                             </td>
                             <td>
                                 @if ($ticket->assignedTo)
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar-premium"
-                                            style="width: 28px; height: 28px; font-size: 0.7rem; background: var(--primary);">
-                                            {{ substr($ticket->assignedTo->name, 0, 1) }}
-                                        </div>
-                                        <span
-                                            style="color: var(--text-medium); font-size: 0.85rem;">{{ $ticket->assignedTo->name }}</span>
-                                    </div>
+                                    <span class="text-high">{{ $ticket->assignedTo->name }}</span>
                                 @else
-                                    <span class="text-low fst-italic small">Unassigned</span>
+                                    <span class="text-low italic">Unassigned</span>
                                 @endif
                             </td>
-                            <td class="text-low" style="font-size: 0.85rem;">
-                                {{ $ticket->created_at->format('M d, H:i') }}</td>
-                            <td class="pe-4 text-end">
-                                <a href="{{ route('admin.tickets.show', $ticket->id) }}"
-                                    class="btn-premium btn-premium-secondary btn-sm px-3 py-1"
-                                    style="font-size: 0.75rem;">
-                                    Manage
-                                </a>
+                            <td class="text-high">{{ $ticket->created_at->format('Y-m-d H:i:s') }}</td>
+                            <td class="text-end pe-4">
+                                <a href="{{ route('admin.tickets.show', $ticket->id) }}" class="action-link"><i class="fas fa-pencil-alt"></i></a>
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="8" class="text-center py-5 text-low italic">No support tickets found
-                                matching your criteria.</td>
-                        </tr>
+                        <tr><td colspan="9" class="text-center py-5 text-medium">No tickets found.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        @if ($tickets->hasPages())
-            <div class="p-4 border-top border-main">
-                {{ $tickets->links() }}
-            </div>
-        @endif
     </div>
+
+    <!-- Filter Slideover -->
+    <div class="filter-slideover" id="filterSlideover">
+        <form action="{{ route('admin.tickets.index') }}" method="GET" class="h-100 d-flex flex-column">
+            <div class="filter-slideover-header">
+                <h4><i class="fas fa-sliders-h text-low me-2"></i> Advanced Filters</h4>
+                <div class="filter-slideover-close" onclick="document.getElementById('filterSlideover').classList.remove('show')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="filter-slideover-body">
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">SEARCH QUERY</label>
+                    <input type="text" name="search" value="{{ request('search') }}" class="form-premium-control bg-white text-dark border-main" placeholder="Search anything...">
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">PRIORITY</label>
+                    <select name="priority" class="form-select bg-white text-dark border-main">
+                        <option value="">All Priorities</option>
+                        <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low</option>
+                        <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
+                        <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }}>High</option>
+                        <option value="urgent" {{ request('priority') == 'urgent' ? 'selected' : '' }}>Urgent</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">STATUS</label>
+                    <select name="status" class="form-select bg-white text-dark border-main">
+                        <option value="">All Statuses</option>
+                        <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>Open</option>
+                        <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                        <option value="waiting_for_client" {{ request('status') == 'waiting_for_client' ? 'selected' : '' }}>Waiting for Client</option>
+                        <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
+                        <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-slideover-footer">
+                <a href="{{ route('admin.tickets.index') }}" class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</a>
+                <button type="submit" class="btn-premium btn-premium-primary w-50 justify-content-center" style="background: #0ea5e9;">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.item-checkbox');
+            const bulkActionBar = document.getElementById('bulkActionBar');
+            const selectedCount = document.getElementById('selectedCount');
+            const topBar = document.querySelector('.data-grid-top');
+
+            function updateBulkBar() {
+                const checked = document.querySelectorAll('.item-checkbox:checked').length;
+                selectedCount.textContent = checked;
+
+                if (checked > 0) {
+                    bulkActionBar.classList.add('active');
+                } else {
+                    bulkActionBar.classList.remove('active');
+                }
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                    updateBulkBar();
+                });
+            }
+
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', updateBulkBar);
+            });
+        });
+
+        function submitBulkAction(action) {
+            alert('Bulk action: ' + action);
+        }
+    </script>
 </x-admin>

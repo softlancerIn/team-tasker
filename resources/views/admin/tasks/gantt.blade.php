@@ -81,6 +81,7 @@
                                 const primary = getVar('--primary');
                                 const pColor = task.priority === 'Critical' ? danger : (task
                                     .priority === 'High' ? accent : primary);
+                                const detailsUrl = '{{ route("details", ":id") }}'.replace(':id', task.id);
                                 return `
                                 <div style="width: 250px; background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px);">
                                     <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-high); margin-bottom: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">${task.name}</div>
@@ -90,7 +91,7 @@
                                     </div>
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <span style="font-size: 0.72rem; color: ${pColor}; font-weight: 600;">${task.priority ?? 'Normal'} · ${task.progress}%</span>
-                                        <a href="/admin/tasks/details/${task.id}" style="font-size: 0.72rem; background: var(--primary); color: white; padding: 3px 10px; border-radius: 6px; text-decoration: none;">View</a>
+                                        <a href="${detailsUrl}" style="font-size: 0.72rem; background: var(--primary); color: white; padding: 3px 10px; border-radius: 6px; text-decoration: none;">View</a>
                                     </div>
                                 </div>`;
                             }

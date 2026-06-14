@@ -135,7 +135,7 @@ class TaskLogController extends Controller
 
         $endTime = now();
         $startTime = $activeTimer->start_time;
-        $duration = $endTime->diffInSeconds($startTime);
+        $duration = abs($endTime->diffInSeconds($startTime));
 
         $activeTimer->update([
             'end_time' => $endTime,
@@ -145,28 +145,33 @@ class TaskLogController extends Controller
         return back()->with('success', 'Timer stopped successfully. Duration: '.gmdate('H:i:s', $duration));
     }
 
-    /**
-     * Update task progress and status.
-     */
     public function updateProgress(Request $request, $taskId)
     {
         $request->validate([
             'progress' => 'required|integer|min:0|max:100',
-            'status' => 'required|string|in:pending,in_progress,completed',
+            'status_id' => 'required|exists:statuses,id',
         ]);
 
         $task = Task::findOrFail($taskId);
+        $status = \App\Models\Status::find($request->status_id);
 
         $oldProgress = $task->progress;
-        $oldStatus = $task->status;
+        
+        $completed_at = $task->completed_at;
+        if ($status && $status->is_completed && ! $completed_at) {
+            $completed_at = now();
+        } elseif ($status && ! $status->is_completed) {
+            $completed_at = null;
+        }
 
         $task->update([
             'progress' => $request->progress,
-            'status' => $request->status,
+            'status_id' => $request->status_id,
+            'completed_at' => $completed_at,
         ]);
 
         // If status changed to completed, force progress to 100
-        if ($request->status == 'completed' && $request->progress < 100) {
+        if ($status && $status->is_completed && $request->progress < 100) {
             $task->update(['progress' => 100]);
         }
 
@@ -174,7 +179,7 @@ class TaskLogController extends Controller
         TaskLog::create([
             'task_id' => $taskId,
             'user_id' => Auth::id(),
-            'note' => 'Updated status to **'.ucfirst($request->status).'** and progress to **'.$task->progress.'%**.',
+            'note' => 'Updated status to **'.$status->name.'** and progress to **'.$task->progress.'%**.',
             'type' => 'log',
         ]);
 

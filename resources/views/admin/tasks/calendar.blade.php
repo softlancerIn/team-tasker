@@ -50,7 +50,8 @@
                     },
                     events: '{{ route('tasks.calendar.events') }}',
                     eventClick: function(info) {
-                        window.location.href = '/admin/tasks/details/' + info.event.id;
+                        let url = '{{ route("details", ":id") }}';
+                        window.location.href = url.replace(':id', info.event.id);
                     },
                     eventContent: function(arg) {
                         let priority = arg.event.extendedProps.priority;

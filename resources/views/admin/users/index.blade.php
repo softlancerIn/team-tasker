@@ -3,13 +3,10 @@
         Team Management | Team Tasker
     </x-slot:title>
 
-    <div class="d-flex justify-content-between align-items-center mb-5">
-        <div>
-            <h2 class="h3 fw-bold mb-1" style="color: var(--text-high);">Team Management</h2>
-            <p class="text-low mb-0" style="font-size: 0.85rem;">Manage team members, roles, and access permissions</p>
-        </div>
-        <button class="btn-premium btn-premium-primary px-4" data-bs-toggle="modal" data-bs-target="#addUserModal">
-            <i class="fas fa-plus-circle me-1"></i> Add Team Member
+    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
+        <h2 class="h3 fw-bold mb-0 text-high">Team Management</h2>
+        <button class="btn-premium btn-premium-primary" style="background: #0ea5e9; border-color: #0ea5e9; border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="fas fa-plus me-1"></i> Add Team Member
         </button>
     </div>
 
@@ -56,44 +53,40 @@
         </div>
     </x-modal>
 
-    {{-- ── Filter Bar (standalone form, never nested) ── --}}
-    <form action="{{ route('admin.users.index') }}" method="GET"
-        class="glass-card mb-4 d-flex flex-wrap align-items-center gap-3" style="border: 1px solid var(--border-main);">
-
-        <span class="heading-label mb-0 me-1" style="font-size: 0.7rem; white-space: nowrap;">
-            <i class="fas fa-filter me-1"></i> Filters:
-        </span>
-
-        <input type="text" name="name" value="{{ request('name') }}" class="form-premium-control"
-            placeholder="Search by name..." style="max-width: 220px; font-size: 0.85rem; flex: 1 1 180px;">
-
-        <input type="text" name="email" value="{{ request('email') }}" class="form-premium-control"
-            placeholder="Search by email..." style="max-width: 220px; font-size: 0.85rem; flex: 1 1 180px;">
-
-        <x-select name="role_id" placeholder="All Roles">
-            <option value="" class="bg-dark">All Roles</option>
-            @foreach ($roles as $role)
-                <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}
-                    class="bg-dark">
-                    {{ $role->name }}
-                </option>
-            @endforeach
-        </x-select>
-
-        <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
-            @if (request()->anyFilled(['name', 'email', 'role_id']))
-                <a href="{{ route('admin.users.index') }}" class="text-low text-decoration-none small"
-                    style="white-space: nowrap;">
-                    <i class="fas fa-times me-1"></i> Clear
-                </a>
-            @endif
-            <button type="submit" class="btn-premium btn-premium-primary px-4"
-                style="font-size: 0.85rem; white-space: nowrap;">
-                <i class="fas fa-search me-1"></i> Search
-            </button>
-        </div>
-    </form>
-
+    {{-- ── Filter Slideover ── --}}
+    <div class="filter-slideover" id="filterSlideoverUsers">
+        <form action="{{ route('admin.users.index') }}" method="GET" class="h-100 d-flex flex-column">
+            <div class="filter-slideover-header">
+                <h4><i class="fas fa-sliders-h text-low me-2"></i> Advanced Filters</h4>
+                <div class="filter-slideover-close" onclick="document.getElementById('filterSlideoverUsers').classList.remove('show')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="filter-slideover-body">
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">SEARCH NAME</label>
+                    <input type="text" name="name" value="{{ request('name') }}" class="form-premium-control bg-white text-dark border-main" placeholder="Search by name...">
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">SEARCH EMAIL</label>
+                    <input type="text" name="email" value="{{ request('email') }}" class="form-premium-control bg-white text-dark border-main" placeholder="Search by email...">
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">ROLE</label>
+                    <select name="role_id" class="form-select bg-white text-dark border-main">
+                        <option value="">All Roles</option>
+                        @foreach ($roles as $role)
+                            <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="filter-slideover-footer">
+                <a href="{{ route('admin.users.index') }}" class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</a>
+                <button type="submit" class="btn-premium btn-premium-primary w-50 justify-content-center" style="background: #0ea5e9;">Apply Filters</button>
+            </div>
+        </form>
+    </div>
 
     {{-- ── Bulk Action Form wraps ONLY the table ── --}}
     <form id="bulkActionForm" action="{{ route('admin.users.bulkAction') }}" method="POST">
@@ -101,120 +94,136 @@
         <input type="hidden" name="action" id="bulkActionType">
         <input type="hidden" name="role_id" id="bulkRoleId">
 
-        <div class="glass-card p-0 overflow-hidden" style="border: 1px solid var(--border-main);">
-            <div class="table-responsive">
-                <table class="table mb-0">
+        <div class="data-grid-wrapper mb-5">
+            <div class="data-grid-top">
+                <div class="data-grid-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="search" placeholder="Search anything..." value="{{ request('search') }}" onchange="this.form.submit()">
+                </div>
+                <div class="data-grid-results">{{ $users->total() }} Results</div>
+                <div class="data-grid-actions">
+                    <button class="data-grid-filter-btn" type="button" onclick="document.getElementById('filterSlideoverUsers').classList.add('show')">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <div class="data-grid-per-page">
+                        <select onchange="window.location.href='?per_page='+this.value">
+                            <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                            <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                        </select>
+                        <span>Per Page</span>
+                    </div>
+                    <div class="data-grid-pagination">
+                        <span class="data-grid-pagination-info">{{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} of {{ $users->total() }}</span>
+                        <div class="data-grid-pagination-controls">
+                            <a href="{{ $users->previousPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! $users->onFirstPage() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i></a>
+                            <a href="{{ $users->nextPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! !$users->hasMorePages() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-grid-bulk-actions" id="bulkActionBar">
+            <div class="data-grid-bulk-left">
+                <span class="data-grid-bulk-count"><span id="selectedCount">0</span> Items Selected</span>
+                
+                <button type="button" class="btn-bulk-outline" onclick="submitBulkAction('approve')">
+                    <i class="fas fa-check-circle"></i> Approve
+                </button>
+                <button type="button" class="btn-bulk-outline" onclick="submitBulkAction('disapprove')">
+                    <i class="fas fa-times-circle"></i> Suspend
+                </button>
+                
+                <div class="d-flex align-items-center gap-2 border-start border-white-50 ps-3 ms-1">
+                    <select id="bulkRoleSelect" class="form-select form-select-sm" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 28px 4px 10px; width: 140px; cursor: pointer;">
+                        <option value="" style="color: black;">Map to Role...</option>
+                        @foreach ($roles as $role)
+                            <option value="{{ $role->id }}" style="color: black;">{{ $role->name }}</option>
+                        @endforeach
+                    </select>
+                    <button type="button" class="btn-bulk-outline" onclick="submitBulkAction('change_role')">
+                        Apply
+                    </button>
+                </div>
+
+                <button type="button" class="btn-bulk-danger border-start border-white-50 ps-3 ms-1" onclick="submitBulkAction('delete')" style="border-radius: 0 6px 6px 0;">
+                    <i class="fas fa-trash-alt"></i> Delete Permanent
+                </button>
+            </div>
+            <button type="button" class="btn-deselect-all" onclick="document.getElementById('selectAll').click()">
+                Deselect All
+            </button>
+        </div>
+
+        <div class="table-responsive">
+                <table class="table data-grid-table">
                     <thead>
-                        <tr style="background: var(--bg-input);">
-                            <th class="ps-4 py-3" style="width: 40px;">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="selectAll">
-                                </div>
-                            </th>
-                            <th class="py-3 heading-label">Team Member</th>
-                            <th class="py-3 heading-label">Role</th>
-                            <th class="py-3 heading-label text-center">Status</th>
-                            <th class="py-3 heading-label">Contact Details</th>
-                            <th class="pe-4 py-3 heading-label text-end">Action</th>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" id="selectAll"></th>
+                            <th>TEAM MEMBER <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                            <th>ROLE <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                            <th class="text-center">STATUS <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                            <th>CONTACT DETAILS</th>
+                            <th class="text-end pe-4">ACTION</th>
                         </tr>
                     </thead>
-                    <tbody style="border-top: none;">
+                    <tbody>
                         @foreach ($users as $user)
-                            <tr class="align-middle" style="border-bottom: 1px solid var(--border-subtle);">
-                                <td class="ps-4">
-                                    <div class="form-check">
-                                        <input type="checkbox" name="ids[]" value="{{ $user->id }}"
-                                            class="form-check-input user-checkbox">
-                                    </div>
-                                </td>
+                            <tr>
+                                <td><input type="checkbox" name="ids[]" value="{{ $user->id }}" class="data-grid-checkbox user-checkbox"></td>
                                 <td>
                                     <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-premium" style="width: 36px; height: 36px;">
+                                        <div class="avatar-premium" style="width: 32px; height: 32px;">
                                             @if ($user->profile_image)
-                                                <img src="{{ asset('storage/' . $user->profile_image) }}"
-                                                    alt="">
+                                                <img src="{{ asset('storage/' . $user->profile_image) }}" alt="">
                                             @else
-                                                <div class="d-flex align-items-center justify-content-center w-100 h-100"
-                                                    style="background: var(--primary); color: white; font-weight: 600;">
+                                                <div class="d-flex align-items-center justify-content-center w-100 h-100" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-weight: 600; font-size: 0.8rem;">
                                                     {{ substr($user->name, 0, 1) }}
                                                 </div>
                                             @endif
                                         </div>
                                         <div>
-                                            <div class="fw-bold" style="color: var(--text-high); font-size: 0.9rem;">
-                                                {{ $user->name }}</div>
-                                            <div class="text-low" style="font-size: 0.75rem;">ID:
-                                                #{{ $user->id }}</div>
+                                            <div class="fw-bold text-high">{{ $user->name }}</div>
+                                            <div class="text-low extra-small">ID: #{{ $user->id }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
                                     @if ($user->role)
-                                        <span class="badge-premium"
-                                            style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-size: 0.7rem;">
-                                            {{ $user->role->name }}
-                                        </span>
+                                        <span class="text-high fw-medium">{{ $user->role->name }}</span>
                                     @else
-                                        <span class="text-low fst-italic small">No role assigned</span>
+                                        <span class="text-low italic">No role</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
                                     @if ($user->is_approved)
-                                        <span class="badge-premium"
-                                            style="background: rgba(var(--accent-rgb), 0.1); color: var(--accent); font-size: 0.7rem;">
-                                            <i class="fas fa-check-circle me-1" style="font-size: 0.6rem;"></i>
-                                            Approved
-                                        </span>
+                                        <span class="badge-premium" style="background: rgba(16,185,129,0.1); color: #10b981; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">APPROVED</span>
                                     @else
-                                        <span class="badge-premium"
-                                            style="background: var(--bg-input); color: var(--text-medium); font-size: 0.7rem;">
-                                            <i class="fas fa-clock me-1" style="font-size: 0.6rem;"></i> Pending
-                                        </span>
+                                        <span class="badge-premium" style="background: #f1f5f9; color: #64748b; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; text-transform: uppercase;">PENDING</span>
                                     @endif
                                 </td>
                                 <td>
-                                    <div class="d-flex flex-column gap-1">
-                                        <div style="color: var(--text-medium); font-size: 0.85rem;">
-                                            {{ $user->email }}</div>
-                                        @if ($user->phone)
-                                            <div class="text-low" style="font-size: 0.75rem;"><i
-                                                    class="fas fa-phone-alt me-1" style="font-size: 0.65rem;"></i>
-                                                {{ $user->phone }}</div>
-                                        @endif
-                                    </div>
+                                    <div class="text-medium">{{ $user->email }}</div>
+                                    @if ($user->phone)
+                                        <div class="text-low extra-small"><i class="fas fa-phone-alt me-1"></i>{{ $user->phone }}</div>
+                                    @endif
                                 </td>
-                                <td class="pe-4 text-end">
+                                <td class="text-end pe-4">
                                     <div class="d-flex justify-content-end gap-2">
                                         @if ($user->id !== auth()->id())
-                                            <form action="{{ route('admin.users.toggleApproval', $user->id) }}"
-                                                method="POST">
+                                            <form action="{{ route('admin.users.toggleApproval', $user->id) }}" method="POST">
                                                 @csrf
-                                                <button type="submit"
-                                                    class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
-                                                    style="width: 32px; height: 32px; border-radius: 50%; color: {{ $user->is_approved ? 'var(--accent)' : 'var(--primary)' }};"
-                                                    title="{{ $user->is_approved ? 'Revoke Approval' : 'Grant Approval' }}">
-                                                    <i class="fas {{ $user->is_approved ? 'fa-user-slash' : 'fa-user-check' }}"
-                                                        style="font-size: 0.8rem;"></i>
+                                                <button type="submit" class="action-link border-0 bg-transparent" title="{{ $user->is_approved ? 'Revoke Approval' : 'Grant Approval' }}" style="color: {{ $user->is_approved ? 'var(--danger)' : 'var(--accent)' }};">
+                                                    <i class="fas {{ $user->is_approved ? 'fa-user-slash' : 'fa-user-check' }}"></i>
                                                 </button>
                                             </form>
                                         @endif
-
-                                        <button type="button"
-                                            class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
-                                            style="width: 32px; height: 32px; border-radius: 50%;"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editUserModal{{ $user->id }}">
-                                            <i class="fas fa-edit"
-                                                style="font-size: 0.8rem; color: var(--text-medium);"></i>
+                                        <button type="button" class="action-link border-0 bg-transparent" data-bs-toggle="modal" data-bs-target="#editUserModal{{ $user->id }}">
+                                            <i class="fas fa-pencil-alt"></i>
                                         </button>
-
                                         @if ($user->id !== auth()->id())
-                                            <button type="button"
-                                                class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
-                                                style="width: 32px; height: 32px; border-radius: 50%; color: var(--danger);"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteUserModal{{ $user->id }}">
-                                                <i class="fas fa-trash" style="font-size: 0.8rem;"></i>
+                                            <button type="button" class="action-link delete border-0 bg-transparent" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ $user->id }}">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         @endif
                                     </div>
@@ -232,131 +241,61 @@
         </div>
     </form>
 
-    <!-- Floating Bulk Action Bar -->
-    <!-- Floating Bulk Action Bar -->
-    <div id="bulkActionBar" class="bulk-action-bar hidden shadow-premium"
-        style="border: 1px solid var(--border-main); background: var(--bg-surface);">
-        <div class="container-fluid d-flex align-items-center justify-content-between py-3 px-4">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon-premium m-0 d-flex align-items-center justify-content-center"
-                    style="width: 40px; height: 40px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
-                    <span id="selectedCount" class="fw-bold">0</span>
-                </div>
-                <span class="text-high fw-bold" style="font-size: 0.95rem;">Users Selected</span>
-            </div>
-
-            <div class="d-flex align-items-center gap-4">
-                <div class="d-flex border-end border-main pe-4 gap-2">
-                    <button type="button" onclick="submitBulkAction('approve')"
-                        class="btn-premium btn-premium-primary py-2 px-3"
-                        style="font-size: 0.8rem; background: rgba(var(--accent-rgb), 0.1); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.2);">
-                        <i class="fas fa-check-circle me-1"></i> Approve
-                    </button>
-                    <button type="button" onclick="submitBulkAction('disapprove')"
-                        class="btn-premium btn-premium-secondary py-2 px-3" style="font-size: 0.8rem;">
-                        <i class="fas fa-times-circle me-1"></i> Suspend
-                    </button>
-                </div>
-
-                <div class="d-flex align-items-center gap-2 border-end border-main pe-4">
-                    <x-select id="bulkRoleSelect" placeholder="Map to Role..."
-                        style="width: 160px; font-size: 0.8rem; background: var(--bg-input);">
-                        <option value="" class="bg-dark">Map to Role...</option>
-                        @foreach ($roles as $role)
-                            <option value="{{ $role->id }}" class="bg-dark">{{ $role->name }}</option>
-                        @endforeach
-                    </x-select>
-                    <button type="button" onclick="submitBulkAction('change_role')"
-                        class="btn-premium btn-premium-primary py-2 px-3" style="font-size: 0.8rem;">
-                        Apply
-                    </button>
-                </div>
-
-                <button type="button" onclick="submitBulkAction('delete')" class="btn-premium py-2 px-3"
-                    style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2); font-size: 0.8rem;">
-                    <i class="fas fa-trash-alt me-1"></i> Delete Permanent
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <style>
-        .bulk-action-bar {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(150%);
-            width: 90%;
-            max-width: 1000px;
-            background: var(--bg-surface);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-main);
-            border-radius: 12px;
-            z-index: 1000;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-        }
-
-        .bulk-action-bar.show {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .extra-small {
-            font-size: 0.65rem;
-        }
-
-        .table-container {
-            position: relative;
-        }
-    </style>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const selectAll = document.getElementById('selectAll');
-            const userCheckboxes = document.querySelectorAll('.user-checkbox');
+            const checkboxes = document.querySelectorAll('.user-checkbox');
             const bulkActionBar = document.getElementById('bulkActionBar');
             const selectedCount = document.getElementById('selectedCount');
+            const topBar = document.querySelector('.data-grid-top');
 
             function updateBulkBar() {
                 const checked = document.querySelectorAll('.user-checkbox:checked').length;
                 selectedCount.textContent = checked;
 
                 if (checked > 0) {
-                    bulkActionBar.classList.add('show');
+                    bulkActionBar.classList.add('active');
                 } else {
-                    bulkActionBar.classList.remove('show');
+                    bulkActionBar.classList.remove('active');
                 }
             }
 
-            selectAll.addEventListener('change', function() {
-                userCheckboxes.forEach(cb => cb.checked = selectAll.checked);
-                updateBulkBar();
-            });
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                    updateBulkBar();
+                });
+            }
 
-            userCheckboxes.forEach(cb => {
+            checkboxes.forEach(cb => {
                 cb.addEventListener('change', updateBulkBar);
             });
         });
 
         function submitBulkAction(action) {
-            if (action === 'delete') {
-                if (!confirm('Are you sure you want to delete selected users? This action cannot be undone.')) {
-                    return;
-                }
-            }
+            const checked = document.querySelectorAll('.user-checkbox:checked');
+            if (checked.length === 0) return;
 
+            document.getElementById('bulkActionType').value = action;
             if (action === 'change_role') {
                 const roleId = document.getElementById('bulkRoleSelect').value;
                 if (!roleId) {
-                    alert('Please select a role first.');
+                    alert('Please select a role to map.');
                     return;
                 }
                 document.getElementById('bulkRoleId').value = roleId;
             }
 
-            document.getElementById('bulkActionType').value = action;
+            if (action === 'delete') {
+                if (!confirm('Are you sure you want to permanently delete the selected users? This action cannot be undone.')) {
+                    return;
+                }
+            }
+
             document.getElementById('bulkActionForm').submit();
         }
     </script>
+
 
     @foreach ($users as $user)
         <!-- Edit User Modal -->
