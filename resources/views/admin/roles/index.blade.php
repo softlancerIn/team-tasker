@@ -3,10 +3,13 @@
         Role Management | Team Tasker
     </x-slot:title>
 
-    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
-        <h2 class="h3 fw-bold mb-0 text-high">Role Management</h2>
-        <button class="btn-premium btn-premium-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
-            <i class="fas fa-plus me-1"></i> Add Role
+    <div class="top-bar-premium">
+        <div>
+            <h1 class="h3 fw-semibold mb-1 text-high">Role Management</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Manage user roles and permissions.</p>
+        </div>
+        <button class="btn-premium btn-premium-primary px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+            <i class="fas fa-plus-circle me-1"></i> Add Role
         </button>
     </div>
 
@@ -190,3 +193,5 @@
         @endif
     @endforeach
 </x-admin>
+
+

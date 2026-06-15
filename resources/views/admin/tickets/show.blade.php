@@ -1,16 +1,16 @@
 <x-admin title="Ticket #{{ $ticket->id }}">
-    <div class="d-flex justify-content-between align-items-center mb-5">
-        <div>
-            <a href="{{ route('admin.tickets.index') }}" class="btn-premium btn-premium-secondary btn-sm mb-3 px-3 py-1"
-                style="font-size: 0.8rem;">
-                <i class="fas fa-arrow-left me-1"></i> Back to Archive
+    <div class="top-bar-premium">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{{ route('admin.tickets.index') }}" class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; border-radius: 50%;">
+                <i class="fas fa-arrow-left" style="font-size: 0.9rem;"></i>
             </a>
-            <h2 class="h3 fw-bold mb-0">
-                <span class="text-low">#{{ $ticket->id }}</span> - {{ $ticket->subject }}
-            </h2>
+            <div>
+                <h1 class="h3 fw-semibold mb-1 text-high">Ticket #{{ $ticket->id }}</h1>
+                <p class="text-low mb-0" style="font-size: 0.9rem;">{{ $ticket->subject }}</p>
+            </div>
         </div>
         <div class="d-flex gap-3">
-            <span class="badge-premium px-3 py-2"
+            <span class="badge-premium px-3 py-2 shadow-sm"
                 style="background: {{ $ticket->status == 'open' ? 'rgba(var(--accent-rgb), 0.1)' : 'var(--bg-input)' }}; color: {{ $ticket->status == 'open' ? 'var(--accent)' : 'var(--text-medium)' }}; border: 1px solid {{ $ticket->status == 'open' ? 'rgba(var(--accent-rgb), 0.2)' : 'var(--border-main)' }}; white-space: nowrap;">
                 <i class="fas fa-circle me-1" style="font-size: 0.5rem; vertical-align: middle;"></i>
                 {{ ucfirst(str_replace('_', ' ', $ticket->status)) }}
@@ -18,12 +18,12 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row g-4 mt-2">
         <!-- Conversation Column -->
         <div class="col-lg-8">
             <!-- Original Ticket Body -->
-            <div class="glass-card mb-4"
-                style="border: 1px solid var(--border-main); position: relative; overflow: hidden;">
+            <div class="data-grid-wrapper p-4 mb-4"
+                style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg); position: relative; overflow: hidden;">
                 <div class="position-absolute top-0 start-0 h-100 bg-primary opacity-10" style="width: 4px;"></div>
                 <div class="mail-container"
                     style="background: var(--bg-input); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-subtle);">
@@ -97,8 +97,8 @@
 
             <!-- Replies -->
             @foreach ($ticket->replies as $reply)
-                <div class="glass-card mb-4"
-                    style="{{ $reply->is_private ? 'background: rgba(var(--accent-rgb), 0.03); border: 1px solid rgba(var(--accent-rgb), 0.15);' : 'border: 1px solid var(--border-subtle);' }} position: relative; overflow: hidden;">
+                <div class="data-grid-wrapper p-4 mb-4"
+                    style="background: var(--bg-surface); {{ $reply->is_private ? 'border: 1px solid rgba(var(--accent-rgb), 0.3);' : 'border: 1px solid var(--border-main);' }} border-radius: var(--radius-lg); position: relative; overflow: hidden;">
 
                     @if ($reply->is_private)
                         <div class="position-absolute top-0 start-0 h-100 bg-accent opacity-20" style="width: 4px;">
@@ -199,7 +199,7 @@
             @endforeach
 
             <!-- Reply Form -->
-            <div class="glass-card" style="border: 1px solid var(--border-main);">
+            <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <h5 class="fw-bold mb-4" style="color: var(--text-high);">Resolution & Reply</h5>
                 <form action="{{ route('admin.tickets.reply', $ticket->id) }}" method="POST"
                     enctype="multipart/form-data">
@@ -234,7 +234,7 @@
 
         <div class="col-lg-4">
             <!-- Details Card -->
-            <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
+            <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <h5 class="fw-bold mb-4" style="color: var(--text-high);">Management Sidebar</h5>
 
                 <form action="{{ route('admin.tickets.update', $ticket->id) }}" method="POST" class="mb-4">
@@ -345,7 +345,7 @@
             </div>
 
             <!-- Assignment Card -->
-            <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
+            <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <h5 class="fw-bold mb-4" style="color: var(--text-high);">Agent Assignment</h5>
                 <form action="{{ route('admin.tickets.assign', $ticket->id) }}" method="POST">
                     @csrf
@@ -371,3 +371,5 @@
         </div>
     </div>
 </x-admin>
+
+

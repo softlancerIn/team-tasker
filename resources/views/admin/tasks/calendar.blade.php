@@ -3,7 +3,7 @@
         Task Calendar | Team Tasker
     </x-slot:title>
 
-    <div class="top-bar-premium mb-4">
+    <div class="top-bar-premium">
         <div class="d-flex align-items-center gap-3">
             <h3 class="mb-0 fw-bold text-high">Task Calendar</h3>
             <div class="ms-3 d-flex gap-2">

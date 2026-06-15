@@ -3,11 +3,16 @@
         Settings | Team Tasker
     </x-slot:title>
 
-    <h4 class="mb-4">Settings</h4>
+    <div class="top-bar-premium">
+        <div>
+            <h1 class="h3 fw-semibold mb-1 text-high">System Settings</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Configure global system parameters.</p>
+        </div>
+    </div>
 
     <div class="row">
         <div class="col-md-3">
-            <div class="glass-card p-3">
+            <div class="data-grid-wrapper p-3 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <div class="nav flex-column nav-pills gap-2" id="v-pills-tab" role="tablist" aria-orientation="vertical">
                     <button class="nav-link text-start active" id="v-pills-general-tab" data-bs-toggle="pill"
                         data-bs-target="#v-pills-general" type="button" role="tab">
@@ -25,19 +30,19 @@
             <div class="tab-content" id="v-pills-tabContent">
                 <!-- General Settings Tab -->
                 <div class="tab-pane fade show active" id="v-pills-general" role="tabpanel">
-                    <div class="glass-card">
+                    <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                         <h5 class="mb-4">General Settings</h5>
                         <form>
-                            <div class="mb-3">
-                                <label class="form-label text-muted small">Application Name</label>
-                                <input type="text" class="form-control" value="Team Tasker" readonly>
+                            <div class="mb-4">
+                                <label class="heading-label d-block mb-2 text-high">Application Name</label>
+                                <input type="text" class="form-premium-control w-100" value="Team Tasker" readonly>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted small">Admin Email</label>
-                                <input type="email" class="form-control" value="{{ Auth::user()->email }}" readonly>
+                            <div class="mb-4">
+                                <label class="heading-label d-block mb-2 text-high">Admin Email</label>
+                                <input type="email" class="form-premium-control w-100" value="{{ Auth::user()->email }}" readonly>
                             </div>
-                            <div class="text-end">
-                                <button type="button" class="btn btn-primary" disabled>Save Changes</button>
+                            <div class="text-end mt-4">
+                                <button type="button" class="btn-premium btn-premium-primary px-4 py-2" disabled>Save Changes</button>
                             </div>
                         </form>
                     </div>
@@ -234,3 +239,5 @@
         }
     </style>
 </x-admin>
+
+

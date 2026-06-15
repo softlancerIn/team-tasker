@@ -663,7 +663,6 @@
 
         .main-content-premium {
             margin-top: 70px;
-            padding: 24px;
         }
 
         .header-utils {

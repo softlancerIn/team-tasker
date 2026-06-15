@@ -3,14 +3,15 @@
         Task Details | Team Tasker
     </x-slot:title>
 
-    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
+    <div class="top-bar-premium">
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('index') }}"
-                class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center"
-                style="width: 32px; height: 32px; border-radius: 50%;">
-                <i class="fas fa-arrow-left" style="font-size: 0.8rem;"></i>
+            <a href="{{ route('index') }}" class="btn-premium btn-premium-secondary btn-sm p-0 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; border-radius: 50%;">
+                <i class="fas fa-arrow-left" style="font-size: 0.9rem;"></i>
             </a>
-            <h3 class="mb-0 fw-bold text-high">Task Details</h3>
+            <div>
+                <h1 class="h3 fw-semibold mb-1 text-high">Task Details</h1>
+                <p class="text-low mb-0" style="font-size: 0.9rem;">View and manage task information.</p>
+            </div>
         </div>
         <div class="d-flex gap-2">
             @if ($activeTimer)
@@ -27,7 +28,7 @@
             @else
                 <form action="{{ route('tasks.start_timer', $task->id) }}" method="POST" class="d-inline">
                     @csrf
-                    <button type="submit" class="btn-premium btn-premium-primary py-2 px-4">
+                    <button type="submit" class="btn-premium btn-premium-primary py-2 px-4 shadow-sm">
                         <i class="fas fa-play me-2"></i> Start Timer
                     </button>
                 </form>
@@ -36,7 +37,7 @@
             <a href="{{ route('edit', $task->id) }}" class="btn-premium btn-premium-secondary py-2 px-4">
                 <i class="fas fa-edit me-2"></i> Edit
             </a>
-            <a href="{{ route('delete', $task->id) }}" class="btn-premium py-2 px-3"
+            <a href="{{ route('delete', $task->id) }}" class="btn-premium py-2 px-3 shadow-sm"
                 style="background: rgba(var(--danger-rgb), 0.1); color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.2);"
                 onclick="return confirm('Are you sure?')">
                 <i class="fas fa-trash-alt"></i>
@@ -44,9 +45,9 @@
         </div>
     </div>
 
-    <div class="row mt-4">
+    <div class="row g-4 mt-2">
         <div class="col-lg-8">
-            <div class="glass-card mb-4 border-main">
+            <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <h2 class="mb-0 fw-bold text-high">{{ $task->title }}</h2>
                     @if ($task->status)
@@ -399,7 +400,7 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="glass-card mb-4">
+            <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <h5 class="mb-4">Dependencies</h5>
                 @forelse($task->dependencies as $dep)
                     <div class="d-flex align-items-center gap-2 mb-3">
@@ -420,7 +421,7 @@
                 @endforelse
             </div>
 
-            <div class="glass-card mb-4">
+            <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <h5 class="mb-4">Meta Information</h5>
                 <div class="mb-3">
                     <div class="text-muted small">Created at</div>
@@ -440,7 +441,7 @@
                 </div>
             </div>
 
-            <div class="glass-card mb-4 border-main">
+            <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <h5 class="fw-bold mb-4 text-high">Update Progress</h5>
                 <form action="{{ route('tasks.progress', $task->id) }}" method="POST">
                     @csrf
@@ -567,3 +568,5 @@
         feather.replace()
     </script>
 </x-admin>
+
+

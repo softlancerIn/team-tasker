@@ -1,9 +1,12 @@
 <x-admin title="Task Status Settings">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 fw-bold mb-0" style="color: var(--text-high);">Task Status Settings</h2>
+    <div class="top-bar-premium mb-4">
+        <div>
+            <h1 class="h3 fw-semibold mb-1 text-high">Task Status Settings</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Manage task statuses and workflow.</p>
+        </div>
     </div>
 
-    <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
+    <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
         <h5 class="fw-bold mb-3" style="color: var(--text-high);">Create New Status</h5>
         <form action="{{ route('admin.settings.status.store') }}" method="POST" class="row g-3 align-items-end">
             @csrf
@@ -24,7 +27,7 @@
         </form>
     </div>
 
-    <div class="glass-card" style="border: 1px solid var(--border-main);">
+    <div class="data-grid-wrapper" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
         <h5 class="fw-bold mb-4" style="color: var(--text-high);">Manage Statuses</h5>
         <div class="table-responsive">
             <table class="table mb-0">

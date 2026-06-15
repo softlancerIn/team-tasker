@@ -1,9 +1,12 @@
 <x-admin title="Support Tickets">
-    <div class="sticky-header shadow-sm rounded-3 d-flex justify-content-between align-items-center px-4 py-3" style="position: sticky; top: 65px; z-index: 100; background: var(--bg-surface); border: 1px solid var(--border-main);">
-        <h2 class="h3 fw-bold mb-0 text-high">Support Tickets</h2>
+    <div class="top-bar-premium">
+        <div>
+            <h1 class="h3 fw-semibold mb-1 text-high">Support Tickets</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Manage user support and feature requests.</p>
+        </div>
         @if (Auth::user()->hasPermission('tickets.create'))
-            <a href="{{ route('admin.tickets.create') }}" class="btn-premium btn-premium-primary" style="background: #0ea5e9; border-color: #0ea5e9; border-radius: 8px;">
-                <i class="fas fa-plus me-1"></i> Create Ticket
+            <a href="{{ route('admin.tickets.create') }}" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm">
+                <i class="fas fa-plus-circle me-1"></i> Create Ticket
             </a>
         @endif
     </div>
@@ -40,6 +43,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         <div class="data-grid-bulk-actions" id="bulkActionBar">
             <div class="data-grid-bulk-left">
                 <span class="data-grid-bulk-count"><span id="selectedCount">0</span> Items Selected</span>
@@ -203,3 +207,5 @@
         }
     </script>
 </x-admin>
+
+

@@ -1,6 +1,14 @@
 <x-admin title="Email Integration Settings">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 fw-bold mb-0" style="color: var(--text-high);">Email Integration Settings</h2>
+    <div class="top-bar-premium mb-4">
+        <div>
+            <h1 class="h3 fw-semibold mb-1 text-high">Email Integration Settings</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Configure inbound IMAP and outbound SMTP connections.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" form="emailSettingsForm" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm">
+                Save Changes
+            </button>
+        </div>
     </div>
 
     @if (!function_exists('imap_open'))
@@ -17,7 +25,7 @@
         </div>
     @endif
 
-    <form action="{{ route('admin.settings.email.store') }}" method="POST">
+    <form id="emailSettingsForm" action="{{ route('admin.settings.email.store') }}" method="POST">
         @csrf
 
         @if ($errors->any())
@@ -36,7 +44,7 @@
                 </div>
             </div>
         @endif
-        <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
+        <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
             <h5 class="fw-bold mb-4" style="color: var(--text-high);">
                 <i class="fas fa-inbox me-2" style="color: var(--primary);"></i> Incoming Mail (IMAP)
             </h5>
@@ -85,7 +93,7 @@
             </div>
         </div>
 
-        <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
+        <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
             <h5 class="fw-bold mb-4" style="color: var(--text-high);">
                 <i class="fas fa-paper-plane me-2" style="color: var(--primary);"></i> Outgoing Mail (SMTP)
             </h5>
@@ -133,7 +141,7 @@
             </div>
         </div>
 
-        <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
+        <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
             <h5 class="fw-bold mb-4" style="color: var(--text-high);">Sender Identity</h5>
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -149,10 +157,6 @@
             </div>
         </div>
 
-        <div class="text-end">
-            <button type="submit" class="btn-premium btn-premium-primary px-5">
-                <i class="fas fa-save me-2"></i>Save Email Settings
-            </button>
         </div>
     </form>
 </x-admin>

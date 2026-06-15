@@ -358,7 +358,6 @@
 
         .main-content-premium {
             margin-top: 70px;
-            padding: 24px;
             margin-left: 280px;
             /* Sidebar width */
         }

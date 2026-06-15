@@ -1,11 +1,19 @@
 <x-admin title="General Settings">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 fw-bold mb-0" style="color: var(--text-high);">General Settings</h2>
+    <div class="top-bar-premium mb-4">
+        <div>
+            <h1 class="h3 fw-semibold mb-1 text-high">General Settings</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Global application configuration.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" form="generalSettingsForm" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm">
+                Save Changes
+            </button>
+        </div>
     </div>
 
-    <div class="glass-card" style="border: 1px solid var(--border-main);">
+    <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
         <h5 class="fw-bold mb-4" style="color: var(--text-high);">General Configuration</h5>
-        <form action="{{ route('admin.settings.general.store') }}" method="POST" enctype="multipart/form-data">
+        <form id="generalSettingsForm" action="{{ route('admin.settings.general.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="mb-4">
                 <label class="heading-label mb-2">Application Name</label>
@@ -33,9 +41,6 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-premium btn-premium-primary px-4 py-2 mt-2">
-                <i class="fas fa-save me-2"></i> Save Settings
-            </button>
         </form>
     </div>
 </x-admin>

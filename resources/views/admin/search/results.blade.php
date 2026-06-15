@@ -3,7 +3,7 @@
         Search Results | Team Tasker
     </x-slot:title>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="top-bar-premium">
         <div>
             <h3 class="h4 fw-bold mb-0" style="color: var(--text-high);">
                 Search Results
@@ -29,7 +29,7 @@
         <div class="row g-4 mb-5">
             @foreach ($tasks as $task)
                 <div class="col-md-6 col-lg-4">
-                    <div class="glass-card h-100 d-flex flex-column" style="border: 1px solid var(--border-main);">
+                    <div class="data-grid-wrapper h-100 d-flex flex-column" style="border: 1px solid var(--border-main);">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <span class="badge-premium"
                                 style="background: {{ $task->status->color ?? 'var(--primary)' }}1a; color: {{ $task->status->color ?? 'var(--primary)' }}; border: 1px solid {{ $task->status->color ?? 'var(--primary)' }}33;">
@@ -76,7 +76,7 @@
             @endforeach
         </div>
     @elseif($query && $tasks->count() === 0)
-        <div class="glass-card text-center py-5 mb-5" style="border: 1px solid var(--border-main);">
+        <div class="data-grid-wrapper text-center py-5 mb-5" style="border: 1px solid var(--border-main);">
             <i class="fas fa-tasks fa-2x mb-3 d-block" style="color: var(--text-low); opacity: 0.4;"></i>
             <p class="mb-0 text-low">No tasks found matching "{{ $query }}".</p>
         </div>
@@ -92,7 +92,7 @@
         <div class="row g-4 mb-5">
             @foreach ($tickets as $ticket)
                 <div class="col-md-6 col-lg-4">
-                    <div class="glass-card h-100 d-flex flex-column" style="border: 1px solid var(--border-main);">
+                    <div class="data-grid-wrapper h-100 d-flex flex-column" style="border: 1px solid var(--border-main);">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             @php
                                 $ticketColors = [
@@ -135,7 +135,7 @@
             @endforeach
         </div>
     @elseif($query && $tickets->count() === 0)
-        <div class="glass-card text-center py-5 mb-5" style="border: 1px solid var(--border-main);">
+        <div class="data-grid-wrapper text-center py-5 mb-5" style="border: 1px solid var(--border-main);">
             <i class="fas fa-ticket-alt fa-2x mb-3 d-block" style="color: var(--text-low); opacity: 0.4;"></i>
             <p class="mb-0 text-low">No tickets found matching "{{ $query }}".</p>
         </div>
@@ -151,7 +151,7 @@
         <div class="row g-4">
             @foreach ($users as $user)
                 <div class="col-md-6 col-lg-3">
-                    <div class="glass-card text-center p-4" style="border: 1px solid var(--border-main);">
+                    <div class="data-grid-wrapper text-center p-4" style="border: 1px solid var(--border-main);">
                         <div class="avatar-premium mx-auto mb-3"
                             style="width: 56px; height: 56px; font-size: 1.3rem; border: 2px solid var(--border-main);">
                             @if ($user->profile_image)
@@ -172,10 +172,11 @@
             @endforeach
         </div>
     @elseif(Auth::user()->hasPermission('users.view') && $query)
-        <div class="glass-card text-center py-5" style="border: 1px solid var(--border-main);">
+        <div class="data-grid-wrapper text-center py-5" style="border: 1px solid var(--border-main);">
             <i class="fas fa-users fa-2x mb-3 d-block" style="color: var(--text-low); opacity: 0.4;"></i>
             <p class="mb-0 text-low">No users found matching "{{ $query }}".</p>
         </div>
     @endif
 
 </x-dynamic-component>
+
