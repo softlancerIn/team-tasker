@@ -42,6 +42,13 @@ new class extends Component {
         }
     }
 
+    #[On('conversationSelected')]
+    public function handleConversationSelected($conversationId)
+    {
+        $this->selectedConversationId = $conversationId;
+        $this->loadConversation($conversationId);
+    }
+
     public function loadConversation($conversationId)
     {
         $this->showGroupInfo = false; // Reset on conversation change

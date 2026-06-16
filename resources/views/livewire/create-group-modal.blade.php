@@ -9,17 +9,24 @@ new class extends Component {
     public $name = '';
     public $selectedUsers = [];
     public $selectAll = false;
-    public $users = [];
+    public $searchUser = '';
 
-    public function mount()
+    public function with()
     {
-        $this->users = User::where('id', '!=', Auth::id())->get();
+        return [
+            'users' => User::where('id', '!=', Auth::id())
+                ->when($this->searchUser, function ($query) {
+                    $query->where('name', 'like', '%' . $this->searchUser . '%');
+                })
+                ->limit(50)
+                ->get()
+        ];
     }
 
     public function updatedSelectAll($value)
     {
         if ($value) {
-            $this->selectedUsers = $this->users->pluck('id')->map(fn($id) => (string) $id)->toArray();
+            $this->selectedUsers = $this->with()['users']->pluck('id')->map(fn($id) => (string) $id)->toArray();
         } else {
             $this->selectedUsers = [];
         }
@@ -27,7 +34,7 @@ new class extends Component {
 
     public function updatedSelectedUsers()
     {
-        $this->selectAll = count($this->selectedUsers) === count($this->users);
+        $this->selectAll = count($this->selectedUsers) === count($this->with()['users']);
     }
 
     public function createGroup()
@@ -65,10 +72,11 @@ new class extends Component {
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" wire:model.live="selectAll" id="selectAllUsers">
                         <label class="form-check-label text-main small" for="selectAllUsers">
-                            Select All
+                            Select All (Visible)
                         </label>
                     </div>
                 </div>
+                <input type="text" wire:model.live.debounce.300ms="searchUser" class="form-control form-control-sm mb-2" placeholder="Search users...">
                 <div class="d-flex flex-column gap-2 overflow-auto" style="max-height: 200px;">
                     @foreach ($users as $user)
                         <label class="d-flex align-items-center gap-2 p-2 rounded cursor-pointer user-item"

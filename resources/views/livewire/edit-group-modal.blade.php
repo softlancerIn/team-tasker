@@ -10,11 +10,18 @@ new class extends Component {
     public $conversationId;
     public $name = '';
     public $selectedUsers = [];
-    public $users = [];
+    public $searchUser = '';
 
-    public function mount()
+    public function with()
     {
-        $this->users = User::where('id', '!=', Auth::id())->get();
+        return [
+            'users' => User::where('id', '!=', Auth::id())
+                ->when($this->searchUser, function ($query) {
+                    $query->where('name', 'like', '%' . $this->searchUser . '%');
+                })
+                ->limit(50)
+                ->get()
+        ];
     }
 
     #[On('openEditGroupModal')]
@@ -67,6 +74,7 @@ new class extends Component {
 
             <div class="mb-3">
                 <label class="form-label text-main">Members</label>
+                <input type="text" wire:model.live.debounce.300ms="searchUser" class="form-control form-control-sm mb-2" placeholder="Search members...">
                 <div class="d-flex flex-column gap-2 overflow-auto" style="max-height: 200px;">
                     @foreach ($users as $user)
                         <label class="d-flex align-items-center gap-2 p-2 rounded cursor-pointer user-item"

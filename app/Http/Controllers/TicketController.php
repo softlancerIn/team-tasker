@@ -31,8 +31,8 @@ class TicketController extends Controller
 
     public function create()
     {
-        $clients = User::where('role_id', 3)->get();
-        $staff = User::where('role_id', '!=', 3)->get();
+        $clients = User::select('id', 'name', 'email')->where('role_id', 3)->orderBy('name')->get();
+        $staff = User::select('id', 'name')->where('role_id', '!=', 3)->orderBy('name')->get();
 
         return view('admin.tickets.create', compact('clients', 'staff'));
     }
@@ -69,7 +69,7 @@ class TicketController extends Controller
     public function show($id)
     {
         $ticket = Ticket::with(['user', 'assignedTo', 'replies.user'])->findOrFail($id);
-        $users = User::where('role_id', '!=', 3)->get(); // Assuming 3 is client, list staff for assignment
+        $users = User::select('id', 'name')->where('role_id', '!=', 3)->orderBy('name')->get(); // Assuming 3 is client, list staff for assignment
         // Actually I should check roles properly or just list all non-clients
 
         return view('admin.tickets.show', compact('ticket', 'users'));

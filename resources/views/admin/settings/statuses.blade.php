@@ -92,5 +92,8 @@
                 </tbody>
             </table>
         </div>
+        <div class="p-3">
+            {{ $statuses->links('vendor.pagination.premium') }}
+        </div>
     </div>
 </x-admin>

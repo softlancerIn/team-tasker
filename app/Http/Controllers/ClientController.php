@@ -10,13 +10,13 @@ class ClientController extends Controller
 {
     public function dashboard()
     {
-        $tickets = Ticket::where('user_id', Auth::id())->latest()->get();
+        $tickets = Ticket::where('user_id', Auth::id())->latest()->paginate(10, ['*'], 'tickets_page');
 
         $ticketIds = $tickets->pluck('id');
         $tasks = \App\Models\Task::whereIn('ticket_id', $ticketIds)
             ->with(['status', 'assignedTo'])
             ->latest()
-            ->get();
+            ->paginate(10, ['*'], 'tasks_page');
 
         return view('client.dashboard', compact('tickets', 'tasks'));
     }

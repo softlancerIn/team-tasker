@@ -89,11 +89,13 @@ new class extends Component {
 
     public function with()
     {
-        $userId = Auth::id();
+        $user = Auth::user();
 
         $tasks = Task::with(['assignedTo', 'status', 'tags'])
-            ->where(function ($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+            ->when(!$user->hasPermission('tasks.view_all'), function ($q) use ($user) {
+                $q->where(function ($q2) use ($user) {
+                    $q2->where('user_id', $user->id)->orWhere('assigned_to', $user->id);
+                });
             })
             ->when($this->search, fn($q) => $q->where('title', 'like', '%' . $this->search . '%'))
             ->when($this->status_id, fn($q) => $q->where('status_id', $this->status_id))
@@ -106,7 +108,6 @@ new class extends Component {
             'tasks' => $tasks,
             'statuses' => Status::all(),
             'tags' => Tag::all(),
-            'users' => User::all(),
             'priorities' => ['Low', 'Medium', 'High', 'Critical'],
         ];
     }

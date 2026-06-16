@@ -9,22 +9,34 @@ new class extends Component {
     public $name = '';
     public $selectedClient = '';
     public $selectedStaff = [];
-    public $clients = [];
-    public $staff = [];
+    public $searchClient = '';
+    public $searchStaff = '';
     public $selectAllStaff = false;
 
-    public function mount()
+    public function with()
     {
-        // Assuming role_id 3 is Client
-        $this->clients = User::where('role_id', 3)->get();
-        // Staff are everyone else (excluding self if desired, but usually self is auto-added)
-        $this->staff = User::where('role_id', '!=', 3)->where('id', '!=', Auth::id())->get();
+        return [
+            'clients' => User::where('role_id', 3)
+                ->when($this->searchClient, function ($query) {
+                    $query->where('name', 'like', '%' . $this->searchClient . '%')
+                          ->orWhere('email', 'like', '%' . $this->searchClient . '%');
+                })
+                ->limit(50)
+                ->get(),
+            'staff' => User::where('role_id', '!=', 3)
+                ->where('id', '!=', Auth::id())
+                ->when($this->searchStaff, function ($query) {
+                    $query->where('name', 'like', '%' . $this->searchStaff . '%');
+                })
+                ->limit(50)
+                ->get()
+        ];
     }
 
     public function updatedSelectAllStaff($value)
     {
         if ($value) {
-            $this->selectedStaff = $this->staff->pluck('id')->map(fn($id) => (string) $id)->toArray();
+            $this->selectedStaff = $this->with()['staff']->pluck('id')->map(fn($id) => (string) $id)->toArray();
         } else {
             $this->selectedStaff = [];
         }
@@ -65,7 +77,8 @@ new class extends Component {
 
             <div class="mb-3">
                 <label class="form-label text-main">Select Client <span class="text-danger">*</span></label>
-                <x-select wire:model="selectedClient" placeholder="Choose a Client..." required>
+                <input type="text" wire:model.live.debounce.300ms="searchClient" class="form-control form-control-sm mb-2" placeholder="Search client name or email...">
+                <x-select wire:model="selectedClient" required>
                     <option value="">Choose a Client...</option>
                     @foreach ($clients as $client)
                         <option value="{{ $client->id }}">{{ $client->name }} ({{ $client->email }})</option>
@@ -80,10 +93,11 @@ new class extends Component {
                         <input class="form-check-input" type="checkbox" wire:model.live="selectAllStaff"
                             id="selectAllStaff">
                         <label class="form-check-label text-main small" for="selectAllStaff">
-                            Select All
+                            Select All (Visible)
                         </label>
                     </div>
                 </div>
+                <input type="text" wire:model.live.debounce.300ms="searchStaff" class="form-control form-control-sm mb-2" placeholder="Search staff...">
                 <div class="d-flex flex-column gap-2 overflow-auto" style="max-height: 150px;">
                     @foreach ($staff as $user)
                         <label class="d-flex align-items-center gap-2 p-2 rounded cursor-pointer user-item"

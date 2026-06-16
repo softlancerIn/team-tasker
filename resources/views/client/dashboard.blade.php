@@ -104,6 +104,9 @@
                 </tbody>
             </table>
         </div>
+        <div class="p-3">
+            {{ $tickets->appends(request()->except('tickets_page'))->links() }}
+        </div>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-4 mt-5">
@@ -181,6 +184,9 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="p-3">
+            {{ $tasks->appends(request()->except('tasks_page'))->links() }}
         </div>
     </div>
 </x-client>

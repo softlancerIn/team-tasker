@@ -33,7 +33,7 @@ class SearchController extends Controller
                 });
             }
 
-            $tasks = $taskQuery->with(['status', 'assignedTo'])->get();
+            $tasks = $taskQuery->with(['status', 'assignedTo'])->take(20)->get();
 
             // Search Tickets
             $ticketQuery = \App\Models\Ticket::where(function ($q) use ($query) {
@@ -46,13 +46,14 @@ class SearchController extends Controller
                 $ticketQuery->where('user_id', $user->id);
             }
 
-            $tickets = $ticketQuery->with(['user'])->latest()->get();
+            $tickets = $ticketQuery->with(['user'])->latest()->take(20)->get();
 
             // Search Users (if has permission)
             if ($user->hasPermission('users.view')) {
                 $users = \App\Models\User::where('name', 'like', "%{$query}%")
                     ->orWhere('email', 'like', "%{$query}%")
                     ->with('role')
+                    ->take(20)
                     ->get();
             }
         } else {

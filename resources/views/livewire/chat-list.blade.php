@@ -9,6 +9,12 @@ use Livewire\Attributes\On;
 new class extends Component {
     public $search = '';
     public $selectedConversationId = null;
+    public $userLimit = 20;
+
+    public function loadMoreUsers()
+    {
+        $this->userLimit += 20;
+    }
 
     public function with()
     {
@@ -23,15 +29,6 @@ new class extends Component {
                 $query->where('name', 'like', '%' . $this->search . '%');
             })
             ->with(['participants', 'latestMessage'])
-            ->withCount([
-                'messages as unread_count' => function ($query) use ($userId) {
-                    $query
-                        ->where('user_id', '!=', $userId) // Don't count own messages
-                        ->where('created_at', '>', function ($q) use ($userId) {
-                            $q->select('last_read_at')->from('conversation_participants')->whereColumn('conversation_participants.conversation_id', 'messages.conversation_id')->where('conversation_participants.user_id', $userId)->limit(1);
-                        });
-                },
-            ])
             ->get()
             ->map(function ($c) {
                 $c->is_group = true;
@@ -53,13 +50,6 @@ new class extends Component {
                 $query->where('name', 'like', '%' . $this->search . '%');
             })
             ->with(['participants', 'latestMessage'])
-            ->withCount([
-                'messages as unread_count' => function ($query) use ($userId) {
-                    $query->where('user_id', '!=', $userId)->where('created_at', '>', function ($q) use ($userId) {
-                        $q->select('last_read_at')->from('conversation_participants')->whereColumn('conversation_participants.conversation_id', 'messages.conversation_id')->where('conversation_participants.user_id', $userId)->limit(1);
-                    });
-                },
-            ])
             ->get()
             ->map(function ($c) {
                 $c->is_group = true;
@@ -85,25 +75,23 @@ new class extends Component {
             $usersQuery->where('role_id', '!=', 3);
         }
 
+        // Pre-load all private conversations for the current user
+        $myPrivateConversations = Conversation::where('type', 'private')
+            ->whereHas('participants', fn($q) => $q->where('user_id', $userId))
+            ->with(['latestMessage', 'participants'])
+            ->get();
+
         $users = $usersQuery
             ->when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%');
             })
+            ->limit($this->userLimit)
             ->get()
-            ->map(function ($user) use ($userId) {
-                // Find private conversation with this user
-                $conversation = Conversation::where('type', 'private')
-                    ->whereHas('participants', fn($q) => $q->where('user_id', $userId))
-                    ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
-                    ->with(['latestMessage'])
-                    ->withCount([
-                        'messages as unread_count' => function ($query) use ($userId) {
-                            $query->where('user_id', '!=', $userId)->where('created_at', '>', function ($q) use ($userId) {
-                                $q->select('last_read_at')->from('conversation_participants')->whereColumn('conversation_participants.conversation_id', 'messages.conversation_id')->where('conversation_participants.user_id', $userId)->limit(1);
-                            });
-                        },
-                    ])
-                    ->first();
+            ->map(function ($user) use ($myPrivateConversations) {
+                // Find private conversation with this user from pre-loaded list
+                $conversation = $myPrivateConversations->first(function ($c) use ($user) {
+                    return $c->participants->contains('id', $user->id);
+                });
 
                 $user->conversation = $conversation;
                 return $user;
@@ -123,6 +111,7 @@ new class extends Component {
 
     public function selectUser($userId)
     {
+        \Illuminate\Support\Facades\Log::info('selectUser called', ['userId' => $userId]);
         // Find or create private conversation
         $conversation = Conversation::where('type', 'private')->whereHas('participants', fn($q) => $q->where('user_id', Auth::id()))->whereHas('participants', fn($q) => $q->where('user_id', $userId))->first();
 
@@ -136,8 +125,9 @@ new class extends Component {
 
     public function selectConversation($conversationId)
     {
+        \Illuminate\Support\Facades\Log::info('selectConversation called', ['id' => $conversationId]);
         $this->selectedConversationId = $conversationId;
-        $this->dispatch('conversationSelected', conversationId: $conversationId);
+        $this->dispatch('conversationSelected', $conversationId);
 
         // Update last_read_at
         Auth::user()
@@ -258,6 +248,14 @@ new class extends Component {
                     </div>
                 </div>
             @endforeach
+
+            @if ($users->count() >= $userLimit)
+                <div class="text-center py-2">
+                    <button wire:click="loadMoreUsers" class="btn btn-sm btn-link text-decoration-none" style="font-size: 0.75rem;">
+                        Load More Users
+                    </button>
+                </div>
+            @endif
 
             <!-- Groups -->
             @if ($conversations->isNotEmpty())

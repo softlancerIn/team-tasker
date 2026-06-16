@@ -123,6 +123,9 @@
                 </tbody>
             </table>
         </div>
+        <div class="p-3">
+            {{ $roles->links('vendor.pagination.premium') }}
+        </div>
     </div>
 
     @foreach ($roles as $role)

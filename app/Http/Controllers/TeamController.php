@@ -157,7 +157,7 @@ class TeamController extends Controller
 
     public function roles()
     {
-        $roles = Role::withCount('users')->get();
+        $roles = Role::withCount('users')->paginate(15);
 
         return view('admin.roles.index', compact('roles'));
     }

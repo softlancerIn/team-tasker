@@ -240,11 +240,11 @@ class TaskController extends Controller
      */
     public function create(Request $request)
     {
-        $users = User::all();
+        $users = User::select('id', 'name', 'role_id')->with('role:id,name')->orderBy('name')->get();
         $statuses = Status::orderBy('order')->get();
         $tags = Tag::all();
-        $parentTasks = Task::whereNull('parent_id')->get();
-        $allTasks = Task::all();
+        $parentTasks = Task::select('id', 'title')->whereNull('parent_id')->latest()->limit(500)->get();
+        $allTasks = Task::select('id', 'title')->latest()->limit(500)->get();
         $priorities = ['Low', 'Medium', 'High', 'Critical'];
         $templates = TaskTemplate::where('is_active', true)->get();
 
@@ -338,8 +338,6 @@ class TaskController extends Controller
         $task = Task::with([
             'user',
             'assignedTo',
-            'logs.user',
-            'timeLogs.user',
             'subtasks.status',
             'subtasks.assignedTo',
             'dependencies.blocker.status',
@@ -363,11 +361,11 @@ class TaskController extends Controller
     {
         $task = Task::with(['tags', 'dependencies', 'attachments'])->findOrFail($id);
 
-        $users = User::all();
+        $users = User::select('id', 'name', 'role_id')->with('role:id,name')->orderBy('name')->get();
         $statuses = Status::orderBy('order')->get();
         $tags = Tag::all();
-        $parentTasks = Task::whereNull('parent_id')->where('id', '!=', $id)->get();
-        $allTasks = Task::where('id', '!=', $id)->get();
+        $parentTasks = Task::select('id', 'title')->whereNull('parent_id')->where('id', '!=', $id)->latest()->limit(500)->get();
+        $allTasks = Task::select('id', 'title')->where('id', '!=', $id)->latest()->limit(500)->get();
         $priorities = ['Low', 'Medium', 'High', 'Critical'];
 
         return view('admin.tasks.edit', compact('task', 'users', 'statuses', 'tags', 'parentTasks', 'allTasks', 'priorities'));

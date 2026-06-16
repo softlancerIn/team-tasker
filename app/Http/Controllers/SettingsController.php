@@ -30,7 +30,7 @@ class SettingsController extends Controller
     public function statuses()
     {
         // Fetch existing statuses
-        $statuses = Status::orderBy('order')->get();
+        $statuses = Status::orderBy('order')->paginate(15);
 
         return view('admin.settings.statuses', compact('statuses'));
     }
