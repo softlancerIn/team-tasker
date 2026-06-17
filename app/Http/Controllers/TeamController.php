@@ -31,6 +31,14 @@ class TeamController extends Controller
             $query->where('is_approved', $status);
         }
 
+        if ($request->filled('created_at')) {
+            $query->whereDate('created_at', $request->created_at);
+        }
+
+        if ($request->filled('updated_at')) {
+            $query->whereDate('updated_at', $request->updated_at);
+        }
+
         $users = $query->paginate(15);
         $roles = Role::all();
 

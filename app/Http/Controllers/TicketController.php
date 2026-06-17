@@ -24,6 +24,14 @@ class TicketController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('created_at')) {
+            $query->whereDate('created_at', $request->created_at);
+        }
+
+        if ($request->filled('updated_at')) {
+            $query->whereDate('updated_at', $request->updated_at);
+        }
+
         $tickets = $query->paginate(15);
 
         return view('admin.tickets.index', compact('tickets'));

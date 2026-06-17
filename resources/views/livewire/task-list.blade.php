@@ -20,6 +20,9 @@ new class extends Component {
     public $status_id = '';
     public $priority = '';
     public $tag_id = '';
+    public $assigned_to = '';
+    public $created_at = '';
+    public $updated_at = '';
     public $sortField = 'created_at';
     public $sortDirection = 'desc';
 
@@ -28,11 +31,11 @@ new class extends Component {
     public $bulkAssignee = '';
     public $bulkPriority = '';
 
-    protected $queryString = ['search', 'status_id', 'priority', 'tag_id', 'sortField', 'sortDirection'];
+    protected $queryString = ['search', 'status_id', 'priority', 'tag_id', 'assigned_to', 'created_at', 'updated_at', 'sortField', 'sortDirection'];
 
     public function updated($property)
     {
-        if (in_array($property, ['search', 'status_id', 'priority', 'tag_id'])) {
+        if (in_array($property, ['search', 'status_id', 'priority', 'tag_id', 'assigned_to', 'created_at', 'updated_at'])) {
             $this->resetPage();
         }
     }
@@ -101,6 +104,9 @@ new class extends Component {
             ->when($this->status_id, fn($q) => $q->where('status_id', $this->status_id))
             ->when($this->priority, fn($q) => $q->where('priority', $this->priority))
             ->when($this->tag_id, fn($q) => $q->whereHas('tags', fn($t) => $t->where('tags.id', $this->tag_id)))
+            ->when($this->assigned_to, fn($q) => $q->where('assigned_to', $this->assigned_to))
+            ->when($this->created_at, fn($q) => $q->whereDate('created_at', $this->created_at))
+            ->when($this->updated_at, fn($q) => $q->whereDate('updated_at', $this->updated_at))
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(15);
 
@@ -108,6 +114,7 @@ new class extends Component {
             'tasks' => $tasks,
             'statuses' => Status::all(),
             'tags' => Tag::all(),
+            'users' => User::select('id', 'name')->where('role_id', '!=', 3)->orderBy('name')->get(),
             'priorities' => ['Low', 'Medium', 'High', 'Critical'],
         ];
     }
@@ -123,8 +130,13 @@ new class extends Component {
             </div>
             <div class="data-grid-results">{{ $tasks->total() }} Results</div>
             <div class="data-grid-actions">
-                <button class="data-grid-filter-btn" type="button" onclick="document.getElementById('filterSlideoverTasks').classList.add('show')">
+                <button class="data-grid-filter-btn position-relative" type="button" onclick="document.getElementById('filterSlideoverTasks').classList.add('show')">
                     <i class="fas fa-filter"></i> Filter
+                    @if ($status_id || $priority || $tag_id || $assigned_to || $created_at || $updated_at)
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="width: 10px; height: 10px;">
+                            <span class="visually-hidden">Filters active</span>
+                        </span>
+                    @endif
                 </button>
                 <div class="data-grid-pagination">
                     <span class="data-grid-pagination-info">{{ $tasks->firstItem() ?? 0 }} - {{ $tasks->lastItem() ?? 0 }} of {{ $tasks->total() }}</span>
@@ -300,9 +312,26 @@ new class extends Component {
                         @endforeach
                     </x-select>
                 </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">ASSIGNED TO</label>
+                    <x-select wire:model.live="assigned_to">
+                        <option value="">All Assignees</option>
+                        @foreach ($users as $user)
+                            <option value="{{ $user->id }}">{{ $user->name }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">CREATED DATE</label>
+                    <input type="date" wire:model.live="created_at" class="form-premium-control w-100" style="background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px;">
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">UPDATED DATE</label>
+                    <input type="date" wire:model.live="updated_at" class="form-premium-control w-100" style="background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px;">
+                </div>
             </div>
             <div class="filter-slideover-footer">
-                <button type="button" wire:click="$set('search', ''); $set('status_id', ''); $set('priority', ''); $set('tag_id', '');" class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</button>
+                <button type="button" wire:click="$set('search', ''); $set('status_id', ''); $set('priority', ''); $set('tag_id', ''); $set('assigned_to', ''); $set('created_at', ''); $set('updated_at', '');" class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</button>
                 <button type="button" onclick="document.getElementById('filterSlideoverTasks').classList.remove('show')" class="btn-premium btn-premium-primary w-50 justify-content-center" style="background: #0ea5e9;">Apply Filters</button>
             </div>
         </div>

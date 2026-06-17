@@ -20,6 +20,12 @@ class AdminClientController extends Controller
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
+            ->when($request->filled('created_at'), function ($query) use ($request) {
+                $query->whereDate('created_at', $request->created_at);
+            })
+            ->when($request->filled('updated_at'), function ($query) use ($request) {
+                $query->whereDate('updated_at', $request->updated_at);
+            })
             ->withCount('tickets') // Assuming relationship exists, or I need to add it to User model
             ->latest()
             ->paginate(10);

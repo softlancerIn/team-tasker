@@ -83,6 +83,14 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">CREATED DATE</label>
+                    <input type="date" name="created_at" value="{{ request('created_at') }}" class="form-premium-control bg-white text-dark border-main">
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">UPDATED DATE</label>
+                    <input type="date" name="updated_at" value="{{ request('updated_at') }}" class="form-premium-control bg-white text-dark border-main">
+                </div>
             </div>
             <div class="filter-slideover-footer">
                 <a href="{{ route('admin.users.index') }}" class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</a>
@@ -105,8 +113,13 @@
                 </div>
                 <div class="data-grid-results">{{ $users->total() }} Results</div>
                 <div class="data-grid-actions">
-                    <button class="data-grid-filter-btn" type="button" onclick="document.getElementById('filterSlideoverUsers').classList.add('show')">
+                    <button class="data-grid-filter-btn position-relative" type="button" onclick="document.getElementById('filterSlideoverUsers').classList.add('show')">
                         <i class="fas fa-filter"></i> Filter
+                        @if (request('name') || request('email') || request('role_id') || request('created_at') || request('updated_at'))
+                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="width: 10px; height: 10px;">
+                                <span class="visually-hidden">Filters active</span>
+                            </span>
+                        @endif
                     </button>
                     <div class="data-grid-per-page">
                         <select onchange="window.location.href='?per_page='+this.value">

@@ -20,12 +20,19 @@
                     <!-- Preserve existing filters -->
                     @if(request('priority')) <input type="hidden" name="priority" value="{{ request('priority') }}"> @endif
                     @if(request('status')) <input type="hidden" name="status" value="{{ request('status') }}"> @endif
+                    @if(request('created_at')) <input type="hidden" name="created_at" value="{{ request('created_at') }}"> @endif
+                    @if(request('updated_at')) <input type="hidden" name="updated_at" value="{{ request('updated_at') }}"> @endif
                 </form>
             </div>
             <div class="data-grid-results">{{ $tickets->total() }} Results</div>
             <div class="data-grid-actions">
-                <button class="data-grid-filter-btn" type="button" onclick="document.getElementById('filterSlideover').classList.add('show')">
+                <button class="data-grid-filter-btn position-relative" type="button" onclick="document.getElementById('filterSlideover').classList.add('show')">
                     <i class="fas fa-filter"></i> Filter
+                    @if (request('search') || request('priority') || request('status') || request('created_at') || request('updated_at'))
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="width: 10px; height: 10px;">
+                            <span class="visually-hidden">Filters active</span>
+                        </span>
+                    @endif
                 </button>
                 <div class="data-grid-per-page">
                     <select onchange="window.location.href='?per_page='+this.value">
@@ -162,6 +169,14 @@
                         <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
                         <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
                     </select>
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">CREATED DATE</label>
+                    <input type="date" name="created_at" value="{{ request('created_at') }}" class="form-premium-control bg-white text-dark border-main">
+                </div>
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">UPDATED DATE</label>
+                    <input type="date" name="updated_at" value="{{ request('updated_at') }}" class="form-premium-control bg-white text-dark border-main">
                 </div>
             </div>
             <div class="filter-slideover-footer">
