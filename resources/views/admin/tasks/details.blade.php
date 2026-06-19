@@ -132,7 +132,7 @@
                     </div>
                     <div class="col-md-6">
                         @php
-                            $actualHours = round($task->timeLogs()->sum('duration') / 3600, 2);
+                            $actualHours = round($task->timeLogs->sum('duration') / 3600, 2);
                             $overEstimated = $task->estimated_hours && $actualHours > $task->estimated_hours;
                         @endphp
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -212,7 +212,45 @@
                 <div class="tab-content" id="taskTabsContent">
                     <!-- Activity Feed Tab -->
                     <div class="tab-pane fade show active" id="activity" role="tabpanel">
-                        <livewire:task-activity-tab :taskId="$task->id" />
+                        <div class="activity-timeline">
+                            @forelse($task->logs as $log)
+                                <div class="d-flex gap-3 mb-4">
+                                    <div class="position-relative">
+                                        <div class="avatar-premium"
+                                            style="width: 32px; height: 32px; font-size: 0.8rem; background: {{ $log->type == 'message' ? 'rgba(var(--primary-rgb), 0.1)' : 'var(--bg-input)' }}; color: {{ $log->type == 'message' ? 'var(--primary)' : 'var(--text-medium)' }};">
+                                            {{ substr($log->user->name, 0, 1) }}
+                                        </div>
+                                        @if (!$loop->last)
+                                            <div class="position-absolute start-50 top-100 border-start border-secondary border-opacity-25"
+                                                style="height: 20px; transform: translateX(-50%);"></div>
+                                        @endif
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold text-high small">{{ $log->user->name }}</span>
+                                            <span
+                                                class="text-low extra-small">{{ $log->created_at->diffForHumans() }}</span>
+                                        </div>
+                                        @if ($log->type == 'message')
+                                            <span class="badge-premium mb-2"
+                                                style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.2); font-size: 0.65rem;">
+                                                <i class="fas fa-external-link-alt me-1"></i> Client Message
+                                            </span>
+                                        @else
+                                            <span class="badge-premium mb-2"
+                                                style="background: var(--bg-input); color: var(--text-low); border: 1px solid var(--border-subtle); font-size: 0.65rem;">
+                                                <i class="fas fa-lock me-1"></i> Internal Note
+                                            </span>
+                                        @endif
+                                        <div class="text-main-50 small ck-content">{!! $log->note !!}</div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="text-center py-4 text-muted small">
+                                    No activity logged yet.
+                                </div>
+                            @endforelse
+                        </div>
                     </div>
 
                     <!-- Subtasks Tab -->
@@ -259,7 +297,66 @@
 
                     <!-- Timeline Tab -->
                     <div class="tab-pane fade" id="timeline" role="tabpanel">
-                        <livewire:task-time-log-tab :taskId="$task->id" />
+                        <div class="glass-card table-responsive">
+                            <table class="table text-main align-middle mb-0">
+                                <thead>
+                                    <tr class="heading-label">
+                                        <th class="border-0 bg-transparent">Date</th>
+                                        <th class="border-0 bg-transparent">User</th>
+                                        <th class="border-0 bg-transparent">Description</th>
+                                        <th class="border-0 bg-transparent">Duration</th>
+                                        <th class="border-0 bg-transparent">Mode</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php $totalSeconds = 0; @endphp
+                                    @forelse($task->timeLogs as $timeLog)
+                                        @php $totalSeconds += $timeLog->duration; @endphp
+                                        <tr class="border-bottom border-secondary border-opacity-10">
+                                            <td class="bg-transparent py-3 text-main">
+                                                {{ $timeLog->start_time->format('d/m/Y') }}
+                                            </td>
+                                            <td class="bg-transparent py-3">
+                                                <span class="text-main">{{ $timeLog->user->name }}</span>
+                                            </td>
+                                            <td class="bg-transparent py-3">
+                                                <span class="text-main-50 small">
+                                                    Worked on {{ $timeLog->start_time->format('d-F-Y') }}
+                                                    ({{ $timeLog->start_time->format('h:i A') }} To
+                                                    {{ $timeLog->end_time ? $timeLog->end_time->format('h:i A') : 'Now' }})
+                                                </span>
+                                                @if ($timeLog->description)
+                                                    <div class="text-main small mt-1">
+                                                        {{ $timeLog->description }}</div>
+                                                @endif
+                                            </td>
+                                            <td class="bg-transparent py-3">
+                                                <span class="fw-bold text-primary small">
+                                                    @if ($timeLog->end_time)
+                                                        {{ floor(abs($timeLog->duration) / 3600) }}h
+                                                        {{ floor((abs($timeLog->duration) % 3600) / 60) }}m
+                                                    @else
+                                                        Active
+                                                    @endif
+                                                </span>
+                                            </td>
+                                            <td class="bg-transparent py-3">
+                                                <span class="text-main small">
+                                                    {{ $timeLog->mode ?? 'inside office' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5"
+                                                class="text-center py-5 text-muted small bg-transparent">
+                                                No time logged yet.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <!-- Files Tab -->

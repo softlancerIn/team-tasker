@@ -827,6 +827,13 @@
                 </a>
             @endif
 
+            @if (Auth::user()->hasPermission('tasks.view'))
+                <a href="{{ route('admin.projects.index') }}"
+                    class="nav-link-premium {{ request()->is('admin/projects*') ? 'active' : '' }}">
+                    <i class="fas fa-project-diagram"></i> Projects
+                </a>
+            @endif
+
             @if (Auth::user()->hasPermission('tasks.view') || Auth::user()->hasPermission('tasks.create'))
                 <div class="nav-item">
                     <a href="javascript:void(0)"
@@ -845,6 +852,10 @@
                                 class="nav-link-premium sub-link-premium {{ request()->routeIs('index') ? 'active' : '' }}">
                                 <i class="fas fa-list"></i> My Tasks
                             </a>
+                            <a href="{{ route('tasks.activity') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.activity') ? 'active' : '' }}">
+                                <i class="fas fa-stream"></i> My Task Activity
+                            </a>
                             <a href="{{ route('tasks.board') }}"
                                 class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.board') ? 'active' : '' }}">
                                 <i class="fas fa-columns"></i> Task Board
@@ -856,13 +867,6 @@
                             <a href="{{ route('tasks.gantt') }}"
                                 class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.gantt') ? 'active' : '' }}">
                                 <i class="fas fa-chart-bar"></i> Gantt Chart
-                            </a>
-                        @endif
-
-                        @if (Auth::user()->hasPermission('tasks.create'))
-                            <a href="{{ route('create') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('create') ? 'active' : '' }}">
-                                <i class="fas fa-plus-circle"></i> New Task
                             </a>
                         @endif
                     </div>

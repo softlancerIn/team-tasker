@@ -43,10 +43,22 @@ Route::middleware(['web', 'auth'])->group(function () {
 Route::get('/enquire', [App\Http\Controllers\EnquiryController::class, 'create'])->name('enquiry.create');
 Route::post('/enquire', [App\Http\Controllers\EnquiryController::class, 'store'])->name('enquiry.store');
 
+// Project Controller
+Route::middleware(['web', 'auth'])->controller(App\Http\Controllers\ProjectController::class)->prefix('admin/projects')->group(function () {
+    Route::get('/', 'index')->name('admin.projects.index');
+    Route::get('/create', 'create')->name('admin.projects.create');
+    Route::post('/', 'store')->name('admin.projects.store');
+    Route::get('/{id}', 'show')->name('admin.projects.show');
+    Route::get('/{id}/edit', 'edit')->name('admin.projects.edit');
+    Route::post('/{id}/update', 'update')->name('admin.projects.update');
+    Route::delete('/{id}', 'destroy')->name('admin.projects.destroy');
+});
+
 // Task Controller
 Route::middleware(['web', 'auth'])->controller(TaskController::class)->prefix('admin/tasks')->group(function () {
     Route::get('/dashboard', 'dashboard')->name('dashboard')->middleware('permission:dashboard.view');
     Route::get('/', 'index')->name('index')->middleware('permission:tasks.view');
+    Route::get('activity', 'activity')->name('tasks.activity')->middleware('permission:tasks.view');
     Route::get('board', 'board')->name('tasks.board')->middleware('permission:tasks.view');
     Route::get('calendar', 'calendar')->name('tasks.calendar')->middleware('permission:tasks.view');
     Route::get('events', 'calendarEvents')->name('tasks.calendar.events')->middleware('permission:tasks.view');

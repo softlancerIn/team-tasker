@@ -3,9 +3,21 @@
         Admin Dashboard | Team Tasker
     </x-slot:title>
 
-    <div class="row g-4 mb-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-4 mb-4">
         <!-- Project Overall Stats -->
-        <div class="col-md-3">
+        <div class="col">
+            <a href="{{ url('admin/projects') }}" class="text-decoration-none text-reset d-block h-100">
+                <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
+                    <div class="stat-icon-premium icon-primary-premium mb-3" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="heading-label" style="font-size: 0.75rem;">Total Projects</div>
+                    <h3 class="h2 fw-bold mb-1" style="color: var(--text-high);">{{ $totalProjects }}</h3>
+                    <div class="mt-2 text-low" style="font-size: 0.7rem;">Active projects</div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
             <a href="{{ url('admin/tasks') }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="stat-icon-premium icon-primary-premium mb-3">
@@ -19,7 +31,7 @@
                 </div>
             </a>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <a href="{{ url('admin/tasks') }}?status_id={{ \App\Models\Status::where('slug', 'completed')->orWhere('name', 'Completed')->first()->id ?? '' }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="stat-icon-premium icon-success-premium mb-3">
@@ -35,7 +47,8 @@
                 </div>
             </a>
         </div>
-        <div class="col-md-3">
+        @if(Auth::user()->hasPermission('tickets.view'))
+        <div class="col">
             <a href="{{ url('admin/tickets') }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="stat-icon-premium mb-3"
@@ -48,7 +61,9 @@
                 </div>
             </a>
         </div>
-        <div class="col-md-3">
+        @endif
+        @if(Auth::user()->hasPermission('users.view'))
+        <div class="col">
             <a href="{{ url('admin/users') }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="stat-icon-premium icon-primary-premium mb-3">
@@ -60,6 +75,7 @@
                 </div>
             </a>
         </div>
+        @endif
     </div>
 
     <!-- Health & Progress Row -->
@@ -153,7 +169,14 @@
         </div>
         <div class="col-lg-4">
             <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
-                <h5 class="fw-bold mb-4" style="color: var(--text-high);">Project Activity Log</h5>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-high);">
+                        {{ Auth::user()->hasRole('admin') || Auth::user()->hasRole('manager') || Auth::user()->hasPermission('tasks.view_all') ? 'Project Activity Log' : 'My Recent Activity' }}
+                    </h5>
+                    <a href="{{ route('tasks.activity') }}" class="btn-premium btn-premium-secondary btn-sm px-3 py-1" style="font-size: 0.75rem;">
+                        View All
+                    </a>
+                </div>
                 <div class="activity-timeline">
                     @forelse($recentActivities as $log)
                         <div class="d-flex gap-3 mb-4">

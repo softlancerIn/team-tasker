@@ -15,21 +15,6 @@
             </button>
         </div>
     </div>
-    
-    <div class="glass-card mb-4">
-        <div class="d-flex align-items-center gap-3">
-            <i class="fas fa-magic text-primary"></i>
-            <div class="flex-grow-1">
-                <label class="form-label mb-0 small">Quick Start: Load from Template</label>
-                <x-select id="templateSelector" name="template_id" placeholder="Select a template...">
-                    @foreach ($templates as $template)
-                        <option value="{{ $template->id }}" class="bg-dark"
-                            data-structure="{{ json_encode($template->structure) }}">{{ $template->name }}</option>
-                    @endforeach
-                </x-select>
-            </div>
-        </div>
-    </div>
 
     <div class="data-grid-wrapper p-4 mb-4" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
         <form id="createTaskForm" action="{{ route('store') }}" method="post" enctype="multipart/form-data">
@@ -55,7 +40,16 @@
                     </div>
 
                     <div class="row g-4 mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="heading-label d-block mb-2 text-high">Project</label>
+                            <x-select name="project_id" placeholder="None (Standalone Task)">
+                                <option value="" class="bg-dark">None (Standalone Task)</option>
+                                @foreach ($projects as $project)
+                                    <option value="{{ $project->id }}" class="bg-dark">{{ $project->name }}</option>
+                                @endforeach
+                            </x-select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="heading-label d-block mb-2 text-high">Parent Task (for Subtasks)</label>
                             <x-select name="parent_id" placeholder="None (Top-Level Task)">
                                 <option value="" class="bg-dark">None (Top-Level Task)</option>
@@ -66,7 +60,7 @@
                                 @endforeach
                             </x-select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="heading-label d-block mb-2 text-high">Dependencies (Blockers)</label>
                             <x-multiselect id="dependencies" name="dependencies[]" placeholder="Select Dependencies">
                                 @foreach ($allTasks as $atask)
@@ -89,7 +83,7 @@
                 <div class="col-lg-4">
                     <div class="p-4" style="background: rgba(var(--primary-rgb), 0.02); border: 1px solid var(--border-main); border-radius: var(--radius-md);">
                         <div class="mb-4">
-                            <label for="assigned_to" class="heading-label d-block mb-2 text-high">Assign To</label>
+                            <label for="assigned_to" class="heading-label d-block mb-2 text-high">Lead Assignee</label>
                             <x-select id="assigned_to" name="assigned_to" placeholder="Unassigned">
                                 @foreach ($users as $user)
                                     <option value="{{ $user->id }}" class="bg-dark">{{ $user->name }}
@@ -97,6 +91,15 @@
                                     </option>
                                 @endforeach
                             </x-select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="heading-label d-block mb-2 text-high">Additional Assignees</label>
+                            <x-multiselect id="additional_users" name="additional_users[]" placeholder="Select Team Members">
+                                @foreach ($users as $user)
+                                    <option value="{{ $user->id }}" class="bg-dark">{{ $user->name }}</option>
+                                @endforeach
+                            </x-multiselect>
                         </div>
 
                         <div class="mb-4">

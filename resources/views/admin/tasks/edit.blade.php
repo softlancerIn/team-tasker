@@ -40,7 +40,16 @@
                     </div>
 
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="heading-label d-block mb-2 text-high">Project</label>
+                            <x-select name="project_id" placeholder="None (Standalone Task)">
+                                <option value="" class="bg-dark">None (Standalone Task)</option>
+                                @foreach ($projects as $project)
+                                    <option value="{{ $project->id }}" class="bg-dark" {{ $task->project_id == $project->id ? 'selected' : '' }}>{{ $project->name }}</option>
+                                @endforeach
+                            </x-select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="heading-label d-block mb-2 text-high">Parent Task (for Subtasks)</label>
                             <x-select name="parent_id" placeholder="None (Top-Level Task)">
                                 <option value="" class="bg-dark">None (Top-Level Task)</option>
@@ -51,7 +60,7 @@
                                 @endforeach
                             </x-select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="heading-label d-block mb-2 text-high">Dependencies (Blockers)</label>
                             @php $depIds = $task->dependencies->pluck('depends_on_id')->toArray(); @endphp
                             <x-multiselect name="dependencies[]" placeholder="Select Dependencies" :selected="$depIds">
@@ -89,7 +98,7 @@
                 <div class="col-lg-4">
                     <div class="p-4" style="background: rgba(var(--primary-rgb), 0.02); border: 1px solid var(--border-main); border-radius: var(--radius-md);">
                         <div class="mb-4">
-                            <label for="assigned_to" class="heading-label d-block mb-2 text-high">Assign To</label>
+                            <label for="assigned_to" class="heading-label d-block mb-2 text-high">Lead Assignee</label>
                             <x-select id="assigned_to" name="assigned_to" placeholder="Unassigned" :selected="$task->assigned_to">
                                 @foreach ($users as $user)
                                     <option value="{{ $user->id }}" class="bg-dark">
@@ -97,6 +106,15 @@
                                     </option>
                                 @endforeach
                             </x-select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="heading-label d-block mb-2 text-high">Additional Assignees</label>
+                            <x-multiselect id="additional_users" name="additional_users[]" placeholder="Select Team Members" :selected="$taskUsers ?? []">
+                                @foreach ($users as $user)
+                                    <option value="{{ $user->id }}" class="bg-dark">{{ $user->name }}</option>
+                                @endforeach
+                            </x-multiselect>
                         </div>
 
                         <div class="mb-4">

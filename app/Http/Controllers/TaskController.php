@@ -25,6 +25,26 @@ class TaskController extends Controller
     }
 
     /**
+     * Display the Global Task Activity Feed.
+     */
+    public function activity()
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $query = \App\Models\TaskLog::with(['task', 'user'])->latest();
+
+        // If not an admin with view_all permission, filter tasks user can see
+        if (!\Illuminate\Support\Facades\Auth::user()->hasPermission('tasks.view_all')) {
+            $query->whereHas('task', function ($q) use ($userId) {
+                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+            });
+        }
+
+        $activities = $query->paginate(20);
+
+        return view('admin.tasks.activity', compact('activities'));
+    }
+
+    /**
      * Display the Kanban Board.
      */
     public function board()
@@ -123,7 +143,8 @@ class TaskController extends Controller
         }
 
         $userId = Auth::user()->id;
-        $isAdmin = Auth::user()->hasRole('admin') || Auth::user()->hasRole('manager');
+        // Admins and Managers see everything. Others see only their assigned/owned items.
+        $isAdmin = Auth::user()->hasRole('admin') || Auth::user()->hasRole('manager') || Auth::user()->hasPermission('tasks.view_all');
 
         // Personal tasks for the list
         $personalTasks = Task::with(['user', 'assignedTo', 'status'])
@@ -134,30 +155,49 @@ class TaskController extends Controller
             ->take(5)
             ->get();
 
-        // Project-wide Metrics
-        $totalTasks = Task::count();
-        $completedTasksCount = Task::whereHas('status', function ($q) {
+        $taskQuery = Task::query();
+        if (!$isAdmin) {
+            $taskQuery->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+            });
+        }
+
+        // Metrics
+        $totalTasks = (clone $taskQuery)->count();
+        $completedTasksCount = (clone $taskQuery)->whereHas('status', function ($q) {
             $q->where('slug', 'completed')->orWhere('name', 'Completed');
         })->count();
 
         $pendingTasksCount = $totalTasks - $completedTasksCount;
-        $totalTickets = \App\Models\Ticket::count();
+        
+        $ticketQuery = \App\Models\Ticket::query();
+        if (!$isAdmin) {
+            $ticketQuery->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+            });
+        }
+        $totalTickets = $ticketQuery->count();
+        
         $totalUsers = \App\Models\User::count();
-        $criticalTasksCount = Task::where('priority', 'Critical')->count();
+        $totalProjects = \App\Models\Project::count();
+        $criticalTasksCount = (clone $taskQuery)->where('priority', 'Critical')->count();
 
-        $projectProgress = $totalTasks > 0 ? Task::avg('progress') : 0;
+        $projectProgress = $totalTasks > 0 ? (clone $taskQuery)->avg('progress') : 0;
 
-        // Recent Activity (Project-wide)
-        $recentActivities = \App\Models\TaskLog::with(['user', 'task'])
-            ->latest()
-            ->take(6)
-            ->get();
+        // Recent Activity
+        $activityQuery = \App\Models\TaskLog::with(['user', 'task']);
+        if (!$isAdmin) {
+            $activityQuery->whereHas('task', function ($q) use ($userId) {
+                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+            });
+        }
+        $recentActivities = $activityQuery->latest()->take(6)->get();
 
         // Data for chart: Multiple time periods
-        $chart7d = $this->buildChartData(7, 'day', 'D, M j');
-        $chart30d = $this->buildChartData(30, 'day', 'M j');
-        $chart90d = $this->buildChartData(90, 'week', 'M j');
-        $chartAll = $this->buildChartDataAllTime();
+        $chart7d = $this->buildChartData(7, 'day', 'D, M j', $isAdmin, $userId);
+        $chart30d = $this->buildChartData(30, 'day', 'M j', $isAdmin, $userId);
+        $chart90d = $this->buildChartData(90, 'week', 'M j', $isAdmin, $userId);
+        $chartAll = $this->buildChartDataAllTime($isAdmin, $userId);
 
         // Default view: Last 7 days
         $chartData = $chart7d['data'];
@@ -170,6 +210,7 @@ class TaskController extends Controller
             'pendingTasksCount',
             'totalTickets',
             'totalUsers',
+            'totalProjects',
             'criticalTasksCount',
             'projectProgress',
             'recentActivities',
@@ -185,7 +226,7 @@ class TaskController extends Controller
     /**
      * Build chart data for a given period.
      */
-    private function buildChartData(int $days, string $groupBy, string $labelFormat): array
+    private function buildChartData(int $days, string $groupBy, string $labelFormat, bool $isAdmin = true, $userId = null): array
     {
         $labels = [];
         $data = [];
@@ -194,7 +235,13 @@ class TaskController extends Controller
             for ($i = $days - 1; $i >= 0; $i--) {
                 $date = now()->subDays($i);
                 $labels[] = $date->format($labelFormat);
-                $data[] = Task::whereDate('created_at', $date->toDateString())->count();
+                $query = Task::whereDate('created_at', $date->toDateString());
+                if (!$isAdmin) {
+                    $query->where(function($q) use ($userId) {
+                        $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                    });
+                }
+                $data[] = $query->count();
             }
         } elseif ($groupBy === 'week') {
             $weeks = (int) ceil($days / 7);
@@ -202,7 +249,13 @@ class TaskController extends Controller
                 $start = now()->subWeeks($i)->startOfWeek();
                 $end = now()->subWeeks($i)->endOfWeek();
                 $labels[] = $start->format($labelFormat);
-                $data[] = Task::whereBetween('created_at', [$start, $end])->count();
+                $query = Task::whereBetween('created_at', [$start, $end]);
+                if (!$isAdmin) {
+                    $query->where(function($q) use ($userId) {
+                        $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                    });
+                }
+                $data[] = $query->count();
             }
         }
 
@@ -212,9 +265,10 @@ class TaskController extends Controller
     /**
      * Build All Time chart data grouped by month.
      */
-    private function buildChartDataAllTime(): array
+    private function buildChartDataAllTime(bool $isAdmin = true, $userId = null): array
     {
-        $oldest = Task::min('created_at');
+        $query = Task::query();
+        $oldest = $query->min('created_at');
         if (! $oldest) {
             return ['labels' => [], 'data' => []];
         }
@@ -226,9 +280,13 @@ class TaskController extends Controller
 
         while ($start->lessThanOrEqualTo($end)) {
             $labels[] = $start->format('M Y');
-            $data[] = Task::whereYear('created_at', $start->year)
-                ->whereMonth('created_at', $start->month)
-                ->count();
+            $q = Task::whereYear('created_at', $start->year)->whereMonth('created_at', $start->month);
+            if (!$isAdmin) {
+                $q->where(function($sq) use ($userId) {
+                    $sq->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                });
+            }
+            $data[] = $q->count();
             $start->addMonth();
         }
 
@@ -240,17 +298,18 @@ class TaskController extends Controller
      */
     public function create(Request $request)
     {
-        $users = User::select('id', 'name', 'role_id')->with('role:id,name')->orderBy('name')->get();
+        $users = User::all();
         $statuses = Status::orderBy('order')->get();
         $tags = Tag::all();
-        $parentTasks = Task::select('id', 'title')->whereNull('parent_id')->latest()->limit(500)->get();
-        $allTasks = Task::select('id', 'title')->latest()->limit(500)->get();
+        $parentTasks = Task::whereNull('parent_id')->get();
+        $allTasks = Task::all();
         $priorities = ['Low', 'Medium', 'High', 'Critical'];
         $templates = TaskTemplate::where('is_active', true)->get();
+        $projects = \App\Models\Project::all();
 
         $selectedParentId = $request->get('parent_id');
 
-        return view('admin.tasks.create', compact('users', 'statuses', 'tags', 'parentTasks', 'allTasks', 'priorities', 'selectedParentId', 'templates'));
+        return view('admin.tasks.create', compact('users', 'statuses', 'tags', 'parentTasks', 'allTasks', 'priorities', 'selectedParentId', 'templates', 'projects'));
     }
 
     /**
@@ -338,6 +397,8 @@ class TaskController extends Controller
         $task = Task::with([
             'user',
             'assignedTo',
+            'logs.user',
+            'timeLogs.user',
             'subtasks.status',
             'subtasks.assignedTo',
             'dependencies.blocker.status',
@@ -361,14 +422,17 @@ class TaskController extends Controller
     {
         $task = Task::with(['tags', 'dependencies', 'attachments'])->findOrFail($id);
 
-        $users = User::select('id', 'name', 'role_id')->with('role:id,name')->orderBy('name')->get();
+        $users = User::all();
         $statuses = Status::orderBy('order')->get();
         $tags = Tag::all();
-        $parentTasks = Task::select('id', 'title')->whereNull('parent_id')->where('id', '!=', $id)->latest()->limit(500)->get();
-        $allTasks = Task::select('id', 'title')->where('id', '!=', $id)->latest()->limit(500)->get();
+        $parentTasks = Task::whereNull('parent_id')->where('id', '!=', $id)->get();
+        $allTasks = Task::where('id', '!=', $id)->get();
         $priorities = ['Low', 'Medium', 'High', 'Critical'];
+        $templates = TaskTemplate::where('is_active', true)->get();
+        $projects = \App\Models\Project::all();
+        $taskUsers = $task->users->pluck('id')->toArray();
 
-        return view('admin.tasks.edit', compact('task', 'users', 'statuses', 'tags', 'parentTasks', 'allTasks', 'priorities'));
+        return view('admin.tasks.edit', compact('task', 'users', 'statuses', 'tags', 'parentTasks', 'allTasks', 'priorities', 'templates', 'projects', 'taskUsers'));
     }
 
     /**
@@ -393,8 +457,12 @@ class TaskController extends Controller
             'dependencies.*' => 'exists:tasks,id',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|max:10240',
-            'is_recurring' => 'nullable|boolean',
-            'recurring_interval' => 'nullable|string|in:daily,weekly,monthly,yearly',
+            'is_recurring' => 'boolean',
+            'recurrence_pattern' => 'nullable|string',
+            'recurrence_interval' => 'nullable|integer',
+            'project_id' => 'nullable|exists:projects,id',
+            'additional_users' => 'nullable|array',
+            'additional_users.*' => 'exists:users,id',
         ]);
 
         $status = Status::find($request->status_id);
@@ -427,6 +495,10 @@ class TaskController extends Controller
 
         if ($request->has('tags')) {
             $task->tags()->sync($request->tags);
+        }
+
+        if ($request->has('additional_users')) {
+            $task->users()->sync($request->additional_users);
         }
 
         if ($request->has('dependencies')) {
