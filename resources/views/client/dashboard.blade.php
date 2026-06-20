@@ -41,7 +41,9 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h4 fw-bold">My Support Tickets</h2>
         <a href="{{ route('client.tickets.create') }}" class="btn-premium btn-premium-primary">
             <i class="fas fa-plus-circle"></i> New Ticket
@@ -107,7 +109,14 @@
         <div class="p-3">
             {{ $tickets->appends(request()->except('tickets_page'))->links() }}
         </div>
+        </div>
     </div>
+
+        </div> <!-- close col-lg-8 -->
+        <div class="col-lg-4">
+            @livewire('todo-list')
+        </div>
+    </div> <!-- close row -->
 
     <div class="d-flex justify-content-between align-items-center mb-4 mt-5">
         <h2 class="h4 fw-bold" style="color: var(--text-high);">Related Tasks</h2>

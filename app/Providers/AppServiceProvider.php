@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
         Paginator::defaultView('vendor.pagination.premium');
 
+        \App\Models\Project::observe(\App\Observers\ProjectObserver::class);
+
         // Dynamic Mail Configuration from Database
         try {
             if (\Schema::hasTable('settings')) {

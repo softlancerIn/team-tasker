@@ -11,6 +11,7 @@ class TaskLog extends Model
 
     protected $fillable = [
         'task_id',
+        'project_id',
         'user_id',
         'note',
         'type',
@@ -24,5 +25,10 @@ class TaskLog extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
     }
 }

@@ -1,8 +1,8 @@
-<x-admin title="Task Activity">
+<x-admin title="System Activity">
     <div class="top-bar-premium">
         <div>
-            <h1 class="h3 fw-semibold mb-1 text-high">Task Activity</h1>
-            <p class="text-low mb-0" style="font-size: 0.9rem;">Global feed of all task interactions, updates, and assignments.</p>
+            <h1 class="h3 fw-semibold mb-1 text-high">System Activity</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Global feed of all task and project interactions, updates, and assignments.</p>
         </div>
     </div>
 
@@ -25,9 +25,17 @@
                             <div>
                                 <span class="fw-bold text-high small">{{ $log->user->name }}</span>
                                 <span class="text-low small mx-1">on</span>
-                                <a href="{{ route('details', $log->task_id) }}" class="fw-bold text-primary small text-decoration-none">
-                                    {{ $log->task->title ?? 'Unknown Task' }}
-                                </a>
+                                @if($log->task_id)
+                                    <span class="badge bg-secondary opacity-75" style="font-size: 0.6rem; padding: 0.2em 0.5em; margin-right: 0.3em;">Task</span>
+                                    <a href="{{ route('details', $log->task_id) }}" class="fw-bold text-primary small text-decoration-none">
+                                        {{ $log->task->title ?? 'Unknown Task' }}
+                                    </a>
+                                @elseif($log->project_id)
+                                    <span class="badge bg-primary opacity-75" style="font-size: 0.6rem; padding: 0.2em 0.5em; margin-right: 0.3em;">Project</span>
+                                    <a href="{{ route('admin.projects.show', $log->project_id) }}" class="fw-bold text-primary small text-decoration-none" style="color: var(--accent) !important;">
+                                        {{ $log->project->name ?? 'Unknown Project' }}
+                                    </a>
+                                @endif
                             </div>
                             <span class="text-low extra-small">{{ $log->created_at->diffForHumans() }}</span>
                         </div>

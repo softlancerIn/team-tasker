@@ -27,10 +27,10 @@ Route::controller(AuthController::class)->group(function () {
 });
 
 // Search Controller
-Route::middleware(['web', 'auth'])->get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.global');
+Route::middleware(['web', 'auth:web,admin'])->get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.global');
 
 // Notifications
-Route::middleware(['web', 'auth'])->group(function () {
+Route::middleware(['web', 'auth:web,admin'])->group(function () {
     Route::post('/notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
     Route::post('/update-fcm-token', function (Illuminate\Http\Request $request) {
         $request->validate(['token' => 'required|string']);
@@ -44,7 +44,7 @@ Route::get('/enquire', [App\Http\Controllers\EnquiryController::class, 'create']
 Route::post('/enquire', [App\Http\Controllers\EnquiryController::class, 'store'])->name('enquiry.store');
 
 // Project Controller
-Route::middleware(['web', 'auth'])->controller(App\Http\Controllers\ProjectController::class)->prefix('admin/projects')->group(function () {
+Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\ProjectController::class)->prefix('admin/projects')->group(function () {
     Route::get('/', 'index')->name('admin.projects.index');
     Route::get('/create', 'create')->name('admin.projects.create');
     Route::post('/', 'store')->name('admin.projects.store');
@@ -54,8 +54,11 @@ Route::middleware(['web', 'auth'])->controller(App\Http\Controllers\ProjectContr
     Route::delete('/{id}', 'destroy')->name('admin.projects.destroy');
 });
 
+// Todo Controller
+Route::middleware(['web', 'auth:web,admin'])->get('/admin/todos', [\App\Http\Controllers\TodoController::class, 'index'])->name('admin.todos.index');
+
 // Task Controller
-Route::middleware(['web', 'auth'])->controller(TaskController::class)->prefix('admin/tasks')->group(function () {
+Route::middleware(['web', 'auth:web,admin'])->controller(TaskController::class)->prefix('admin/tasks')->group(function () {
     Route::get('/dashboard', 'dashboard')->name('dashboard')->middleware('permission:dashboard.view');
     Route::get('/', 'index')->name('index')->middleware('permission:tasks.view');
     Route::get('activity', 'activity')->name('tasks.activity')->middleware('permission:tasks.view');
@@ -73,7 +76,7 @@ Route::middleware(['web', 'auth'])->controller(TaskController::class)->prefix('a
 });
 
 // Team Management
-Route::middleware(['web', 'auth'])->controller(TeamController::class)->prefix('admin')->group(function () {
+Route::middleware(['web', 'auth:web,admin'])->controller(TeamController::class)->prefix('admin')->group(function () {
     // Users
     Route::group(['middleware' => 'permission:users.view'], function () {
         Route::get('/users', 'index')->name('admin.users.index');
@@ -134,7 +137,7 @@ Route::middleware(['web', 'auth'])->controller(TeamController::class)->prefix('a
 });
 
 // Client Support Portal
-Route::middleware(['web', 'auth'])->prefix('client')->group(function () {
+Route::middleware(['web', 'auth:web,admin'])->prefix('client')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\ClientController::class, 'dashboard'])->name('client.dashboard');
     Route::get('/tickets/create', [App\Http\Controllers\ClientController::class, 'create'])->name('client.tickets.create');
     Route::post('/tickets', [App\Http\Controllers\ClientController::class, 'store'])->name('client.tickets.store');
@@ -152,7 +155,7 @@ Route::middleware(['web', 'auth'])->prefix('client')->group(function () {
 });
 
 // Consolidated Settings
-Route::middleware(['web', 'auth'])->controller(App\Http\Controllers\SettingsController::class)->prefix('admin/settings')->group(function () {
+Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\SettingsController::class)->prefix('admin/settings')->group(function () {
     Route::get('/general', 'general')->name('admin.settings.general')->middleware('permission:settings.view');
     Route::get('/statuses', 'statuses')->name('admin.settings.statuses')->middleware('permission:settings.view');
     Route::get('/email', 'email')->name('admin.settings.email')->middleware('permission:settings.view');
@@ -176,7 +179,7 @@ Route::middleware(['web', 'auth'])->controller(App\Http\Controllers\SettingsCont
 });
 
 // Task Logs & Messaging & Time Tracking
-Route::middleware(['web', 'auth'])->controller(TaskLogController::class)->group(function () {
+Route::middleware(['web', 'auth:web,admin'])->controller(TaskLogController::class)->group(function () {
     Route::post('/tasks/{id}/log', 'storeLog')->name('tasks.log')->middleware('permission:tasks.edit');
     Route::post('/tasks/{id}/message', 'sendMessage')->name('tasks.message')->middleware('permission:tasks.view');
     Route::post('/tasks/{id}/start-timer', 'startTime')->name('tasks.start_timer')->middleware('permission:tasks.edit');

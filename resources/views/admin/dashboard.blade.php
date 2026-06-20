@@ -200,9 +200,15 @@
                                 </div>
                                 <div style="color: var(--text-medium); font-size: 0.75rem; margin-top: 2px;">
                                     {{ $log->type == 'message' ? 'Messaged on' : 'Updated' }}
-                                    <a href="{{ route('details', $log->task_id) }}"
-                                        class="text-decoration-none fw-medium"
-                                        style="color: var(--primary);">#{{ $log->task_id }}</a>
+                                    @if($log->task_id)
+                                        <a href="{{ route('details', $log->task_id) }}"
+                                            class="text-decoration-none fw-medium"
+                                            style="color: var(--primary);">Task #{{ $log->task_id }}</a>
+                                    @elseif($log->project_id)
+                                        <a href="{{ route('admin.projects.show', $log->project_id) }}"
+                                            class="text-decoration-none fw-medium"
+                                            style="color: var(--accent);">Project #{{ $log->project_id }}</a>
+                                    @endif
                                 </div>
                                 <div class="text-low italic mt-1 text-truncate"
                                     style="font-size: 0.75rem; opacity: 0.8;">
@@ -219,20 +225,22 @@
         </div>
     </div>
 
-    <!-- Personal Tasks Section -->
-    <div class="glass-card p-0 overflow-hidden" style="border: 1px solid var(--border-main);">
-        <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-main">
-            <h5 class="fw-bold mb-0" style="color: var(--text-high);">My Recent Tasks</h5>
-            <a href="{{ route('index') }}" class="btn-premium btn-premium-secondary btn-sm px-3 py-1"
-                style="font-size: 0.75rem;">
-                View All Tasks
-            </a>
-        </div>
-        <div class="table-responsive">
-            <table class="table mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-4 py-3 border-0">Task Details</th>
+    <!-- Personal Tasks & To-Do Section -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="glass-card p-0 overflow-hidden h-100" style="border: 1px solid var(--border-main);">
+                <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-main">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-high);">My Recent Tasks</h5>
+                    <a href="{{ route('index') }}" class="btn-premium btn-premium-secondary btn-sm px-3 py-1"
+                        style="font-size: 0.75rem;">
+                        View All Tasks
+                    </a>
+                </div>
+                <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4 py-3 border-0">Task Details</th>
                         <th class="py-3 border-0">Status</th>
                         <th class="py-3 border-0">Priority</th>
                         <th class="py-3 border-0">Progress</th>
@@ -303,6 +311,11 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            @livewire('todo-list')
         </div>
     </div>
 

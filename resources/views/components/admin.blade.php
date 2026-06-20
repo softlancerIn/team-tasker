@@ -837,20 +837,24 @@
             @if (Auth::user()->hasPermission('tasks.view') || Auth::user()->hasPermission('tasks.create'))
                 <div class="nav-item">
                     <a href="javascript:void(0)"
-                        class="nav-link-premium nav-dropdown {{ request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard') ? 'active' : '' }}"
+                        class="nav-link-premium nav-dropdown {{ (request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard')) || request()->is('admin/todos*') ? 'active' : '' }}"
                         onclick="toggleSubmenu(this)">
                         <i class="fas fa-tasks"></i>
                         <span>Tasks</span>
                         <i
-                            class="fas fa-chevron-right ms-auto toggle-icon-premium {{ request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard') ? 'rotate' : '' }}"></i>
+                            class="fas fa-chevron-right ms-auto toggle-icon-premium {{ (request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard')) || request()->is('admin/todos*') ? 'rotate' : '' }}"></i>
                     </a>
                     <div
-                        class="nav-submenu-premium {{ request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard') ? 'show' : '' }}">
+                        class="nav-submenu-premium {{ (request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard')) || request()->is('admin/todos*') ? 'show' : '' }}">
 
                         @if (Auth::user()->hasPermission('tasks.view'))
                             <a href="{{ route('index') }}"
                                 class="nav-link-premium sub-link-premium {{ request()->routeIs('index') ? 'active' : '' }}">
                                 <i class="fas fa-list"></i> My Tasks
+                            </a>
+                            <a href="{{ route('admin.todos.index') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.todos.index') ? 'active' : '' }}">
+                                <i class="fas fa-clipboard-list"></i> My To-Do List
                             </a>
                             <a href="{{ route('tasks.activity') }}"
                                 class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.activity') ? 'active' : '' }}">

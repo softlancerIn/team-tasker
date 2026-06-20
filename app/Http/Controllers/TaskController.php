@@ -30,12 +30,16 @@ class TaskController extends Controller
     public function activity()
     {
         $userId = \Illuminate\Support\Facades\Auth::id();
-        $query = \App\Models\TaskLog::with(['task', 'user'])->latest();
+        $query = \App\Models\TaskLog::with(['task', 'project', 'user'])->latest();
 
-        // If not an admin with view_all permission, filter tasks user can see
+        // If not an admin with view_all permission, filter tasks and projects user can see
         if (!\Illuminate\Support\Facades\Auth::user()->hasPermission('tasks.view_all')) {
-            $query->whereHas('task', function ($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+            $query->where(function ($q) use ($userId) {
+                $q->whereHas('task', function ($q) use ($userId) {
+                    $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                })->orWhereHas('project', function ($q) use ($userId) {
+                    $q->where('user_id', $userId);
+                });
             });
         }
 
@@ -185,10 +189,14 @@ class TaskController extends Controller
         $projectProgress = $totalTasks > 0 ? (clone $taskQuery)->avg('progress') : 0;
 
         // Recent Activity
-        $activityQuery = \App\Models\TaskLog::with(['user', 'task']);
+        $activityQuery = \App\Models\TaskLog::with(['user', 'task', 'project']);
         if (!$isAdmin) {
-            $activityQuery->whereHas('task', function ($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+            $activityQuery->where(function ($q) use ($userId) {
+                $q->whereHas('task', function ($q) use ($userId) {
+                    $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                })->orWhereHas('project', function ($q) use ($userId) {
+                    $q->where('user_id', $userId);
+                });
             });
         }
         $recentActivities = $activityQuery->latest()->take(6)->get();
