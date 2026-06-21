@@ -47,7 +47,7 @@
                 </div>
             </a>
         </div>
-        @if(Auth::user()->hasPermission('tickets.view'))
+        @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))
         <div class="col">
             <a href="{{ url('admin/tickets') }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
@@ -62,7 +62,7 @@
             </a>
         </div>
         @endif
-        @if(Auth::user()->hasPermission('users.view'))
+        @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))
         <div class="col">
             <a href="{{ url('admin/users') }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">

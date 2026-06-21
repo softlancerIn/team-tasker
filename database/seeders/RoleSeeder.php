@@ -24,6 +24,10 @@ class RoleSeeder extends Seeder
 
         $managerPermissions = [
             'dashboard.view',
+            'projects.view',
+            'projects.create',
+            'projects.edit',
+            'projects.delete',
             'tasks.view',
             'tasks.create',
             'tasks.edit',
@@ -43,6 +47,7 @@ class RoleSeeder extends Seeder
 
         $clientPermissions = [
             'dashboard.view',
+            'projects.view',
             'tasks.view',
             'tasks.create',
             'tasks.edit',

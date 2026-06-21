@@ -21,7 +21,7 @@ new class extends Component {
 }; ?>
 
 
-    <div class="row g-0 m-0 w-100 h-100 overflow-hidden rounded shadow-sm" style="height: calc(100vh - 86px) !important; border: 1px solid var(--border-color);">
+    <div class="row g-0 m-0 w-100 h-100 overflow-hidden rounded shadow-sm" style="border: 1px solid var(--border-color);">
         <div class="col-12 col-md-4 col-lg-3 border-end h-100 d-flex flex-column {{ $selectedConversationId ? 'd-none d-md-flex' : '' }}"
             style="border-color: var(--border-color) !important;">
             <livewire:chat-list wire:key="chat-list-sidebar" />

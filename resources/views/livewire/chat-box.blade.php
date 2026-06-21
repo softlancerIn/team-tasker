@@ -629,9 +629,9 @@ new class extends Component {
                                     <button wire:click="deleteMessage({{ $msgId }})"
                                         wire:confirm="Are you sure you want to delete this message?"
                                         class="btn btn-sm p-0 rounded-circle delete-btn d-flex align-items-center justify-content-center shadow-premium"
-                                        style="width: 22px; height: 22px; background: var(--bg-surface); border: 1px solid var(--border-main); color: var(--accent); position: absolute; top: -11px; left: -11px; z-index: 5;"
+                                        style="width: 22px; height: 22px; background: var(--bg-surface); border: 1px solid var(--border-main); color: #ef4444; position: absolute; top: -11px; right: -11px; z-index: 5; opacity: 0; transition: opacity 0.2s;"
                                         title="Delete Message">
-                                        <i class="fas fa-times" style="font-size: 10px;"></i>
+                                        <i class="fas fa-trash" style="font-size: 10px;"></i>
                                     </button>
                                 @endif
                             </div>
@@ -860,6 +860,25 @@ new class extends Component {
 
         .transition-base {
             transition: all var(--transition-base);
+        }
+
+        .message-hover-container:hover .delete-btn {
+            opacity: 1 !important;
+        }
+
+        /* Custom Scrollbar for Chat Box */
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #chat-messages::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.3);
+            border-radius: 10px;
+        }
+        #chat-messages::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(156, 163, 175, 0.5);
         }
     </style>
 </div>

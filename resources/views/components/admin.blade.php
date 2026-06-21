@@ -1,3 +1,4 @@
+@props(['title' => 'Admin Dashboard | Team Tasker', 'fullscreen' => false, 'hideSidebar' => false, 'noPadding' => false])
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
@@ -264,6 +265,25 @@
             background: rgba(var(--primary-rgb), 0.1) !important;
             color: var(--primary) !important;
         }
+
+        /* TinyMCE Dark Mode Overrides */
+        [data-theme="dark"] .tox-tinymce {
+            border: 1px solid var(--border-main) !important;
+        }
+        [data-theme="dark"] .tox .tox-toolbar,
+        [data-theme="dark"] .tox .tox-toolbar__overflow,
+        [data-theme="dark"] .tox .tox-toolbar__primary {
+            background: var(--bg-surface) !important;
+        }
+        [data-theme="dark"] .tox .tox-tbtn {
+            color: var(--text-high) !important;
+        }
+        [data-theme="dark"] .tox .tox-tbtn:hover {
+            background: var(--bg-input) !important;
+        }
+        [data-theme="dark"] .tox .tox-tbtn--enabled, [data-theme="dark"] .tox .tox-tbtn--enabled:hover {
+            background: rgba(var(--primary-rgb), 0.2) !important;
+        }
     </style>
 
     <script>
@@ -339,12 +359,12 @@
                     valid_children: '+body[style|i]',
                     content_style: `
                         body { 
-                            background: transparent !important; 
+                            background: ${isDark ? '#0f172a' : '#ffffff'} !important; 
                             color: ${isDark ? '#f8fafc' : '#0f172a'}; 
                             font-family: 'Outfit', sans-serif; 
                             font-size: 14px; 
                             margin: 0; 
-                            padding: 10px; 
+                            padding: 10px 0px; 
                             line-height: 1.5; 
                         } 
                         p { margin: 0; } 
@@ -735,7 +755,11 @@
 </head>
 
 <body>
+    @php
+        $notificationCount = Auth::check() ? Auth::user()->unreadNotifications->count() : 0;
+    @endphp
 
+    @if(!$fullscreen)
     <header class="layout-header-premium">
         @php
             $appSettings = \App\Models\Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
@@ -759,11 +783,13 @@
         </div>
 
         <!-- Global Search -->
+        @if (!request()->routeIs('admin.chat.index'))
         <form action="{{ route('search.global') }}" method="GET" class="header-search-premium">
             <i class="fas fa-search"></i>
             <input type="text" name="q" placeholder="Search tasks, tickets, users..."
                 value="{{ request('q') }}">
         </form>
+        @endif
 
         <div class="header-utils">
             <!-- Theme Toggle -->
@@ -772,9 +798,6 @@
             </button>
 
             <!-- Notification Placeholder -->
-            @php
-                $notificationCount = Auth::user()->unreadNotifications->count();
-            @endphp
             <button class="header-icon-btn position-relative" title="Notifications" data-bs-toggle="modal"
                 data-bs-target="#notificationsModal">
                 <i class="far fa-bell"></i>
@@ -816,7 +839,9 @@
             </div>
         </div>
     </header>
+    @endif
 
+    @if(!$fullscreen && !$hideSidebar)
     <aside class="sidebar-premium">
 
         <nav>
@@ -944,8 +969,9 @@
             @endif
         </nav>
     </aside>
+    @endif
 
-    <main class="main-content-premium">
+    <main class="main-content-premium" style="{{ $fullscreen ? 'margin: 0 !important; padding: 0 !important; max-width: 100% !important;' : ($hideSidebar ? 'margin-left: 0 !important; max-width: 100% !important;' : '') }} {{ $noPadding ? 'padding: 0 !important;' : '' }}">
         {{ $slot }}
     </main>
 

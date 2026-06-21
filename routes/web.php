@@ -45,13 +45,14 @@ Route::post('/enquire', [App\Http\Controllers\EnquiryController::class, 'store']
 
 // Project Controller
 Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\ProjectController::class)->prefix('admin/projects')->group(function () {
-    Route::get('/', 'index')->name('admin.projects.index');
-    Route::get('/create', 'create')->name('admin.projects.create');
-    Route::post('/', 'store')->name('admin.projects.store');
-    Route::get('/{id}', 'show')->name('admin.projects.show');
-    Route::get('/{id}/edit', 'edit')->name('admin.projects.edit');
-    Route::post('/{id}/update', 'update')->name('admin.projects.update');
-    Route::delete('/{id}', 'destroy')->name('admin.projects.destroy');
+    Route::get('/', 'index')->name('admin.projects.index')->middleware('permission:projects.view');
+    Route::get('/create', 'create')->name('admin.projects.create')->middleware('permission:projects.create');
+    Route::post('/', 'store')->name('admin.projects.store')->middleware('permission:projects.create');
+    Route::get('/{id}', 'show')->name('admin.projects.show')->middleware('permission:projects.view');
+    Route::post('/{id}/assign-task', 'assignTask')->name('admin.projects.assignTask')->middleware('permission:projects.edit');
+    Route::get('/{id}/edit', 'edit')->name('admin.projects.edit')->middleware('permission:projects.edit');
+    Route::post('/{id}/update', 'update')->name('admin.projects.update')->middleware('permission:projects.edit');
+    Route::delete('/{id}', 'destroy')->name('admin.projects.destroy')->middleware('permission:projects.delete');
 });
 
 // Todo Controller
@@ -180,9 +181,9 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\Se
 
 // Task Logs & Messaging & Time Tracking
 Route::middleware(['web', 'auth:web,admin'])->controller(TaskLogController::class)->group(function () {
-    Route::post('/tasks/{id}/log', 'storeLog')->name('tasks.log')->middleware('permission:tasks.edit');
+    Route::post('/tasks/{id}/log', 'storeLog')->name('tasks.log')->middleware('permission:tasks.view');
     Route::post('/tasks/{id}/message', 'sendMessage')->name('tasks.message')->middleware('permission:tasks.view');
-    Route::post('/tasks/{id}/start-timer', 'startTime')->name('tasks.start_timer')->middleware('permission:tasks.edit');
-    Route::post('/tasks/{id}/stop-timer', 'stopTime')->name('tasks.stop_timer')->middleware('permission:tasks.edit');
-    Route::post('/tasks/{id}/progress', 'updateProgress')->name('tasks.progress')->middleware('permission:tasks.edit');
+    Route::post('/tasks/{id}/start-timer', 'startTime')->name('tasks.start_timer')->middleware('permission:tasks.view');
+    Route::post('/tasks/{id}/stop-timer', 'stopTime')->name('tasks.stop_timer')->middleware('permission:tasks.view');
+    Route::post('/tasks/{id}/progress', 'updateProgress')->name('tasks.progress')->middleware('permission:tasks.view');
 });

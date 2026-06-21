@@ -1,5 +1,18 @@
-<x-client title="Chat">
-    <div class="h-100">
+<x-client title="Chat" hideSidebar="true" noPadding="true">
+    <style>
+        body {
+            overflow: hidden !important;
+        }
+        .main-content-premium {
+            height: calc(100vh - 70px) !important;
+            min-height: auto !important;
+            overflow: hidden !important;
+        }
+        #chat-container > div {
+            height: 100% !important;
+        }
+    </style>
+    <div id="chat-container" class="w-100 overflow-hidden m-0 p-0" style="height: calc(100vh - 70px) !important;">
         <livewire:chat />
     </div>
 </x-client>

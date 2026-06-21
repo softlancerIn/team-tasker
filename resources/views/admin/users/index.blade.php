@@ -76,12 +76,12 @@
                 </div>
                 <div class="mb-4">
                     <label class="heading-label d-block mb-2 text-low">ROLE</label>
-                    <select name="role_id" class="form-select bg-white text-dark border-main">
-                        <option value="">All Roles</option>
+                    <x-select name="role_id" placeholder="All Roles" :selected="request('role_id')">
+                        <option value="" class="bg-dark">All Roles</option>
                         @foreach ($roles as $role)
-                            <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
+                            <option value="{{ $role->id }}" class="bg-dark">{{ $role->name }}</option>
                         @endforeach
-                    </select>
+                    </x-select>
                 </div>
                 <div class="mb-4">
                     <label class="heading-label d-block mb-2 text-low">CREATED DATE</label>
@@ -113,29 +113,7 @@
                 </div>
                 <div class="data-grid-results">{{ $users->total() }} Results</div>
                 <div class="data-grid-actions">
-                    <button class="data-grid-filter-btn position-relative" type="button" onclick="document.getElementById('filterSlideoverUsers').classList.add('show')">
-                        <i class="fas fa-filter"></i> Filter
-                        @if (request('name') || request('email') || request('role_id') || request('created_at') || request('updated_at'))
-                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="width: 10px; height: 10px;">
-                                <span class="visually-hidden">Filters active</span>
-                            </span>
-                        @endif
-                    </button>
-                    <div class="data-grid-per-page">
-                        <select onchange="window.location.href='?per_page='+this.value">
-                            <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
-                            <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
-                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
-                        </select>
-                        <span>Per Page</span>
-                    </div>
-                    <div class="data-grid-pagination">
-                        <span class="data-grid-pagination-info">{{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} of {{ $users->total() }}</span>
-                        <div class="data-grid-pagination-controls">
-                            <a href="{{ $users->previousPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! $users->onFirstPage() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i></a>
-                            <a href="{{ $users->nextPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! !$users->hasMorePages() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i></a>
-                        </div>
-                    </div>
+                    {{ $users->links() }}
                 </div>
             </div>
 
@@ -249,11 +227,6 @@
                     </tbody>
                 </table>
             </div>
-            @if ($users->hasPages())
-                <div class="p-4 border-top border-main">
-                    {{ $users->links() }}
-                </div>
-            @endif
         </div>
     </form>
 

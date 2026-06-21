@@ -10,6 +10,12 @@ return [
         'edit' => 'Edit Task',
         'delete' => 'Delete Task',
     ],
+    'projects' => [
+        'view' => 'View Projects',
+        'create' => 'Create Project',
+        'edit' => 'Edit Project',
+        'delete' => 'Delete Project',
+    ],
     'tickets' => [
         'view' => 'View Tickets',
         'create' => 'Create Ticket',

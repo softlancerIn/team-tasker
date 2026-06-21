@@ -25,6 +25,15 @@
 - **Attachment Support**: Share files, images, and documents directly within conversations.
 - **Privacy Controls**: Secure messaging with blocking and presence features.
 
+### 🔐 Unified Authentication & Roles
+- **Single Portal Entry**: Consolidated login system seamlessly routing Master Admins, Staff, and Clients to their respective workspaces.
+- **Air-Tight Security**: Granular Role-Based Access Control (RBAC) securely isolates client portals from internal operations.
+
+### ✅ Personal To-Do & Productivity
+- **Private Task Lists**: Livewire-powered, dynamic to-do lists to keep individual users focused.
+- **Interactive Modals**: Seamlessly add, edit, and safely delete personal tasks directly from the dashboard.
+- **Automated Logging**: System-wide activity tracking that quietly records project and task changes in the background.
+
 ### 🚪 Dedicated Client Portal
 - **White-Label Experience**: Custom branding for clients to submit tickets and track their task progress.
 - **Simplified Interface**: Focused dashboard for clients to manage their interactions without complexity.
@@ -33,6 +42,29 @@
 - **Glassmorphism Design**: A stunning, modern interface with smooth transitions and interactive elements.
 - **Adaptive Theming**: Full support for **Dark Mode** and **Light Mode**.
 - **SEO Optimized**: Built-in best practices for metadata, semantic HTML, and fast performance.
+
+---
+
+## 📂 Project Hierarchy & Workflow
+
+Understanding how data flows in Team Tasker helps teams stay organized and highly productive:
+
+1. **Projects (The Core)**: The highest level of organization. You create a Project to represent a major goal, client deliverable, or internal system.
+2. **Tasks (The Execution)**: Under each Project, you create multiple Tasks. Tasks break down the massive project into actionable steps assigned to specific users.
+3. **Execution & Tracking (The Daily Grind)**: 
+   - **Start Timer**: Inside any task, team members can click "Start Timer" to begin tracking their billed or spent time.
+   - **Activity Logs**: As you work, you can add logs, notes, and file attachments directly to the task, ensuring a complete historical record of the work performed.
+
+---
+
+## 🔮 Upcoming Features
+
+We are constantly pushing the boundaries of what Team Tasker can do. Here is a sneak peek at what is currently in development:
+
+- **AI-Powered Task Summaries**: Automatically generate daily summaries of all task logs using generative AI.
+- **Advanced Push Notifications**: Real-time Firebase Cloud Messaging (FCM) integration for instant mobile and desktop alerts.
+- **Expanded Client Ticketing**: A robust visual builder for custom client request forms.
+- **Drag-and-Drop Task Board Enhancements**: Swimlanes and WIP (Work In Progress) limits for advanced agile teams.
 
 ---
 

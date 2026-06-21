@@ -1102,7 +1102,6 @@ select option,
 
 .data-grid-top {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--border-main);
@@ -1157,13 +1156,14 @@ select option,
     align-items: center;
     gap: var(--space-3);
     flex-wrap: wrap;
+    margin-left: auto;
 }
 
 .data-grid-filter-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 14px;
+    padding: 10px 14px;
     background: var(--bg-input);
     border: 1px solid var(--border-main);
     border-radius: var(--radius-md);
@@ -1379,7 +1379,22 @@ select option,
 .btn-deselect-all:hover {
     text-decoration: underline;
 }
-body { overflow-x: hidden; }
-.top-bar-premium { flex-wrap: wrap; gap: 16px; }
-@media (max-width: 576px) { .data-grid-search { width: 100%; } .data-grid-search input { width: 100%; } }
 
+body {
+    overflow-x: hidden;
+}
+
+.top-bar-premium {
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+@media (max-width: 576px) {
+    .data-grid-search {
+        width: 100%;
+    }
+
+    .data-grid-search input {
+        width: 100%;
+    }
+}

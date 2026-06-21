@@ -330,6 +330,15 @@
 
                             <form action="{{ route('admin.tickets.convert_to_task', $ticket->id) }}" method="POST">
                                 @csrf
+                                <div class="mb-4">
+                                    <label class="heading-label mb-2" style="font-size: 0.8rem;">Target Project (Optional)</label>
+                                    <x-select name="project_id" style="background: var(--bg-input);">
+                                        <option value="" class="bg-dark">-- No Project (Standalone Task) --</option>
+                                        @foreach($projects as $project)
+                                            <option value="{{ $project->id }}" class="bg-dark">{{ $project->name }}</option>
+                                        @endforeach
+                                    </x-select>
+                                </div>
                                 <div class="d-grid gap-2">
                                     <button type="submit" class="btn-premium btn-premium-primary py-3 fw-bold">
                                         <i class="fas fa-check-circle me-2"></i> Confirm Promotion

@@ -25,6 +25,7 @@ new class extends Component {
     public $updated_at = '';
     public $sortField = 'created_at';
     public $sortDirection = 'desc';
+    public $perPage = 10;
 
     public $selectedTasks = [];
     public $bulkStatus = '';
@@ -97,18 +98,23 @@ new class extends Component {
         $tasks = Task::with(['assignedTo', 'status', 'tags'])
             ->when(!$user->hasPermission('tasks.view_all'), function ($q) use ($user) {
                 $q->where(function ($q2) use ($user) {
-                    $q2->where('user_id', $user->id)->orWhere('assigned_to', $user->id);
+                    $q2->where('user_id', $user->id)
+                      ->orWhere('assigned_to', $user->id)
+                      ->orWhereHas('users', fn($q3) => $q3->where('users.id', $user->id));
                 });
             })
             ->when($this->search, fn($q) => $q->where('title', 'like', '%' . $this->search . '%'))
             ->when($this->status_id, fn($q) => $q->where('status_id', $this->status_id))
             ->when($this->priority, fn($q) => $q->where('priority', $this->priority))
             ->when($this->tag_id, fn($q) => $q->whereHas('tags', fn($t) => $t->where('tags.id', $this->tag_id)))
-            ->when($this->assigned_to, fn($q) => $q->where('assigned_to', $this->assigned_to))
+            ->when($this->assigned_to, fn($q) => $q->where(function($sq) {
+                $sq->where('assigned_to', $this->assigned_to)
+                   ->orWhereHas('users', fn($uq) => $uq->where('users.id', $this->assigned_to));
+            }))
             ->when($this->created_at, fn($q) => $q->whereDate('created_at', $this->created_at))
             ->when($this->updated_at, fn($q) => $q->whereDate('updated_at', $this->updated_at))
             ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate(15);
+            ->paginate($this->perPage);
 
         return [
             'tasks' => $tasks,
@@ -129,20 +135,7 @@ new class extends Component {
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search tasks...">
             </div>
             <div class="data-grid-results">{{ $tasks->total() }} Results</div>
-            <div class="data-grid-actions">
-                <button class="data-grid-filter-btn position-relative" type="button" onclick="document.getElementById('filterSlideoverTasks').classList.add('show')">
-                    <i class="fas fa-filter"></i> Filter
-                    @if ($status_id || $priority || $tag_id || $assigned_to || $created_at || $updated_at)
-                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="width: 10px; height: 10px;">
-                            <span class="visually-hidden">Filters active</span>
-                        </span>
-                    @endif
-                </button>
-                <div class="data-grid-pagination">
-                    <span class="data-grid-pagination-info">{{ $tasks->firstItem() ?? 0 }} - {{ $tasks->lastItem() ?? 0 }} of {{ $tasks->total() }}</span>
-                </div>
-            </div>
-        </div>
+            <div class="data-grid-actions">{{ $tasks->links() }}</div></div>
 
         <div class="data-grid-bulk-actions {{ count($selectedTasks) > 0 ? 'active' : '' }}">
             <div class="data-grid-bulk-left">
@@ -268,11 +261,6 @@ new class extends Component {
             </table>
         </div>
 
-        @if ($tasks->hasPages())
-            <div class="p-4 border-top border-main">
-                {{ $tasks->links() }}
-            </div>
-        @endif
     </div>
 
     <!-- Filter Slideover -->
@@ -359,4 +347,9 @@ new class extends Component {
             cursor: pointer;
         }
     </style>
+    <script>
+        document.addEventListener('openFilterModal', () => {
+            document.getElementById('filterSlideoverTasks')?.classList.add('show');
+        });
+    </script>
 </div>

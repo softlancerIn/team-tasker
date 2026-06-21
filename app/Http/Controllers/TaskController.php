@@ -72,7 +72,8 @@ class TaskController extends Controller
         $userId = Auth::id();
         $tasks = Task::where(function ($q) use ($userId) {
             $q->where('user_id', $userId)
-                ->orWhere('assigned_to', $userId);
+                ->orWhere('assigned_to', $userId)
+                ->orWhereHas('users', fn($q2) => $q2->where('users.id', $userId));
         })
             ->whereNotNull('deadline')
             ->get();
@@ -110,7 +111,8 @@ class TaskController extends Controller
         $tasks = Task::with('dependencies')
             ->where(function ($q) use ($userId) {
                 $q->where('user_id', $userId)
-                    ->orWhere('assigned_to', $userId);
+                    ->orWhere('assigned_to', $userId)
+                    ->orWhereHas('users', fn($q2) => $q2->where('users.id', $userId));
             })
             ->whereNotNull('deadline')
             ->get();
@@ -147,13 +149,15 @@ class TaskController extends Controller
         }
 
         $userId = Auth::user()->id;
-        // Admins and Managers see everything. Others see only their assigned/owned items.
-        $isAdmin = Auth::user()->hasRole('admin') || Auth::user()->hasRole('manager') || Auth::user()->hasPermission('tasks.view_all');
+        // Admins see everything. Others see only their assigned/owned items.
+        $isAdmin = Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin') || Auth::user()->hasPermission('tasks.view_all');
 
         // Personal tasks for the list
         $personalTasks = Task::with(['user', 'assignedTo', 'status'])
             ->where(function ($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                $q->where('user_id', $userId)
+                  ->orWhere('assigned_to', $userId)
+                  ->orWhereHas('users', fn($q2) => $q2->where('users.id', $userId));
             })
             ->orderBy('created_at', 'desc')
             ->take(5)
@@ -162,7 +166,9 @@ class TaskController extends Controller
         $taskQuery = Task::query();
         if (!$isAdmin) {
             $taskQuery->where(function ($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                $q->where('user_id', $userId)
+                  ->orWhere('assigned_to', $userId)
+                  ->orWhereHas('users', fn($q2) => $q2->where('users.id', $userId));
             });
         }
 
@@ -183,7 +189,16 @@ class TaskController extends Controller
         $totalTickets = $ticketQuery->count();
         
         $totalUsers = \App\Models\User::count();
-        $totalProjects = \App\Models\Project::count();
+        $projectQuery = \App\Models\Project::query();
+        if (!$isAdmin) {
+            $projectQuery->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->orWhereHas('tasks', function ($q2) use ($userId) {
+                      $q2->where('assigned_to', $userId);
+                  });
+            });
+        }
+        $totalProjects = $projectQuery->count();
         $criticalTasksCount = (clone $taskQuery)->where('priority', 'Critical')->count();
 
         $projectProgress = $totalTasks > 0 ? (clone $taskQuery)->avg('progress') : 0;
@@ -193,7 +208,9 @@ class TaskController extends Controller
         if (!$isAdmin) {
             $activityQuery->where(function ($q) use ($userId) {
                 $q->whereHas('task', function ($q) use ($userId) {
-                    $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                    $q->where('user_id', $userId)
+                      ->orWhere('assigned_to', $userId)
+                      ->orWhereHas('users', fn($q2) => $q2->where('users.id', $userId));
                 })->orWhereHas('project', function ($q) use ($userId) {
                     $q->where('user_id', $userId);
                 });
@@ -246,7 +263,9 @@ class TaskController extends Controller
                 $query = Task::whereDate('created_at', $date->toDateString());
                 if (!$isAdmin) {
                     $query->where(function($q) use ($userId) {
-                        $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                        $q->where('user_id', $userId)
+                          ->orWhere('assigned_to', $userId)
+                          ->orWhereHas('users', fn($q2) => $q2->where('users.id', $userId));
                     });
                 }
                 $data[] = $query->count();
@@ -260,7 +279,9 @@ class TaskController extends Controller
                 $query = Task::whereBetween('created_at', [$start, $end]);
                 if (!$isAdmin) {
                     $query->where(function($q) use ($userId) {
-                        $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                        $q->where('user_id', $userId)
+                          ->orWhere('assigned_to', $userId)
+                          ->orWhereHas('users', fn($q2) => $q2->where('users.id', $userId));
                     });
                 }
                 $data[] = $query->count();
@@ -291,7 +312,9 @@ class TaskController extends Controller
             $q = Task::whereYear('created_at', $start->year)->whereMonth('created_at', $start->month);
             if (!$isAdmin) {
                 $q->where(function($sq) use ($userId) {
-                    $sq->where('user_id', $userId)->orWhere('assigned_to', $userId);
+                    $sq->where('user_id', $userId)
+                       ->orWhere('assigned_to', $userId)
+                       ->orWhereHas('users', fn($q2) => $q2->where('users.id', $userId));
                 });
             }
             $data[] = $q->count();
@@ -358,8 +381,22 @@ class TaskController extends Controller
             'deadline' => $request->deadline,
             'is_recurring' => $request->boolean('is_recurring'),
             'recurring_interval' => $request->recurring_interval,
+            'project_id' => $request->project_id,
             'completed_at' => ($status && $status->is_completed) ? now() : null,
         ]);
+
+        $additionalUsers = $request->additional_users ?? [];
+        if ($request->project_id) {
+            $project = \App\Models\Project::with('users')->find($request->project_id);
+            if ($project) {
+                $projectManagerIds = $project->users->pluck('id')->toArray();
+                $additionalUsers = array_unique(array_merge($additionalUsers, $projectManagerIds));
+            }
+        }
+        
+        if (!empty($additionalUsers)) {
+            $task->users()->sync($additionalUsers);
+        }
 
         // Notify Assigned User
         if ($task->assigned_to && $task->assigned_to != Auth::id()) {
@@ -412,6 +449,7 @@ class TaskController extends Controller
             'dependencies.blocker.status',
             'attachments.user',
             'tags',
+            'users',
         ])->findOrFail($id);
 
         $activeTimer = TimeLog::where('task_id', $task->id)
@@ -494,7 +532,23 @@ class TaskController extends Controller
             'is_recurring' => $request->boolean('is_recurring'),
             'recurring_interval' => $request->recurring_interval,
             'completed_at' => $completed_at,
+            'project_id' => $request->project_id,
         ]);
+
+        $additionalUsers = $request->additional_users ?? [];
+        if ($request->project_id) {
+            $project = \App\Models\Project::with('users')->find($request->project_id);
+            if ($project) {
+                $projectManagerIds = $project->users->pluck('id')->toArray();
+                $additionalUsers = array_unique(array_merge($additionalUsers, $projectManagerIds));
+            }
+        }
+
+        if (!empty($additionalUsers)) {
+            $task->users()->sync($additionalUsers);
+        } else {
+            $task->users()->detach();
+        }
 
         // Notify Assigned User if changed
         if ($task->wasChanged('assigned_to') && $task->assigned_to && $task->assigned_to != Auth::id()) {
@@ -505,9 +559,6 @@ class TaskController extends Controller
             $task->tags()->sync($request->tags);
         }
 
-        if ($request->has('additional_users')) {
-            $task->users()->sync($request->additional_users);
-        }
 
         if ($request->has('dependencies')) {
             // Simple sync for dependencies

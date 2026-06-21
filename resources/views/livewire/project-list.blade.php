@@ -21,6 +21,7 @@ new class extends Component {
     public $updated_at = '';
     public $sortField = 'created_at';
     public $sortDirection = 'desc';
+    public $perPage = 10;
 
     public $selectedProjects = [];
     public $bulkStatus = '';
@@ -58,7 +59,10 @@ new class extends Component {
         if (!$this->bulkManager) {
             return;
         }
-        Project::whereIn('id', $this->selectedProjects)->update(['user_id' => $this->bulkManager]);
+        $projects = Project::whereIn('id', $this->selectedProjects)->get();
+        foreach ($projects as $project) {
+            $project->users()->sync([$this->bulkManager]);
+        }
         $this->selectedProjects = [];
         $this->bulkManager = '';
         $this->dispatch('notify', message: 'Managers updated successfully');
@@ -76,15 +80,29 @@ new class extends Component {
 
     public function with()
     {
-        $projects = Project::withCount('tasks')
-            ->with('user')
-            ->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
+        $isAdmin = Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin') || Auth::user()->hasPermission('tasks.view_all');
+        $userId = Auth::user()->id;
+
+        $projectsQuery = Project::withCount('tasks')
+            ->with('users');
+            
+        if (!$isAdmin) {
+            $projectsQuery->where(function ($q) use ($userId) {
+                $q->whereHas('users', function ($q2) use ($userId) {
+                    $q2->where('users.id', $userId);
+                })->orWhereHas('tasks', function ($q3) use ($userId) {
+                    $q3->where('assigned_to', $userId);
+                });
+            });
+        }
+
+        $projects = $projectsQuery->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
             ->when($this->status, fn($q) => $q->where('status', $this->status))
-            ->when($this->user_id, fn($q) => $q->where('user_id', $this->user_id))
+            ->when($this->user_id, fn($q) => $q->whereHas('users', fn($q2) => $q2->where('users.id', $this->user_id)))
             ->when($this->created_at, fn($q) => $q->whereDate('created_at', $this->created_at))
             ->when($this->updated_at, fn($q) => $q->whereDate('updated_at', $this->updated_at))
             ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate(15);
+            ->paginate($this->perPage);
 
         return [
             'projects' => $projects,
@@ -103,20 +121,7 @@ new class extends Component {
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search projects...">
             </div>
             <div class="data-grid-results">{{ $projects->total() }} Results</div>
-            <div class="data-grid-actions">
-                <button class="data-grid-filter-btn position-relative" type="button" onclick="document.getElementById('filterSlideoverProjects').classList.add('show')">
-                    <i class="fas fa-filter"></i> Filter
-                    @if ($status || $user_id || $created_at || $updated_at)
-                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="width: 10px; height: 10px;">
-                            <span class="visually-hidden">Filters active</span>
-                        </span>
-                    @endif
-                </button>
-                <div class="data-grid-pagination">
-                    <span class="data-grid-pagination-info">{{ $projects->firstItem() ?? 0 }} - {{ $projects->lastItem() ?? 0 }} of {{ $projects->total() }}</span>
-                </div>
-            </div>
-        </div>
+            <div class="data-grid-actions">{{ $projects->links() }}</div></div>
 
         <div class="data-grid-bulk-actions {{ count($selectedProjects) > 0 ? 'active' : '' }}">
             <div class="data-grid-bulk-left">
@@ -189,14 +194,18 @@ new class extends Component {
                                 </div>
                             </td>
                             <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    @if($project->user)
-                                        <div class="avatar-premium" style="width: 28px; height: 28px; font-size: 0.7rem; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
-                                            {{ substr($project->user->name, 0, 1) }}
+                                <div class="d-flex align-items-center">
+                                    @forelse($project->users->take(3) as $manager)
+                                        <div class="avatar-premium" title="{{ $manager->name }}" style="width: 28px; height: 28px; font-size: 0.7rem; background: rgba(var(--primary-rgb), 0.1); color: var(--primary); margin-left: {{ $loop->first ? '0' : '-8px' }}; border: 2px solid var(--bg-surface); z-index: {{ 10 - $loop->index }};">
+                                            {{ substr($manager->name, 0, 1) }}
                                         </div>
-                                        <span class="text-medium small fw-medium">{{ $project->user->name }}</span>
-                                    @else
+                                    @empty
                                         <span class="text-low small italic">Unassigned</span>
+                                    @endforelse
+                                    @if($project->users->count() > 3)
+                                        <div class="avatar-premium" style="width: 28px; height: 28px; font-size: 0.6rem; background: var(--border-main); color: var(--text-high); margin-left: -8px; border: 2px solid var(--bg-surface); z-index: 1;">
+                                            +{{ $project->users->count() - 3 }}
+                                        </div>
                                     @endif
                                 </div>
                             </td>
@@ -247,11 +256,7 @@ new class extends Component {
             </table>
         </div>
 
-        @if($projects->hasPages())
-            <div class="data-grid-bottom">
-                {{ $projects->links() }}
-            </div>
-        @endif
+
     </div>
 
     <!-- Filter Slideover -->
@@ -300,4 +305,9 @@ new class extends Component {
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('openFilterModal', () => {
+            document.getElementById('filterSlideoverProjects')?.classList.add('show');
+        });
+    </script>
 </div>

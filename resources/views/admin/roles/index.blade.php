@@ -67,6 +67,7 @@
             </div>
             <div class="data-grid-results">{{ $roles->count() }} Results</div>
             <div class="data-grid-actions">
+                {{ $roles->links('vendor.pagination.premium') }}
             </div>
         </div>
 
@@ -122,9 +123,6 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
-        <div class="p-3">
-            {{ $roles->links('vendor.pagination.premium') }}
         </div>
     </div>
 

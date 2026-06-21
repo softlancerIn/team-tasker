@@ -78,9 +78,9 @@ class TicketController extends Controller
     {
         $ticket = Ticket::with(['user', 'assignedTo', 'replies.user'])->findOrFail($id);
         $users = User::select('id', 'name')->where('role_id', '!=', 3)->orderBy('name')->get(); // Assuming 3 is client, list staff for assignment
-        // Actually I should check roles properly or just list all non-clients
+        $projects = \App\Models\Project::all();
 
-        return view('admin.tickets.show', compact('ticket', 'users'));
+        return view('admin.tickets.show', compact('ticket', 'users', 'projects'));
     }
 
     public function storeReply(Request $request, $id)
@@ -170,7 +170,7 @@ class TicketController extends Controller
         return back()->with('success', 'Ticket assigned successfully.');
     }
 
-    public function convertToTask($id)
+    public function convertToTask(Request $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
 
@@ -182,7 +182,18 @@ class TicketController extends Controller
             'description' => $ticket->body,
             'status_id' => \App\Models\Status::where('is_default', true)->first()?->id,
             'priority' => $ticket->priority,
+            'project_id' => $request->project_id,
         ]);
+
+        if ($request->project_id) {
+            $project = \App\Models\Project::with('users')->find($request->project_id);
+            if ($project) {
+                $projectManagerIds = $project->users->pluck('id')->toArray();
+                if (!empty($projectManagerIds)) {
+                    $task->users()->sync($projectManagerIds);
+                }
+            }
+        }
 
         return back()->with('success', 'Ticket converted to task successfully. Task ID: '.$task->id);
     }

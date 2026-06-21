@@ -82,6 +82,12 @@ new class extends Component {
                                 style="background: #{{ $columnColor }}22; color: #{{ $columnColor }}; border: 1px solid #{{ $columnColor }}44;">
                                 {{ $columnCount }}
                             </span>
+                            @if($status->wip_limit)
+                                <span class="badge ms-1 wip-badge" data-status-id="{{ $status->id }}" data-wip="{{ $status->wip_limit }}"
+                                    style="background-color: {{ $columnCount > $status->wip_limit ? 'var(--danger)' : 'var(--bg-input)' }}; color: {{ $columnCount > $status->wip_limit ? 'white' : 'var(--text-medium)' }}; font-size: 0.65rem;">
+                                    Max: {{ $status->wip_limit }}
+                                </span>
+                            @endif
                         </div>
                         {{-- Colored top stripe --}}
                         <div
@@ -336,7 +342,22 @@ new class extends Component {
                     onMove(evt) {
                         document.querySelectorAll('.kanban-dropzone').forEach(z => z.classList.remove(
                             'drop-active'));
-                        if (evt.to) evt.to.classList.add('drop-active');
+                        if (evt.to) {
+                            evt.to.classList.add('drop-active');
+                            
+                            // Check WIP Limit
+                            const statusId = evt.to.getAttribute('data-status-id');
+                            const badge = document.querySelector(`.wip-badge[data-status-id="${statusId}"]`);
+                            if (badge && evt.from !== evt.to) {
+                                const currentCount = evt.to.querySelectorAll('.kanban-card').length;
+                                const limit = parseInt(badge.getAttribute('data-wip'));
+                                if (currentCount >= limit) {
+                                    evt.to.classList.remove('drop-active');
+                                    evt.to.style.backgroundColor = 'rgba(239, 68, 68, 0.05)';
+                                    return false; // Prevent drop
+                                }
+                            }
+                        }
                         return true;
                     },
 
@@ -397,10 +418,27 @@ new class extends Component {
             if (!badge) return;
             const n = Math.max(0, (parseInt(badge.textContent) || 0) + delta);
             badge.textContent = n;
+            
+            // Handle WIP limit styling
+            const wipBadge = document.querySelector(`.wip-badge[data-status-id="${statusId}"]`);
+            if (wipBadge) {
+                const limit = parseInt(wipBadge.getAttribute('data-wip'));
+                if (n > limit) {
+                    wipBadge.style.backgroundColor = 'var(--danger)';
+                    wipBadge.style.color = 'white';
+                } else {
+                    wipBadge.style.backgroundColor = 'var(--bg-input)';
+                    wipBadge.style.color = 'var(--text-medium)';
+                }
+            }
+
             const zone = document.querySelector('.kanban-dropzone[data-status-id="' + statusId + '"]');
             if (zone) {
                 const empty = zone.querySelector('.kanban-empty-state');
                 if (empty) empty.style.display = zone.querySelectorAll('.kanban-card').length === 0 ? 'flex' : 'none';
+                
+                // Clear any red background from prevented drops
+                zone.style.backgroundColor = '';
             }
         }
 

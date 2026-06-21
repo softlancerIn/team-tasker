@@ -1,12 +1,12 @@
-<x-admin title="Our Projects">
+<x-admin title="Our Clients">
     <div class="top-bar-premium">
         <div>
-            <h1 class="h3 fw-semibold mb-1 text-high">Our Projects</h1>
-            <p class="text-low mb-0" style="font-size: 0.9rem;">Manage and view your projects.</p>
+            <h1 class="h3 fw-semibold mb-1 text-high">Our Clients</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Manage and view your Clients.</p>
         </div>
         @if (Auth::user()->hasPermission('clients.create'))
             <a href="{{ route('admin.clients.create') }}" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm">
-                <i class="fas fa-plus-circle me-1"></i> Create Projects
+                <i class="fas fa-plus-circle me-1"></i> Create Client
             </a>
         @endif
     </div>
@@ -21,29 +21,7 @@
             </div>
             <div class="data-grid-results">{{ $clients->total() }} Results</div>
             <div class="data-grid-actions">
-                <button class="data-grid-filter-btn position-relative" type="button" onclick="document.getElementById('filterSlideover').classList.add('show')">
-                    <i class="fas fa-filter"></i> Filter
-                    @if (request('search') || request('status') || request('created_at') || request('updated_at'))
-                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="width: 10px; height: 10px;">
-                            <span class="visually-hidden">Filters active</span>
-                        </span>
-                    @endif
-                </button>
-                <div class="data-grid-per-page">
-                    <select onchange="window.location.href='?per_page='+this.value">
-                        <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
-                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
-                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
-                    </select>
-                    <span>Per Page</span>
-                </div>
-                <div class="data-grid-pagination">
-                    <span class="data-grid-pagination-info">{{ $clients->firstItem() ?? 0 }} - {{ $clients->lastItem() ?? 0 }} of {{ $clients->total() }}</span>
-                    <div class="data-grid-pagination-controls">
-                        <a href="{{ $clients->previousPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! $clients->onFirstPage() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i></a>
-                        <a href="{{ $clients->nextPageUrl() ?? '#' }}" class="data-grid-pagination-btn" {!! !$clients->hasMorePages() ? 'style="opacity:0.5;pointer-events:none;"' : '' !!}><i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i></a>
-                    </div>
-                </div>
+                {{ $clients->links() }}
             </div>
         </div>
         <div class="data-grid-bulk-actions" id="bulkActionBar">
@@ -123,11 +101,11 @@
                 </div>
                 <div class="mb-4">
                     <label class="heading-label d-block mb-2 text-low">STATUS</label>
-                    <select name="status" class="form-select bg-white text-dark border-main">
-                        <option value="">All Status</option>
-                        <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Active</option>
-                        <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Inactive</option>
-                    </select>
+                    <x-select name="status" placeholder="All Status" :selected="request('status')">
+                        <option value="" class="bg-dark">All Status</option>
+                        <option value="1" class="bg-dark">Active</option>
+                        <option value="0" class="bg-dark">Inactive</option>
+                    </x-select>
                 </div>
                 <div class="mb-4">
                     <label class="heading-label d-block mb-2 text-low">CREATED DATE</label>

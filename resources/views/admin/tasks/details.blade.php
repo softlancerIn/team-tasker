@@ -14,7 +14,11 @@
             </div>
         </div>
         <div class="d-flex gap-2">
-            @if ($activeTimer)
+            @php
+                $canStartTimer = Auth::id() == $task->assigned_to;
+            @endphp
+            @if($canStartTimer)
+                @if ($activeTimer)
                 <form action="{{ route('tasks.stop_timer', $task->id) }}" method="POST" class="d-inline">
                     @csrf
                     <button type="submit" class="btn-premium py-2 px-4 shadow-sm"
@@ -32,6 +36,7 @@
                         <i class="fas fa-play me-2"></i> Start Timer
                     </button>
                 </form>
+            @endif
             @endif
 
             <a href="{{ route('edit', $task->id) }}" class="btn-premium btn-premium-secondary py-2 px-4">
@@ -437,6 +442,20 @@
                         <div class="avatar" style="width: 24px; height: 24px; font-size: 0.6rem;">
                             {{ substr(Auth::user()->name, 0, 1) }}</div>
                         <span class="text-main small">{{ Auth::user()->name }}</span>
+                    </div>
+                </div>
+                <div class="mb-0 mt-3">
+                    <div class="text-muted small">Followers</div>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        @forelse($task->users as $follower)
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar" style="width: 24px; height: 24px; font-size: 0.6rem;">
+                                    {{ substr($follower->name, 0, 1) }}</div>
+                                <span class="text-main small">{{ $follower->name }}</span>
+                            </div>
+                        @empty
+                            <span class="text-muted small italic">No followers</span>
+                        @endforelse
                     </div>
                 </div>
             </div>

@@ -309,7 +309,22 @@ new class extends Component {
         }
 
         .user-item-premium.active .fw-bold {
-            color: var(--primary) !important;
+            color: var(--text-high) !important;
+        }
+
+        /* Custom Scrollbar for Chat List */
+        .overflow-auto::-webkit-scrollbar {
+            width: 4px;
+        }
+        .overflow-auto::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .overflow-auto::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.3);
+            border-radius: 10px;
+        }
+        .overflow-auto::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(156, 163, 175, 0.5);
         }
     </style>
 </div>
