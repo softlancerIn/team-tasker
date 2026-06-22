@@ -53,4 +53,20 @@ class Admin extends Authenticatable
     {
         return $this->belongsToMany(\App\Models\User::class, 'blocked_users', 'blocked_id', 'blocker_id');
     }
+
+    public function unreadChatMessagesCount()
+    {
+        $userId = $this->id;
+        return \Illuminate\Support\Facades\DB::table('messages')
+            ->join('conversation_participants', function ($join) use ($userId) {
+                $join->on('messages.conversation_id', '=', 'conversation_participants.conversation_id')
+                    ->where('conversation_participants.user_id', '=', $userId);
+            })
+            ->where('messages.user_id', '!=', $userId)
+            ->where(function ($query) {
+                $query->whereNull('conversation_participants.last_read_at')
+                    ->orWhereColumn('messages.created_at', '>', 'conversation_participants.last_read_at');
+            })
+            ->count();
+    }
 }

@@ -161,12 +161,9 @@ new class extends Component {
 
     public function loadMessages()
     {
-        // This method is now largely superseded by the new loadConversation logic
-        // but keeping it for potential other uses or if it's called elsewhere.
         if ($this->conversation) {
             $this->messages = $this->conversation->messages()->with('user')->latest()->take(50)->get()->sortBy('created_at')->values()->toArray();
 
-            // Mark as read
             Auth::user()
                 ->conversations()
                 ->updateExistingPivot($this->conversation->id, ['last_read_at' => now()]);
@@ -191,14 +188,7 @@ new class extends Component {
             'body' => $messageBody,
         ]);
 
-        // Notify Participants
-        \Illuminate\Support\Facades\Log::info('ChatBox: Dispatching notifications for message ' . $message->id . ' to ' . ($this->conversation->participants->count() - 1) . ' participants.');
-        foreach ($this->conversation->participants as $participant) {
-            if ($participant->id != auth()->id()) {
-                \Illuminate\Support\Facades\Log::info('ChatBox: Notifying user ' . $participant->id . ' (' . $participant->email . ')');
-                $participant->notify(new \App\Notifications\ChatMessageNotification($message));
-            }
-        }
+        $this->dispatch('message-sent-successfully', ['messageId' => $message->id]);
 
         if ($this->attachment) {
             // Handle single file upload
@@ -223,6 +213,34 @@ new class extends Component {
         $this->messages[] = $message->load('user', 'attachments')->toArray();
         $this->body = '';
         $this->dispatch('scroll-bottom');
+    }
+
+    public function checkAndSendPushNotification($messageId)
+    {
+        $message = \App\Models\Message::with('conversation.participants')->find($messageId);
+        if (!$message || !$message->conversation) return;
+
+        $participants = $message->conversation->participants;
+        $currentUserId = auth()->id();
+        $msgCreated = $message->created_at;
+
+        foreach ($participants as $participant) {
+            if ($participant->id != $currentUserId) {
+                $pivot = \Illuminate\Support\Facades\DB::table('conversation_participants')
+                    ->where('conversation_id', $message->conversation_id)
+                    ->where('user_id', $participant->id)
+                    ->first();
+
+                if ($pivot && $pivot->last_read_at) {
+                    $lastRead = \Carbon\Carbon::parse($pivot->last_read_at);
+                    if ($lastRead->gte($msgCreated)) {
+                        continue; // User already read it via sockets. Skip push notification!
+                    }
+                }
+
+                $participant->notify(new \App\Notifications\ChatMessageNotification($message));
+            }
+        }
     }
 
     #[On('socket-message-received')]
@@ -258,8 +276,6 @@ new class extends Component {
     #[On('socket-messages-read')]
     public function onSocketMessagesRead($data)
     {
-        // The sender receives this when the receiver views the messages
-        // Here we update the local messages array to show blue ticks instantly
         $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : $data;
 
         if ($this->conversation && $payload['room'] == $this->conversation->id) {
@@ -299,12 +315,8 @@ new class extends Component {
     {
         $message = Message::with(['user', 'attachments'])->find($messageId);
         if ($message && $message->conversation_id == $this->conversation->id) {
-            // Remove duplicate assignment here
-
-            // Mark as read immediately since we are in the chat
             $this->messages[] = $message->toArray();
 
-            // Mark as read immediately since we are in the chat
             $message->update(['read_at' => now(), 'delivered_at' => now()]);
 
             broadcast(new MessageRead($message->id, $message->user_id));
@@ -319,9 +331,6 @@ new class extends Component {
             $this->dispatch('messageReceived'); // Update unread counts globally even if not in this chat
         }
     }
-
-    // Listeners for functionality that doesn't rely on Echo can be defined here if needed.
-    // For Socket.IO, we handle events in the frontend Alpine component.
 
     public function closeChat()
     {
@@ -354,6 +363,7 @@ new class extends Component {
 }; ?>
 
 <div class="d-flex flex-column h-100 position-relative">
+    <input type="hidden" id="active-conversation-id" value="{{ $conversation ? $conversation->id : '' }}">
     @if ($conversation)
 
         <!-- Header -->
@@ -412,6 +422,13 @@ new class extends Component {
                         if (roomMatch && isNotMe) {
                             this.isTyping = false;
                         }
+                    });
+
+                    window.addEventListener('message-sent-successfully', (event) => {
+                        setTimeout(() => {
+                            let msgId = event.detail[0]?.messageId || event.detail?.messageId;
+                            @this.call('checkAndSendPushNotification', msgId);
+                        }, 3000);
                     });
                 }
             }">

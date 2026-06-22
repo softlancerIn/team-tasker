@@ -20,6 +20,21 @@ new class extends Component {
     {
         $userId = Auth::id();
 
+        // Get Unread Counts efficiently
+        $unreadCounts = \Illuminate\Support\Facades\DB::table('messages')
+            ->join('conversation_participants', function ($join) use ($userId) {
+                $join->on('messages.conversation_id', '=', 'conversation_participants.conversation_id')
+                    ->where('conversation_participants.user_id', '=', $userId);
+            })
+            ->where('messages.user_id', '!=', $userId)
+            ->where(function ($query) {
+                $query->whereNull('conversation_participants.last_read_at')
+                    ->orWhereColumn('messages.created_at', '>', 'conversation_participants.last_read_at');
+            })
+            ->select('messages.conversation_id', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
+            ->groupBy('messages.conversation_id')
+            ->pluck('count', 'conversation_id');
+
         // 1. Get Group Conversations for the user
         $conversations = Conversation::whereHas('participants', function ($q) use ($userId) {
             $q->where('user_id', $userId);
@@ -30,10 +45,11 @@ new class extends Component {
             })
             ->with(['participants', 'latestMessage'])
             ->get()
-            ->map(function ($c) {
+            ->map(function ($c) use ($unreadCounts) {
                 $c->is_group = true;
                 $c->display_name = $c->name;
                 $c->users_count = $c->participants->count();
+                $c->unread_count = $unreadCounts[$c->id] ?? 0;
                 return $c;
             })
             ->sortByDesc(function ($c) {
@@ -51,10 +67,11 @@ new class extends Component {
             })
             ->with(['participants', 'latestMessage'])
             ->get()
-            ->map(function ($c) {
+            ->map(function ($c) use ($unreadCounts) {
                 $c->is_group = true;
                 $c->display_name = $c->name;
                 $c->users_count = $c->participants->count();
+                $c->unread_count = $unreadCounts[$c->id] ?? 0;
                 return $c;
             })
             ->sortByDesc(function ($c) {
@@ -87,11 +104,15 @@ new class extends Component {
             })
             ->limit($this->userLimit)
             ->get()
-            ->map(function ($user) use ($myPrivateConversations) {
+            ->map(function ($user) use ($myPrivateConversations, $unreadCounts) {
                 // Find private conversation with this user from pre-loaded list
                 $conversation = $myPrivateConversations->first(function ($c) use ($user) {
                     return $c->participants->contains('id', $user->id);
                 });
+
+                if ($conversation) {
+                    $conversation->unread_count = $unreadCounts[$conversation->id] ?? 0;
+                }
 
                 $user->conversation = $conversation;
                 return $user;
@@ -138,6 +159,7 @@ new class extends Component {
     #[On('groupCreated')]
     #[On('messageReceived')]
     #[On('global-message-received')]
+    #[On('socket-messages-read')]
     public function refreshList()
     {
         // Calling any Volt method triggers a re-render of the component automatically

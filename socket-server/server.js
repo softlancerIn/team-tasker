@@ -15,12 +15,9 @@ const onlineUsers = new Map(); // userId -> Set(socketId)
 const typingUsers = new Map(); // conversationId -> Set(userId)
 
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
-
     // Join room event
     socket.on('join_room', (room) => {
         socket.join(room);
-        console.log(`User ${socket.id} joined room: ${room}`);
     });
 
     // Send message event
@@ -28,7 +25,6 @@ io.on('connection', (socket) => {
         if (!data) return;
         // Broadcast to the specific room (conversation)
         io.to(data.room).emit('receive_message', data);
-        console.log(`Message sent to room ${data.room}:`, data);
 
         // Immediately emit delivery confirmation back to sender
         // (shows double gray ticks as soon as any online user in the room gets it)
@@ -45,7 +41,6 @@ io.on('connection', (socket) => {
         if (!data) return;
         // Broadcast to the specific room that messages were read
         socket.to(data.room).emit('messages_read_by_user', data);
-        console.log(`Messages read in room ${data.room} by user ${data.userId}`);
     });
 
     // Typing event
@@ -80,11 +75,9 @@ io.on('connection', (socket) => {
         }
         onlineUsers.get(userId).add(socket.id);
         io.emit('online_users', Array.from(onlineUsers.keys()));
-        console.log(`User ${userId} is online (Tabs: ${onlineUsers.get(userId).size})`);
     });
 
     socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
         // Remove from online users
         for (const [userId, socketIds] of onlineUsers.entries()) {
             if (socketIds.has(socket.id)) {
@@ -92,9 +85,6 @@ io.on('connection', (socket) => {
                 if (socketIds.size === 0) {
                     onlineUsers.delete(userId);
                     io.emit('online_users', Array.from(onlineUsers.keys()));
-                    console.log(`User ${userId} is offline`);
-                } else {
-                    console.log(`User ${userId} still online (Remaining Tabs: ${socketIds.size})`);
                 }
                 break;
             }

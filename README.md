@@ -119,6 +119,27 @@ We are constantly pushing the boundaries of what Team Tasker can do. Here is a s
    php artisan serve
    ```
 
+### Firebase Cloud Messaging (FCM) Setup
+
+To enable real-time push notifications across the application, you must configure Firebase Cloud Messaging:
+
+1. **Create a Firebase Project:**
+   - Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
+   - Add a "Web App" to your project to generate your configuration keys.
+
+2. **Configure Environment Variables:**
+   - Open your `.env` file and populate the `FIREBASE_*` variables using the keys provided by Firebase (e.g., `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, etc.).
+
+3. **Generate a VAPID Key:**
+   - In the Firebase Console, go to **Project Settings > Cloud Messaging**.
+   - Under the "Web configuration" section, generate a new **Web Push certificate** (VAPID key).
+   - Copy this key and set it as `FIREBASE_VAPID_KEY=` in your `.env` file.
+
+4. **Add Service Account Credentials (For Backend HTTP v1 API):**
+   - In the Firebase Console, go to **Project Settings > Service accounts**.
+   - Click **Generate new private key**.
+   - Rename the downloaded JSON file to `firebase-service-account.json` and place it inside the `storage/app/firebase/` directory of your Laravel project.
+
 ---
 
 ## 🎨 Branding & Customization

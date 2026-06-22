@@ -34,7 +34,18 @@ Route::middleware(['web', 'auth:web,admin'])->group(function () {
     Route::post('/notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
     Route::post('/update-fcm-token', function (Illuminate\Http\Request $request) {
         $request->validate(['token' => 'required|string']);
-        auth()->user()->update(['fcm_token' => $request->token]);
+        $user = auth('web')->user() ?? auth('admin')->user();
+        if ($user) {
+            $user->fcm_token = $request->token;
+            $user->save();
+
+            // Sync with counterpart
+            if ($user instanceof \App\Models\Admin) {
+                \App\Models\User::where('email', $user->email)->update(['fcm_token' => $request->token]);
+            } elseif ($user instanceof \App\Models\User) {
+                \App\Models\Admin::where('email', $user->email)->update(['fcm_token' => $request->token]);
+            }
+        }
         return response()->json(['success' => true]);
     })->name('update.fcm_token');
 });
@@ -187,3 +198,10 @@ Route::middleware(['web', 'auth:web,admin'])->controller(TaskLogController::clas
     Route::post('/tasks/{id}/stop-timer', 'stopTime')->name('tasks.stop_timer')->middleware('permission:tasks.view');
     Route::post('/tasks/{id}/progress', 'updateProgress')->name('tasks.progress')->middleware('permission:tasks.view');
 });
+
+// Dynamic Service Worker Route
+Route::get('/firebase-messaging-sw.js', function () {
+    return response()->view('firebase-messaging-sw')
+        ->header('Content-Type', 'application/javascript')
+        ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+})->name('firebase.sw');

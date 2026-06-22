@@ -574,8 +574,9 @@
 
             @if (Auth::user()->hasPermission('chat.view'))
                 <a href="{{ route('client.chat.index') }}"
-                    class="nav-link-premium {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
-                    <i class="fas fa-comments"></i> Chat
+                    class="nav-link-premium d-flex justify-content-between align-items-center {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
+                    <div><i class="fas fa-comments"></i> Chat</div>
+                    <livewire:global-chat-badge />
                 </a>
             @endif
         </nav>
@@ -846,6 +847,7 @@
             function sendTokenToServer(token) {
                 fetch("{{ route('update.fcm_token') }}", {
                         method: 'POST',
+                        credentials: 'same-origin',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': "{{ csrf_token() }}"
@@ -872,6 +874,24 @@
             }
 
             messaging.onMessage((payload) => {
+                console.log('Message received. ', payload);
+
+                const incomingConversationId = payload.data?.conversation_id;
+                const activeConversationInput = document.getElementById('active-conversation-id');
+                const activeConversationId = activeConversationInput ? activeConversationInput.value : null;
+
+                if (document.visibilityState === 'visible' && incomingConversationId && String(activeConversationId) === String(incomingConversationId)) {
+                    return;
+                }
+
+                const msgId = payload.messageId || new Date().getTime();
+                const storageKey = 'fcm_msg_' + msgId;
+                if (localStorage.getItem(storageKey)) {
+                    return;
+                }
+                localStorage.setItem(storageKey, '1');
+                setTimeout(() => localStorage.removeItem(storageKey), 10000);
+
                 const notificationTitle = payload.notification.title;
                 const notificationOptions = {
                     body: payload.notification.body,
