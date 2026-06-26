@@ -9,6 +9,12 @@ return [
         'create' => 'Create Task',
         'edit' => 'Edit Task',
         'delete' => 'Delete Task',
+        'my_tasks' => 'View My Tasks',
+        'todo' => 'View My To-Do List',
+        'activity' => 'View My Task Activity',
+        'board' => 'View Task Board',
+        'calendar' => 'View Calendar',
+        'gantt' => 'View Gantt Chart',
     ],
     'projects' => [
         'view' => 'View Projects',

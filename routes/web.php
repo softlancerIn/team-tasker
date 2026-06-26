@@ -67,18 +67,18 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\Pr
 });
 
 // Todo Controller
-Route::middleware(['web', 'auth:web,admin'])->get('/admin/todos', [\App\Http\Controllers\TodoController::class, 'index'])->name('admin.todos.index');
+Route::middleware(['web', 'auth:web,admin', 'permission:tasks.todo'])->get('/admin/todos', [\App\Http\Controllers\TodoController::class, 'index'])->name('admin.todos.index');
 
 // Task Controller
 Route::middleware(['web', 'auth:web,admin'])->controller(TaskController::class)->prefix('admin/tasks')->group(function () {
     Route::get('/dashboard', 'dashboard')->name('dashboard')->middleware('permission:dashboard.view');
-    Route::get('/', 'index')->name('index')->middleware('permission:tasks.view');
-    Route::get('activity', 'activity')->name('tasks.activity')->middleware('permission:tasks.view');
-    Route::get('board', 'board')->name('tasks.board')->middleware('permission:tasks.view');
-    Route::get('calendar', 'calendar')->name('tasks.calendar')->middleware('permission:tasks.view');
-    Route::get('events', 'calendarEvents')->name('tasks.calendar.events')->middleware('permission:tasks.view');
-    Route::get('gantt', 'gantt')->name('tasks.gantt')->middleware('permission:tasks.view');
-    Route::get('gantt-data', 'ganttData')->name('tasks.gantt.data')->middleware('permission:tasks.view');
+    Route::get('/', 'index')->name('index')->middleware('permission:tasks.my_tasks');
+    Route::get('activity', 'activity')->name('tasks.activity')->middleware('permission:tasks.activity');
+    Route::get('board', 'board')->name('tasks.board')->middleware('permission:tasks.board');
+    Route::get('calendar', 'calendar')->name('tasks.calendar')->middleware('permission:tasks.calendar');
+    Route::get('events', 'calendarEvents')->name('tasks.calendar.events')->middleware('permission:tasks.calendar');
+    Route::get('gantt', 'gantt')->name('tasks.gantt')->middleware('permission:tasks.gantt');
+    Route::get('gantt-data', 'ganttData')->name('tasks.gantt.data')->middleware('permission:tasks.gantt');
     Route::get('create', 'create')->name('create')->middleware('permission:tasks.create');
     Route::post('store', 'store')->name('store')->middleware('permission:tasks.create');
     Route::get('details/{id}', 'show')->name('details')->middleware('permission:tasks.view');

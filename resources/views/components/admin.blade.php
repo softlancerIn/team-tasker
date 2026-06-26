@@ -873,30 +873,42 @@
                         class="nav-submenu-premium {{ (request()->is('admin/tasks*') && !request()->is('admin/tasks/dashboard')) || request()->is('admin/todos*') ? 'show' : '' }}">
 
                         @if (Auth::user()->hasPermission('tasks.view'))
-                            <a href="{{ route('index') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('index') ? 'active' : '' }}">
-                                <i class="fas fa-list"></i> My Tasks
-                            </a>
-                            <a href="{{ route('admin.todos.index') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.todos.index') ? 'active' : '' }}">
-                                <i class="fas fa-clipboard-list"></i> My To-Do List
-                            </a>
-                            <a href="{{ route('tasks.activity') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.activity') ? 'active' : '' }}">
-                                <i class="fas fa-stream"></i> My Task Activity
-                            </a>
-                            <a href="{{ route('tasks.board') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.board') ? 'active' : '' }}">
-                                <i class="fas fa-columns"></i> Task Board
-                            </a>
-                            <a href="{{ route('tasks.calendar') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.calendar') ? 'active' : '' }}">
-                                <i class="fas fa-calendar-alt"></i> Calendar
-                            </a>
-                            <a href="{{ route('tasks.gantt') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.gantt') ? 'active' : '' }}">
-                                <i class="fas fa-chart-bar"></i> Gantt Chart
-                            </a>
+                            @if (Auth::user()->hasPermission('tasks.my_tasks'))
+                                <a href="{{ route('index') }}"
+                                    class="nav-link-premium sub-link-premium {{ request()->routeIs('index') ? 'active' : '' }}">
+                                    <i class="fas fa-list"></i> My Tasks
+                                </a>
+                            @endif
+                            @if (Auth::user()->hasPermission('tasks.todo'))
+                                <a href="{{ route('admin.todos.index') }}"
+                                    class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.todos.index') ? 'active' : '' }}">
+                                    <i class="fas fa-clipboard-list"></i> My To-Do List
+                                </a>
+                            @endif
+                            @if (Auth::user()->hasPermission('tasks.activity'))
+                                <a href="{{ route('tasks.activity') }}"
+                                    class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.activity') ? 'active' : '' }}">
+                                    <i class="fas fa-stream"></i> My Task Activity
+                                </a>
+                            @endif
+                            @if (Auth::user()->hasPermission('tasks.board'))
+                                <a href="{{ route('tasks.board') }}"
+                                    class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.board') ? 'active' : '' }}">
+                                    <i class="fas fa-columns"></i> Task Board
+                                </a>
+                            @endif
+                            @if (Auth::user()->hasPermission('tasks.calendar'))
+                                <a href="{{ route('tasks.calendar') }}"
+                                    class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.calendar') ? 'active' : '' }}">
+                                    <i class="fas fa-calendar-alt"></i> Calendar
+                                </a>
+                            @endif
+                            @if (Auth::user()->hasPermission('tasks.gantt'))
+                                <a href="{{ route('tasks.gantt') }}"
+                                    class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.gantt') ? 'active' : '' }}">
+                                    <i class="fas fa-chart-bar"></i> Gantt Chart
+                                </a>
+                            @endif
                         @endif
                     </div>
                 </div>
@@ -905,8 +917,8 @@
 
             @if (Auth::user()->hasPermission('chat.view'))
                 <a href="{{ route('admin.chat.index') }}"
-                    class="nav-link-premium d-flex justify-content-between align-items-center {{ request()->routeIs('admin.chat.*') ? 'active' : '' }}">
-                    <div><i class="fas fa-comments"></i> Team Chat</div>
+                    class="nav-link-premium d-flex align-items-center {{ request()->routeIs('admin.chat.*') ? 'active' : '' }}">
+                    <i class="fas fa-comments"></i><span>Team Chat</span>
                     <livewire:global-chat-badge />
                 </a>
             @endif

@@ -268,7 +268,7 @@
                                         <div class="d-flex align-items-center gap-3">
                                             <i class="fas fa-tasks text-muted small"></i>
                                             <div>
-                                                <a href="{{ route('show', $subtask->id) }}"
+                                                <a href="{{ route('details', $subtask->id) }}"
                                                     class="text-main fw-medium text-decoration-none">
                                                     {{ $subtask->title }}
                                                 </a>
@@ -415,7 +415,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <div class="extra-small text-muted">Blocks this task</div>
-                            <a href="{{ route('show', $dep->blocker->id) }}"
+                            <a href="{{ route('details', $dep->blocker->id) }}"
                                 class="text-main small fw-medium text-decoration-none text-truncate d-block">
                                 {{ $dep->blocker->title }}
                             </a>
