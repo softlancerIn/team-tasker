@@ -63,10 +63,10 @@ class SettingsController extends Controller
     public function storeEmail(Request $request)
     {
         $data = $request->validate([
-            'imap_host' => 'required|string',
-            'imap_port' => 'required|integer',
-            'imap_user' => 'required|string',
-            'imap_password' => 'required|string',
+            'imap_host' => 'nullable|string',
+            'imap_port' => 'nullable|integer',
+            'imap_user' => 'nullable|string',
+            'imap_password' => 'nullable|string',
             'imap_encryption' => 'nullable|string|in:ssl,tls,null',
 
             'smtp_host' => 'nullable|string',
