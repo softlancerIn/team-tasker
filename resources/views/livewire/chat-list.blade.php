@@ -92,6 +92,16 @@ new class extends Component {
             $usersQuery->where('role_id', '!=', 3);
         }
 
+        // Apply Chat Permissions
+        $allowedIds = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
+            ->where('user_id', $userId)
+            ->pluck('allowed_user_id')
+            ->toArray();
+
+        if (!empty($allowedIds)) {
+            $usersQuery->whereIn('id', $allowedIds);
+        }
+
         // Pre-load all private conversations for the current user
         $myPrivateConversations = Conversation::where('type', 'private')
             ->whereHas('participants', fn($q) => $q->where('user_id', $userId))

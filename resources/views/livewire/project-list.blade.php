@@ -127,33 +127,39 @@ new class extends Component {
             <div class="data-grid-bulk-left">
                 <span class="data-grid-bulk-count"><span>{{ count($selectedProjects) }}</span> Items Selected</span>
                 
-                <div class="d-flex align-items-center gap-2 border-start border-white-50 ps-3 ms-1">
-                    <select wire:model.live="bulkStatus" class="form-select form-select-sm" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 28px 4px 10px; width: 120px; cursor: pointer;">
-                        <option value="" style="color: black;">Status...</option>
-                        @foreach ($statuses as $stat)
-                            <option value="{{ $stat }}" style="color: black;">{{ ucfirst(str_replace('_', ' ', $stat)) }}</option>
-                        @endforeach
-                    </select>
-                    <button wire:click="bulkChangeStatus" class="btn-bulk-outline" @if (!$bulkStatus) disabled @endif>
-                        Apply
-                    </button>
-                </div>
+                @if(Auth::user()->hasPermission('projects.edit'))
+                    <div class="d-flex align-items-center gap-2 border-start border-white-50 ps-3 ms-1">
+                        <select wire:model.live="bulkStatus" class="form-select form-select-sm" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 28px 4px 10px; width: 120px; cursor: pointer;">
+                            <option value="" style="color: black;">Status...</option>
+                            @foreach ($statuses as $stat)
+                                <option value="{{ $stat }}" style="color: black;">{{ ucfirst(str_replace('_', ' ', $stat)) }}</option>
+                            @endforeach
+                        </select>
+                        <button wire:click="bulkChangeStatus" class="btn-bulk-outline" @if (!$bulkStatus) disabled @endif>
+                            Apply
+                        </button>
+                    </div>
+                @endif
 
-                <div class="d-flex align-items-center gap-2 border-start border-white-50 ps-3 ms-1">
-                    <select wire:model.live="bulkManager" class="form-select form-select-sm" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 28px 4px 10px; width: 120px; cursor: pointer;">
-                        <option value="" style="color: black;">Manager...</option>
-                        @foreach ($users as $user)
-                            <option value="{{ $user->id }}" style="color: black;">{{ $user->name }}</option>
-                        @endforeach
-                    </select>
-                    <button wire:click="bulkAssign" class="btn-bulk-outline" @if (!$bulkManager) disabled @endif>
-                        Apply
-                    </button>
-                </div>
+                @if(Auth::user()->hasPermission('projects.edit'))
+                    <div class="d-flex align-items-center gap-2 border-start border-white-50 ps-3 ms-1">
+                        <select wire:model.live="bulkManager" class="form-select form-select-sm" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 28px 4px 10px; width: 120px; cursor: pointer;">
+                            <option value="" style="color: black;">Manager...</option>
+                            @foreach ($users as $user)
+                                <option value="{{ $user->id }}" style="color: black;">{{ $user->name }}</option>
+                            @endforeach
+                        </select>
+                        <button wire:click="bulkAssign" class="btn-bulk-outline" @if (!$bulkManager) disabled @endif>
+                            Apply
+                        </button>
+                    </div>
+                @endif
 
-                <button wire:click="bulkDelete" onclick="return confirm('Are you sure?')" class="btn-bulk-danger border-start border-white-50 ps-3 ms-1" style="border-radius: 0 6px 6px 0;">
-                    <i class="fas fa-trash-alt"></i> Delete
-                </button>
+                @if(Auth::user()->hasPermission('projects.delete'))
+                    <button wire:click="bulkDelete" onclick="return confirm('Are you sure?')" class="btn-bulk-danger border-start border-white-50 ps-3 ms-1" style="border-radius: 0 6px 6px 0;">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                @endif
             </div>
             <button type="button" class="btn-deselect-all" wire:click="$set('selectedProjects', [])">
                 Deselect All
@@ -164,7 +170,11 @@ new class extends Component {
             <table class="table data-grid-table">
                 <thead>
                     <tr>
-                        <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" onclick="let checked = this.checked; document.querySelectorAll('.project-checkbox').forEach(c => { c.checked = checked; c.dispatchEvent(new Event('change')); })"></th>
+                        <th style="width: 40px;">
+                            @if(Auth::user()->hasPermission('projects.delete') || Auth::user()->hasPermission('projects.edit'))
+                                <input type="checkbox" class="data-grid-checkbox" onclick="let checked = this.checked; document.querySelectorAll('.project-checkbox').forEach(c => { c.checked = checked; c.dispatchEvent(new Event('change')); })">
+                            @endif
+                        </th>
                         <th class="cursor-pointer" wire:click="sortBy('name')">
                             PROJECT NAME @if ($sortField === 'name') <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} ms-1" style="font-size: 10px;"></i> @endif
                         </th>
@@ -184,13 +194,24 @@ new class extends Component {
                         <tr wire:key="project-row-{{ $project->id }}"
                             class="{{ in_array($project->id, $selectedProjects) ? 'bg-primary-subtle' : '' }}"
                             style="border-bottom: 1px solid var(--border-subtle);">
-                            <td><input type="checkbox" wire:model.live="selectedProjects" value="{{ $project->id }}" class="data-grid-checkbox project-checkbox"></td>
+                            <td>
+                                @if(Auth::user()->hasPermission('projects.delete') || Auth::user()->hasPermission('projects.edit'))
+                                    <input type="checkbox" wire:model.live="selectedProjects" value="{{ $project->id }}" class="data-grid-checkbox project-checkbox">
+                                @endif
+                            </td>
                             <td class="py-3">
-                                <a href="{{ route('admin.projects.show', $project->id) }}" class="fw-bold text-decoration-none text-high d-block mb-1" style="font-size: 0.9rem;">
-                                    {{ $project->name }}
-                                </a>
+                                @if(Auth::user()->hasPermission('projects.view'))
+                                    <a href="{{ route('admin.projects.show', $project->id) }}" class="fw-bold text-decoration-none text-high d-block mb-1" style="font-size: 0.9rem;">
+                                        {{ $project->name }}
+                                    </a>
+                                @else
+                                    <span class="fw-bold text-high d-block mb-1" style="font-size: 0.9rem;">{{ $project->name }}</span>
+                                @endif
                                 <div class="text-low mt-1 text-truncate" style="font-size: 0.75rem; max-width: 250px;">
-                                    {{ $project->description ?: 'No description' }}
+                                    {{ $project->description
+                                        ? \Illuminate\Support\Str::limit(strip_tags($project->description), 100)
+                                        : 'No description'
+                                    }}
                                 </div>
                             </td>
                             <td>
@@ -235,12 +256,16 @@ new class extends Component {
                             </td>
                             <td class="pe-4 text-end">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('admin.projects.show', $project->id) }}" class="btn btn-sm shadow-none" style="color: var(--primary);" title="View Details">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('admin.projects.edit', $project->id) }}" class="btn btn-sm shadow-none" style="color: var(--accent);" title="Edit Project">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
+                                    @if(Auth::user()->hasPermission('projects.view'))
+                                        <a href="{{ route('admin.projects.show', $project->id) }}" class="btn btn-sm shadow-none" style="color: var(--primary);" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    @endif
+                                    @if(Auth::user()->hasPermission('projects.edit'))
+                                        <a href="{{ route('admin.projects.edit', $project->id) }}" class="btn btn-sm shadow-none" style="color: var(--accent);" title="Edit Project">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

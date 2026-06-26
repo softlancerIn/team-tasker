@@ -8,9 +8,11 @@
             <a href="{{ route('admin.projects.index') }}" class="btn-premium btn-premium-secondary px-4 py-2">
                 Back to Projects
             </a>
-            <a href="{{ route('admin.projects.edit', $project->id) }}" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm">
-                <i class="fas fa-edit me-1"></i> Edit Project
-            </a>
+            @if(Auth::user()->hasPermission('projects.edit'))
+                <a href="{{ route('admin.projects.edit', $project->id) }}" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm">
+                    <i class="fas fa-edit me-1"></i> Edit Project
+                </a>
+            @endif
         </div>
     </div>
 
@@ -18,7 +20,7 @@
         <div class="col-md-8">
             <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
                 <h5 class="fw-bold mb-3" style="color: var(--text-high);">Description</h5>
-                <p class="text-medium mb-0" style="white-space: pre-wrap;">{{ $project->description ?: 'No description provided.' }}</p>
+                <p class="text-medium mb-0" style="white-space: pre-wrap;">{!! $project->description ?: 'No description provided.' !!}</p>
             </div>
             
             <div class="glass-card" style="border: 1px solid var(--border-main);">
@@ -114,15 +116,21 @@
                 </div>
             </div>
             
-            <div class="glass-card" style="border: 1px solid var(--border-main);">
-                <h5 class="fw-bold mb-3" style="color: var(--text-high);">Quick Actions</h5>
-                <a href="{{ route('create') }}?project_id={{ $project->id }}" class="btn btn-outline-primary shadow-none w-100 mb-2">
-                    <i class="fas fa-plus me-1"></i> Create New Task
-                </a>
-                <button type="button" class="btn btn-outline-secondary shadow-none w-100" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
-                    <i class="fas fa-link me-1"></i> Assign Existing Task
-                </button>
-            </div>
+            @if(Auth::user()->hasPermission('tasks.create') || Auth::user()->hasPermission('projects.edit'))
+                <div class="glass-card" style="border: 1px solid var(--border-main);">
+                    <h5 class="fw-bold mb-3" style="color: var(--text-high);">Quick Actions</h5>
+                    @if(Auth::user()->hasPermission('tasks.create'))
+                        <a href="{{ route('create') }}?project_id={{ $project->id }}" class="btn btn-outline-primary shadow-none w-100 mb-2">
+                            <i class="fas fa-plus me-1"></i> Create New Task
+                        </a>
+                    @endif
+                    @if(Auth::user()->hasPermission('projects.edit'))
+                        <button type="button" class="btn btn-outline-secondary shadow-none w-100" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
+                            <i class="fas fa-link me-1"></i> Assign Existing Task
+                        </button>
+                    @endif
+                </div>
+            @endif
         </div>
     </div>
 

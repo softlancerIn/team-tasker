@@ -678,7 +678,7 @@ new class extends Component {
         </div>
 
         <!-- Input Area -->
-        <div class="p-3 border-top border-main" wire:key="chat-input-{{ $conversation->id }}"
+        <div class="p-3 border-top border-main sm:mb-4" wire:key="chat-input-{{ $conversation->id }}"
             style="background: var(--bg-surface);">
             @if ($isBlocked || $isBlockedBy)
                 <div class="text-center py-3 text-low" style="font-size: 0.85rem;">

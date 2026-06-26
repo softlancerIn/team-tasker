@@ -852,7 +852,7 @@
                 </a>
             @endif
 
-            @if (Auth::user()->hasPermission('tasks.view'))
+            @if (Auth::user()->hasPermission('projects.view'))
                 <a href="{{ route('admin.projects.index') }}"
                     class="nav-link-premium {{ request()->is('admin/projects*') ? 'active' : '' }}">
                     <i class="fas fa-project-diagram"></i> Projects
@@ -963,6 +963,12 @@
                             <a href="{{ route('admin.roles.index') }}"
                                 class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
                                 <i class="fas fa-shield-halved"></i> Roles
+                            </a>
+                        @endif
+                        @if (Auth::user()->hasPermission('settings.view'))
+                            <a href="{{ route('admin.chat-permissions') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.chat-permissions') ? 'active' : '' }}">
+                                <i class="fas fa-comments"></i> Chat Permissions
                             </a>
                         @endif
                     </div>

@@ -171,6 +171,8 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\Se
     Route::get('/general', 'general')->name('admin.settings.general')->middleware('permission:settings.view');
     Route::get('/statuses', 'statuses')->name('admin.settings.statuses')->middleware('permission:settings.view');
     Route::get('/email', 'email')->name('admin.settings.email')->middleware('permission:settings.view');
+    
+    Route::view('/chat-permissions', 'admin.settings.chat-permissions')->name('admin.chat-permissions')->middleware('permission:settings.view');
 
     // General
     Route::post('/general', 'storeGeneral')->name('admin.settings.general.store')->middleware('permission:settings.edit');

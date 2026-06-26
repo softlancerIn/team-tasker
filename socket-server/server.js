@@ -1,9 +1,31 @@
 import express from 'express';
-import { createServer } from 'http';
+import { createServer as createHttpServer } from 'http';
+import { createServer as createHttpsServer } from 'https';
 import { Server } from 'socket.io';
+import fs from 'fs';
 
 const app = express();
-const server = createServer(app);
+let server;
+
+// Replace these paths with the actual paths to your SSL certificates on your live server
+// Example for Let's Encrypt: '/etc/letsencrypt/live/task.coxfuture.com/privkey.pem'
+const privateKeyPath = '/path/to/your/private.key';
+const certificatePath = '/path/to/your/certificate.crt';
+
+if (fs.existsSync(privateKeyPath) && fs.existsSync(certificatePath)) {
+    // Run in HTTPS mode if certificates exist
+    const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+    const certificate = fs.readFileSync(certificatePath, 'utf8');
+    const credentials = { key: privateKey, cert: certificate };
+    
+    server = createHttpsServer(credentials, app);
+    console.log('Running Socket.IO server in Secure HTTPS mode');
+} else {
+    // Fallback to HTTP mode (for local XAMPP development)
+    server = createHttpServer(app);
+    console.log('Running Socket.IO server in HTTP mode (No SSL certificates found)');
+}
+
 const io = new Server(server, {
     cors: {
         origin: '*', // Allow all origins for simplicity in dev
@@ -15,6 +37,8 @@ const onlineUsers = new Map(); // userId -> Set(socketId)
 const typingUsers = new Map(); // conversationId -> Set(userId)
 
 io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
+
     // Join room event
     socket.on('join_room', (room) => {
         socket.join(room);
@@ -78,6 +102,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
         // Remove from online users
         for (const [userId, socketIds] of onlineUsers.entries()) {
             if (socketIds.has(socket.id)) {

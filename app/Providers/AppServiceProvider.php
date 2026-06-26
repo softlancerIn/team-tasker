@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
         Paginator::defaultView('vendor.pagination.premium');
 
         \App\Models\Project::observe(\App\Observers\ProjectObserver::class);
+        \App\Models\Task::observe(\App\Observers\TaskObserver::class);
 
         // Dynamic Mail Configuration from Database
         try {
