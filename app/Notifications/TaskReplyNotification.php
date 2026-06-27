@@ -14,6 +14,7 @@ class TaskReplyNotification extends Notification implements ShouldQueue
     use Queueable;
 
     public $task;
+
     public $log;
 
     /**
@@ -33,12 +34,12 @@ class TaskReplyNotification extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         $channels = ['database'];
-        
+
         $host = config('mail.mailers.smtp.host');
-        if (!empty($host) && $host !== 'mailpit' && $host !== '127.0.0.1' && $host !== 'localhost') {
+        if (! empty($host) && $host !== 'mailpit' && $host !== '127.0.0.1' && $host !== 'localhost') {
             $channels[] = 'mail';
         }
-        
+
         return $channels;
     }
 

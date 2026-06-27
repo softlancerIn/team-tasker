@@ -13,7 +13,7 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('/login', 'login')->name('login_submit');
     Route::get('/register', 'registerPage')->name('registerPage');
     Route::post('/register', 'register')->name('register');
-    
+
     // Client Registration
     Route::get('/client/register', 'clientRegisterPage')->name('clientRegisterPage');
     Route::post('/client/register', 'clientRegister')->name('clientRegister');
@@ -46,6 +46,7 @@ Route::middleware(['web', 'auth:web,admin'])->group(function () {
                 \App\Models\Admin::where('email', $user->email)->update(['fcm_token' => $request->token]);
             }
         }
+
         return response()->json(['success' => true]);
     })->name('update.fcm_token');
 });
@@ -171,7 +172,8 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\Se
     Route::get('/general', 'general')->name('admin.settings.general')->middleware('permission:settings.view');
     Route::get('/statuses', 'statuses')->name('admin.settings.statuses')->middleware('permission:settings.view');
     Route::get('/email', 'email')->name('admin.settings.email')->middleware('permission:settings.view');
-    
+    Route::get('/autostop', 'autostop')->name('admin.settings.autostop')->middleware('permission:settings.view');
+
     Route::view('/chat-permissions', 'admin.settings.chat-permissions')->name('admin.chat-permissions')->middleware('permission:settings.view');
 
     // General
@@ -179,6 +181,9 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\Se
 
     // Email
     Route::post('/email', 'storeEmail')->name('admin.settings.email.store')->middleware('permission:settings.edit');
+
+    // Auto Stop Timer
+    Route::post('/autostop', 'storeAutostop')->name('admin.settings.autostop.store')->middleware('permission:settings.edit');
 
     // Statuses
     Route::post('/statuses', 'storeStatus')->name('admin.settings.status.store')->middleware('permission:settings.edit');

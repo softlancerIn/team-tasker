@@ -7,8 +7,8 @@ use App\Models\Status;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Email;
 
 class SettingsController extends Controller
@@ -16,7 +16,30 @@ class SettingsController extends Controller
     public function general()
     {
         $settings = Setting::all()->pluck('value', 'key');
+
         return view('admin.settings.general', compact('settings'));
+    }
+
+    public function autostop()
+    {
+        $settings = Setting::all()->pluck('value', 'key');
+
+        return view('admin.settings.autostop', compact('settings'));
+    }
+
+    public function storeAutostop(Request $request)
+    {
+        $request->validate([
+            'auto_stop_timers' => 'required|in:yes,no',
+            'office_close_time' => 'required_if:auto_stop_timers,yes',
+        ]);
+
+        Setting::updateOrCreate(['key' => 'auto_stop_timers'], ['value' => $request->auto_stop_timers]);
+        if ($request->has('office_close_time')) {
+            Setting::updateOrCreate(['key' => 'office_close_time'], ['value' => $request->office_close_time]);
+        }
+
+        return back()->with('success', 'Auto Stop Timer settings updated successfully.');
     }
 
     public function email()
@@ -79,20 +102,20 @@ class SettingsController extends Controller
         ]);
 
         // Validate SMTP connectivity if host is provided
-        if (!empty($data['smtp_host'])) {
+        if (! empty($data['smtp_host'])) {
             try {
                 $this->testSmtpConnection($data);
             } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['smtp_host' => 'SMTP Connection failed: ' . $e->getMessage()]);
+                return back()->withInput()->withErrors(['smtp_host' => 'SMTP Connection failed: '.$e->getMessage()]);
             }
         }
 
         // Validate IMAP connectivity
-        if (!empty($data['imap_host'])) {
+        if (! empty($data['imap_host'])) {
             try {
                 $this->testImapConnection($data);
             } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['imap_host' => 'IMAP Connection failed: ' . $e->getMessage()]);
+                return back()->withInput()->withErrors(['imap_host' => 'IMAP Connection failed: '.$e->getMessage()]);
             }
         }
 
@@ -110,7 +133,7 @@ class SettingsController extends Controller
     {
         $encryption = $config['smtp_encryption'] ?? 'null';
         $scheme = 'smtp';
-        
+
         if ($encryption === 'ssl') {
             $scheme = 'smtps';
         }
@@ -127,7 +150,7 @@ class SettingsController extends Controller
         $transport = Transport::fromDsn($dsn);
         $mailer = new Mailer($transport);
 
-        $email = (new Email())
+        $email = (new Email)
             ->from($config['from_email'] ?? 'test@example.com')
             ->to('test@example.com')
             ->subject('SMTP Connection Test')
@@ -138,8 +161,8 @@ class SettingsController extends Controller
         // But attempt to send a dummy message will trigger connection
         // Alternatively, use EsmtpTransport specifically if available to call start()
         if (method_exists($transport, 'start')) {
-             $transport->start();
-             $transport->stop();
+            $transport->start();
+            $transport->stop();
         } else {
             // For general transports, we might need a dummy send or better verification
             // Since Esmtp is almost certainly used for 'smtp://' DSN:
@@ -160,15 +183,15 @@ class SettingsController extends Controller
     private function testImapConnection($config)
     {
         $encryption = $config['imap_encryption'] ?? 'null';
-        
+
         $client = \Webklex\IMAP\Facades\Client::make([
-            'host'          => $config['imap_host'],
-            'port'          => $config['imap_port'],
-            'encryption'    => $encryption === 'null' ? false : $encryption,
+            'host' => $config['imap_host'],
+            'port' => $config['imap_port'],
+            'encryption' => $encryption === 'null' ? false : $encryption,
             'validate_cert' => false, // Set to false for easier initial setup, or true for production
-            'username'      => $config['imap_user'],
-            'password'      => $config['imap_password'],
-            'protocol'      => 'imap'
+            'username' => $config['imap_user'],
+            'password' => $config['imap_password'],
+            'protocol' => 'imap',
         ]);
 
         $client->connect();

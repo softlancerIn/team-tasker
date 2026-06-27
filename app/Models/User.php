@@ -115,6 +115,7 @@ class User extends Authenticatable
     public function unreadChatMessagesCount()
     {
         $userId = $this->id;
+
         return \Illuminate\Support\Facades\DB::table('messages')
             ->join('conversation_participants', function ($join) use ($userId) {
                 $join->on('messages.conversation_id', '=', 'conversation_participants.conversation_id')

@@ -18,7 +18,7 @@ class Message extends Model
 
     public function getIsReadAttribute()
     {
-        return !is_null($this->read_at);
+        return ! is_null($this->read_at);
     }
 
     public function conversation()

@@ -32,7 +32,7 @@ class Admin extends Authenticatable
         if ($slug === 'client') {
             return false;
         }
-        
+
         return in_array($slug, ['admin', 'super-admin', 'manager']);
     }
 
@@ -57,6 +57,7 @@ class Admin extends Authenticatable
     public function unreadChatMessagesCount()
     {
         $userId = $this->id;
+
         return \Illuminate\Support\Facades\DB::table('messages')
             ->join('conversation_participants', function ($join) use ($userId) {
                 $join->on('messages.conversation_id', '=', 'conversation_participants.conversation_id')

@@ -18,26 +18,26 @@ class FirebaseChannel
      * Send the given notification.
      *
      * @param  mixed  $notifiable
-     * @param  \Illuminate\Notifications\Notification  $notification
      * @return void
      */
     public function send($notifiable, Notification $notification)
     {
-        if (!method_exists($notification, 'toFirebase')) {
-            \Illuminate\Support\Facades\Log::warning('FirebaseChannel: Notification ' . get_class($notification) . ' is missing toFirebase method.');
+        if (! method_exists($notification, 'toFirebase')) {
+            \Illuminate\Support\Facades\Log::warning('FirebaseChannel: Notification '.get_class($notification).' is missing toFirebase method.');
+
             return;
         }
 
         $message = $notification->toFirebase($notifiable);
-        
-        if (!$message) {
+
+        if (! $message) {
             return;
         }
 
         $fcmToken = $notifiable->fcm_token;
 
         if ($fcmToken) {
-            \Illuminate\Support\Facades\Log::info('FirebaseChannel: Sending notification to token ' . substr($fcmToken, 0, 10) . '...');
+            \Illuminate\Support\Facades\Log::info('FirebaseChannel: Sending notification to token '.substr($fcmToken, 0, 10).'...');
             $this->firebaseService->sendNotification(
                 $fcmToken,
                 $message['title'],

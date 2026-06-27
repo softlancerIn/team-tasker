@@ -17,6 +17,7 @@ class AuthController extends Controller
 
         if (Auth::check()) {
             $user = Auth::user();
+
             return redirect()->route($user->role_id == 3 ? 'client.dashboard' : 'dashboard');
         }
 
@@ -33,6 +34,7 @@ class AuthController extends Controller
         // First attempt as Super Admin using 'admin' guard
         if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password], $request->boolean('remember'))) {
             $request->session()->regenerate();
+
             return redirect()->route('dashboard');
         }
 
@@ -55,6 +57,7 @@ class AuthController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::user();
+
             return redirect()->route($user->role_id == 3 ? 'client.dashboard' : 'dashboard');
         }
 
@@ -86,6 +89,7 @@ class AuthController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::user();
+
             return redirect()->route($user->role_id == 3 ? 'client.dashboard' : 'dashboard');
         }
 

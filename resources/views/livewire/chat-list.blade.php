@@ -84,6 +84,7 @@ new class extends Component {
         // Let's assume Admin sees everyone. Client sees Staff.
 
         $isClient = Auth::user()->role_id == 3;
+        $isSuperAdmin = Auth::user()->role_id == 1;
 
         $usersQuery = User::where('id', '!=', $userId);
 
@@ -98,8 +99,15 @@ new class extends Component {
             ->pluck('allowed_user_id')
             ->toArray();
 
-        if (!empty($allowedIds)) {
-            $usersQuery->whereIn('id', $allowedIds);
+        if (!$isSuperAdmin) {
+            $usersQuery->where(function ($q) use ($allowedIds) {
+                // Always show Super Admins
+                $q->where('role_id', 1);
+                // Show explicitly allowed users
+                if (!empty($allowedIds)) {
+                    $q->orWhereIn('id', $allowedIds);
+                }
+            });
         }
 
         // Pre-load all private conversations for the current user

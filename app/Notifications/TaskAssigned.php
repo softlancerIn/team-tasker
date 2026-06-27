@@ -30,12 +30,12 @@ class TaskAssigned extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         $channels = ['database', Channels\FirebaseChannel::class];
-        
+
         $host = config('mail.mailers.smtp.host');
-        if (!empty($host) && $host !== 'mailpit' && $host !== '127.0.0.1' && $host !== 'localhost') {
+        if (! empty($host) && $host !== 'mailpit' && $host !== '127.0.0.1' && $host !== 'localhost') {
             $channels[] = 'mail';
         }
-        
+
         return $channels;
     }
 

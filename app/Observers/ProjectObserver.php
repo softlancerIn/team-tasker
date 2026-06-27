@@ -14,11 +14,11 @@ class ProjectObserver
     public function created(Project $project): void
     {
         $userId = Auth::check() ? Auth::id() : 1; // Fallback to 1 if seeded/system
-        
+
         TaskLog::create([
             'project_id' => $project->id,
             'user_id' => $userId,
-            'note' => 'Created project <span class="fw-bold">' . $project->name . '</span>',
+            'note' => 'Created project <span class="fw-bold">'.$project->name.'</span>',
             'type' => 'log',
         ]);
     }
@@ -31,11 +31,11 @@ class ProjectObserver
         $userId = Auth::check() ? Auth::id() : 1;
         $changes = $project->getDirty();
         $original = $project->getOriginal();
-        
+
         $note = 'Updated project details.';
-        
+
         if (isset($changes['status']) && isset($original['status'])) {
-            $note = 'Changed project status from <span class="badge bg-secondary">' . $original['status'] . '</span> to <span class="badge bg-primary">' . $changes['status'] . '</span>';
+            $note = 'Changed project status from <span class="badge bg-secondary">'.$original['status'].'</span> to <span class="badge bg-primary">'.$changes['status'].'</span>';
         }
 
         TaskLog::create([

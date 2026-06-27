@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
 {
@@ -17,6 +16,7 @@ class ProjectController extends Controller
     public function create()
     {
         $users = User::all();
+
         return view('admin.projects.create', compact('users'));
     }
 
@@ -33,7 +33,7 @@ class ProjectController extends Controller
         ]);
 
         $project = Project::create($request->except('user_ids'));
-        
+
         if ($request->has('user_ids')) {
             $project->users()->sync($request->user_ids);
         }
@@ -45,13 +45,14 @@ class ProjectController extends Controller
     {
         $project = Project::with(['tasks.status', 'tasks.assignedTo', 'tasks.users', 'users'])->findOrFail($id);
         $unassignedTasks = \App\Models\Task::whereNull('project_id')->orWhere('project_id', '!=', $project->id)->get();
+
         return view('admin.projects.show', compact('project', 'unassignedTasks'));
     }
 
     public function assignTask(Request $request, $id)
     {
         $project = Project::findOrFail($id);
-        
+
         $request->validate([
             'task_id' => 'required|exists:tasks,id',
         ]);
@@ -71,6 +72,7 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($id);
         $users = User::all();
+
         return view('admin.projects.edit', compact('project', 'users'));
     }
 
@@ -89,7 +91,7 @@ class ProjectController extends Controller
         ]);
 
         $project->update($request->except('user_ids'));
-        
+
         if ($request->has('user_ids')) {
             $project->users()->sync($request->user_ids);
         } else {

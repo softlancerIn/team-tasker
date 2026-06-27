@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Ticket extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'ticket_number',
         'subject',
@@ -50,4 +51,3 @@ class Ticket extends Model
         return $this->hasMany(Task::class);
     }
 }
-

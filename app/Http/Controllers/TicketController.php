@@ -189,7 +189,7 @@ class TicketController extends Controller
             $project = \App\Models\Project::with('users')->find($request->project_id);
             if ($project) {
                 $projectManagerIds = $project->users->pluck('id')->toArray();
-                if (!empty($projectManagerIds)) {
+                if (! empty($projectManagerIds)) {
                     $task->users()->sync($projectManagerIds);
                 }
             }

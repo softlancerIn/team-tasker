@@ -26,6 +26,7 @@ class GenerateAiSummaries extends Command
 
         if ($logs->isEmpty()) {
             $this->info('No task logs found for today.');
+
             return;
         }
 
@@ -40,9 +41,9 @@ class GenerateAiSummaries extends Command
         $logText = implode("\n", $logEntries);
 
         // 3. Construct the prompt
-        $prompt = "You are a professional project manager. Summarize the following daily activity logs into a concise, professional executive summary. Highlight major completions, ongoing work, and any obvious blockers. Do not use generic filler.\n\nLogs:\n" . $logText;
+        $prompt = "You are a professional project manager. Summarize the following daily activity logs into a concise, professional executive summary. Highlight major completions, ongoing work, and any obvious blockers. Do not use generic filler.\n\nLogs:\n".$logText;
 
-        $this->info('Sending ' . count($logs) . ' logs to AI for processing...');
+        $this->info('Sending '.count($logs).' logs to AI for processing...');
 
         // 4. API Call (Using OpenAI as an example)
         $apiKey = env('OPENAI_API_KEY');
@@ -50,6 +51,7 @@ class GenerateAiSummaries extends Command
             $this->error('OPENAI_API_KEY is not set in the .env file.');
             $this->warn('Here is the generated prompt for testing:');
             $this->line($prompt);
+
             return;
         }
 
@@ -59,25 +61,25 @@ class GenerateAiSummaries extends Command
                     'model' => 'gpt-4o-mini',
                     'messages' => [
                         ['role' => 'system', 'content' => 'You are an executive project assistant.'],
-                        ['role' => 'user', 'content' => $prompt]
+                        ['role' => 'user', 'content' => $prompt],
                     ],
                     'max_tokens' => 500,
                 ]);
 
             if ($response->successful()) {
                 $summary = $response->json('choices.0.message.content');
-                
+
                 // 5. Store or Distribute (Here we just log it, but typically save to DB or email)
-                $this->info("=== AI Generated Summary ===");
+                $this->info('=== AI Generated Summary ===');
                 $this->line($summary);
-                $this->info("============================");
+                $this->info('============================');
 
                 // TODO: Save to a daily_summaries table or send via email notification
             } else {
-                $this->error('API Error: ' . $response->body());
+                $this->error('API Error: '.$response->body());
             }
         } catch (\Exception $e) {
-            $this->error('Failed to communicate with AI API: ' . $e->getMessage());
+            $this->error('Failed to communicate with AI API: '.$e->getMessage());
         }
     }
 }

@@ -37,16 +37,16 @@ class FirebaseService
             'notification' => [
                 'title' => $title,
                 'body' => $body,
-            ]
+            ],
         ];
 
-        if (!empty($extraData)) {
+        if (! empty($extraData)) {
             $message['data'] = $extraData;
         }
 
         return Http::withToken($accessToken)
             ->post($url, [
-                'message' => $message
+                'message' => $message,
             ])
             ->json();
     }

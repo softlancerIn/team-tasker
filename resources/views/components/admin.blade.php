@@ -757,10 +757,11 @@
 <body>
     @php
         $notificationCount = Auth::check() ? Auth::user()->unreadNotifications->count() : 0;
+        $globalActiveTimer = Auth::check() ? \App\Models\TimeLog::where('user_id', Auth::id())->whereNull('end_time')->first() : null;
     @endphp
 
     @if(!$fullscreen)
-    <header class="layout-header-premium">
+    <header class="layout-header-premium" style="border-top: 3px solid {{ $globalActiveTimer ? 'var(--danger)' : 'var(--primary)' }};">
         @php
             $appSettings = \App\Models\Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
             $appName = $appSettings['app_name'] ?? 'TeamTasker';
@@ -965,6 +966,10 @@
                             class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.email') ? 'active' : '' }}">
                             <i class="fas fa-envelope"></i> Email Integration
                         </a>
+                        <a href="{{ route('admin.settings.autostop') }}"
+                            class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.autostop') ? 'active' : '' }}">
+                            <i class="fas fa-stopwatch"></i> Auto Stop Timer
+                        </a>
                         @if (Auth::user()->hasPermission('users.view'))
                             <a href="{{ route('admin.users.index') }}"
                                 class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
@@ -1113,7 +1118,7 @@
                     <div class="toast-body">
                         <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-toast="toast"
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
                         aria-label="Close"></button>
                 </div>
             </div>
@@ -1136,6 +1141,13 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Toasts
+            const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            const toastList = toastElList.map(function(toastEl) {
+                return new bootstrap.Toast(toastEl, { delay: 4000 });
+            });
+            toastList.forEach(toast => toast.show());
+
             // Theme Toggle Logic
             const themeToggle = document.getElementById('themeToggle');
             const icon = themeToggle.querySelector('i');

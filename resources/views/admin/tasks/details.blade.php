@@ -29,14 +29,22 @@
                     </button>
                     <input type="hidden" id="startTimeValue" value="{{ $activeTimer->start_time->toIso8601String() }}">
                 </form>
-            @else
+                @elseif($globalActiveTimer && $globalActiveTimer->task_id != $task->id)
+                <button type="button" class="btn-premium btn-premium-primary py-2 px-4 shadow-sm" 
+                    data-bs-toggle="modal" data-bs-target="#switchTimerModal">
+                    <i class="fas fa-play me-2"></i> Start Timer
+                </button>
+                <form id="forceStartForm" action="{{ route('tasks.start_timer', $task->id) }}?force=1" method="POST" class="d-none">
+                    @csrf
+                </form>
+                @else
                 <form action="{{ route('tasks.start_timer', $task->id) }}" method="POST" class="d-inline">
                     @csrf
                     <button type="submit" class="btn-premium btn-premium-primary py-2 px-4 shadow-sm">
                         <i class="fas fa-play me-2"></i> Start Timer
                     </button>
                 </form>
-            @endif
+                @endif
             @endif
 
             <a href="{{ route('edit', $task->id) }}" class="btn-premium btn-premium-secondary py-2 px-4">
@@ -438,18 +446,18 @@
                 </div>
                 <div class="mb-0">
                     <div class="text-muted small">Owner</div>
-                    <div class="d-flex align-items-center gap-2 mt-1">
-                        <div class="avatar" style="width: 24px; height: 24px; font-size: 0.6rem;">
-                            {{ substr(Auth::user()->name, 0, 1) }}</div>
-                        <span class="text-main small">{{ Auth::user()->name }}</span>
+                    <div class="d-inline-flex align-items-center gap-2 rounded-pill px-2 py-1 border border-secondary">
+                        <div class="avatar-premium" style="width: 24px; height: 24px; font-size: 0.6rem;">
+                            {{ substr($task->assignedTo->name, 0, 1) }}</div>
+                        <span class="text-main small">{{ $task->assignedTo->name }}</span>
                     </div>
                 </div>
                 <div class="mb-0 mt-3">
                     <div class="text-muted small">Followers</div>
                     <div class="d-flex flex-wrap gap-2 mt-1">
                         @forelse($task->users as $follower)
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="avatar" style="width: 24px; height: 24px; font-size: 0.6rem;">
+                            <div class="d-flex align-items-center gap-2 rounded-pill px-2 py-1 border border-secondary">
+                                <div class="avatar-premium" style="width: 24px; height: 24px; font-size: 0.6rem;">
                                     {{ substr($follower->name, 0, 1) }}</div>
                                 <span class="text-main small">{{ $follower->name }}</span>
                             </div>
@@ -559,6 +567,33 @@
             color: rgba(255, 255, 255, 0.5) !important;
         }
     </style>
+
+    @if(isset($globalActiveTimer) && $globalActiveTimer && $globalActiveTimer->task_id != $task->id)
+    <!-- Switch Timer Modal -->
+    <div class="modal fade" id="switchTimerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-premium" style="border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface); backdrop-filter: blur(20px);">
+                <div class="modal-header border-0 px-4 pt-4 pb-0">
+                    <h5 class="modal-title fw-bold text-high">Active Timer Detected</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-4">
+                    <p class="text-medium mb-3">You already have an active timer running for task:</p>
+                    <div class="p-3 mb-3" style="background: var(--bg-input); border-radius: 12px; border: 1px solid var(--border-main);">
+                        <div class="fw-bold text-primary">{{ $globalActiveTimer->task->title ?? 'Unknown Task' }}</div>
+                    </div>
+                    <p class="text-medium mb-0">Do you want to stop that timer and start a new one for this task?</p>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 pt-0">
+                    <button type="button" class="btn-premium btn-premium-secondary py-2 px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn-premium py-2 px-4" style="background: var(--primary); color: white;" onclick="document.getElementById('forceStartForm').submit();">
+                        <i class="fas fa-exchange-alt me-2"></i> Switch Timer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <script>
         setTimeout(function() {

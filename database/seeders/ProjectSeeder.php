@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ProjectSeeder extends Seeder
@@ -13,7 +12,7 @@ class ProjectSeeder extends Seeder
     public function run(): void
     {
         $users = \App\Models\User::pluck('id')->toArray();
-        
+
         if (empty($users)) {
             $users = [\App\Models\User::factory()->create()->id];
         }
@@ -39,7 +38,7 @@ class ProjectSeeder extends Seeder
                 'status' => 'Completed',
                 'start_date' => now()->subDays(60),
                 'deadline' => now()->subDays(5),
-            ]
+            ],
         ];
 
         foreach ($projects as $projectData) {

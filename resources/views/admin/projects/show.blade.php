@@ -93,7 +93,7 @@
                     <div class="text-low small mb-1">Project Managers</div>
                     <div class="d-flex flex-wrap gap-2 mt-1">
                         @forelse($project->users as $manager)
-                            <div class="d-flex align-items-center gap-2 bg-dark rounded-pill px-2 py-1 border border-secondary">
+                            <div class="d-flex align-items-center gap-2 rounded-pill px-2 py-1 border border-secondary">
                                 <div class="avatar-premium" style="width: 24px; height: 24px; font-size: 0.7rem; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
                                     {{ substr($manager->name, 0, 1) }}
                                 </div>

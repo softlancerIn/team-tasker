@@ -95,7 +95,9 @@ new class extends Component {
     {
         $user = Auth::user();
 
-        $tasks = Task::with(['assignedTo', 'status', 'tags'])
+        $tasks = Task::with(['assignedTo', 'status', 'tags', 'timeLogs' => function($query) use ($user) {
+            $query->where('user_id', $user->id)->whereNull('end_time');
+        }])
             ->when(!$user->hasPermission('tasks.view_all'), function ($q) use ($user) {
                 $q->where(function ($q2) use ($user) {
                     $q2->where('user_id', $user->id)
@@ -122,6 +124,7 @@ new class extends Component {
             'tags' => Tag::all(),
             'users' => User::select('id', 'name')->where('role_id', '!=', 3)->orderBy('name')->get(),
             'priorities' => ['Low', 'Medium', 'High', 'Critical'],
+            'globalActiveTimer' => \App\Models\TimeLog::with('task')->where('user_id', $user->id)->whereNull('end_time')->first(),
         ];
     }
 };
@@ -244,8 +247,32 @@ new class extends Component {
                                 </div>
                             </td>
                             <td class="text-low">{{ $task->created_at->format('M d, Y') }}</td>
-                            <td class="text-end pe-4">
-                                <a href="{{ route('details', $task->id) }}" class="action-link"><i class="fas fa-eye"></i></a>
+                            <td class="text-end pe-4 d-flex align-items-center justify-content-end gap-2">
+                                @if (Auth::id() == $task->assigned_to)
+                                    @php
+                                        $activeTimer = $task->timeLogs->first();
+                                    @endphp
+                                    @if ($activeTimer)
+                                        <form action="{{ route('tasks.stop_timer', $task->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="action-link text-danger border-0 bg-transparent p-0" title="Stop Timer">
+                                                <i class="fas fa-stop-circle fa-lg"></i>
+                                            </button>
+                                        </form>
+                                    @elseif(isset($globalActiveTimer) && $globalActiveTimer)
+                                        <button type="button" class="action-link text-primary border-0 bg-transparent p-0" title="Start Timer" data-bs-toggle="modal" data-bs-target="#switchTimerModal" onclick="document.getElementById('forceStartForm').action = '{{ route('tasks.start_timer', $task->id) }}?force=1'">
+                                            <i class="fas fa-play-circle fa-lg"></i>
+                                        </button>
+                                    @else
+                                        <form action="{{ route('tasks.start_timer', $task->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="action-link text-primary border-0 bg-transparent p-0" title="Start Timer">
+                                                <i class="fas fa-play-circle fa-lg"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endif
+                                <a href="{{ route('details', $task->id) }}" class="action-link ms-2"><i class="fas fa-eye"></i></a>
                                 <a href="{{ route('edit', $task->id) }}" class="action-link"><i class="fas fa-pencil-alt"></i></a>
                             </td>
                         </tr>
@@ -324,6 +351,37 @@ new class extends Component {
             </div>
         </div>
     </div>
+
+    @if(isset($globalActiveTimer) && $globalActiveTimer)
+    <!-- Switch Timer Modal -->
+    <div class="modal fade" id="switchTimerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-premium" style="border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface); backdrop-filter: blur(20px);">
+                <div class="modal-header border-0 px-4 pt-4 pb-0">
+                    <h5 class="modal-title fw-bold text-high">Active Timer Detected</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-4">
+                    <p class="text-medium mb-3">You already have an active timer running for task:</p>
+                    <div class="p-3 mb-3" style="background: var(--bg-input); border-radius: 12px; border: 1px solid var(--border-main);">
+                        <div class="fw-bold text-primary">{{ $globalActiveTimer->task->title ?? 'Unknown Task' }}</div>
+                    </div>
+                    <p class="text-medium mb-0">Do you want to stop that timer and start a new one for this task?</p>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 pt-0">
+                    <button type="button" class="btn-premium btn-premium-secondary py-2 px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn-premium py-2 px-4" style="background: var(--primary); color: white;" onclick="document.getElementById('forceStartForm').submit();">
+                        <i class="fas fa-exchange-alt me-2"></i> Switch Timer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <form id="forceStartForm" action="" method="POST" class="d-none">
+        @csrf
+    </form>
+    @endif
 
     <style>
         .bulk-action-bar {
