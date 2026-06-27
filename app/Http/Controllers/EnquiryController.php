@@ -13,7 +13,7 @@ class EnquiryController extends Controller
     public function create()
     {
         if (auth()->check()) {
-            if (auth()->user()->role_id == 3) {
+            if (auth('client')->check()) {
                 return redirect()->route('client.tickets.create');
             }
 

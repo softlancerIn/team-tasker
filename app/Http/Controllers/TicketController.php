@@ -15,6 +15,14 @@ class TicketController extends Controller
     public function index(Request $request)
     {
         $query = Ticket::with('user', 'assignedTo')->latest();
+        
+        $user = auth()->user();
+        $isTicketAdmin = $user->hasRole('super-admin') || $user->hasRole('admin') || $user->hasPermission('tickets.view_all');
+        if (! $isTicketAdmin) {
+            $query->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)->orWhere('assigned_to', $user->id);
+            });
+        }
 
         if ($request->has('priority')) {
             $query->where('priority', $request->priority);
@@ -32,14 +40,14 @@ class TicketController extends Controller
             $query->whereDate('updated_at', $request->updated_at);
         }
 
-        $tickets = $query->paginate(15);
+        $tickets = $query->paginate(request('per_page', 15));
 
         return view('admin.tickets.index', compact('tickets'));
     }
 
     public function create()
     {
-        $clients = User::select('id', 'name', 'email')->where('role_id', 3)->orderBy('name')->get();
+        $clients = \App\Models\Client::select('id', 'name', 'email')->orderBy('name')->get();
         $staff = User::select('id', 'name')->where('role_id', '!=', 3)->orderBy('name')->get();
 
         return view('admin.tickets.create', compact('clients', 'staff'));
@@ -62,7 +70,7 @@ class TicketController extends Controller
         }
 
         Ticket::create([
-            'user_id' => $request->client_id,
+            'client_id' => $request->client_id,
             'subject' => $request->subject,
             'priority' => $request->priority,
             'body' => $request->body,
@@ -177,6 +185,7 @@ class TicketController extends Controller
         $task = \App\Models\Task::create([
             'ticket_id' => $ticket->id,
             'user_id' => Auth::id(), // Created by current staff
+            'client_id' => $ticket->client_id,
             'assigned_to' => $ticket->assigned_to,
             'title' => $ticket->subject,
             'description' => $ticket->body,

@@ -44,7 +44,7 @@ class TeamController extends Controller
             $query->whereDate('updated_at', $request->updated_at);
         }
 
-        $users = $query->paginate(15);
+        $users = $query->paginate(request('per_page', 15));
         $roles = Role::all();
 
         return view('admin.users.index', compact('users', 'roles'));
@@ -54,7 +54,7 @@ class TeamController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255|unique:users|unique:clients',
             'password' => 'required|string|min:8',
             'role_id' => 'nullable|exists:roles,id',
         ]);
@@ -76,7 +76,7 @@ class TeamController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
+            'email' => 'required|string|email|max:255|unique:users,email,'.$user->id.'|unique:clients',
             'role_id' => 'nullable|exists:roles,id',
         ]);
 
@@ -170,7 +170,7 @@ class TeamController extends Controller
 
     public function roles()
     {
-        $roles = Role::withCount('users')->paginate(15);
+        $roles = Role::withCount('users')->paginate(request('per_page', 15));
 
         return view('admin.roles.index', compact('roles'));
     }

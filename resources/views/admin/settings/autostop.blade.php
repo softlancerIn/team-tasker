@@ -12,6 +12,15 @@
     </div>
 
     <div class="card-premium mt-3">
+        @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
         <form id="autostopForm" action="{{ route('admin.settings.autostop.store') }}" method="POST">
             @csrf
             

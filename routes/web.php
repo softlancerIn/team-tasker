@@ -18,6 +18,11 @@ Route::controller(AuthController::class)->group(function () {
     Route::get('/client/register', 'clientRegisterPage')->name('clientRegisterPage');
     Route::post('/client/register', 'clientRegister')->name('clientRegister');
 
+    // OTP Verification
+    Route::get('/verify-otp', 'verifyOtpPage')->name('verifyOtpPage');
+    Route::post('/verify-otp', 'verifyOtp')->name('verifyOtp');
+    Route::post('/resend-otp', 'resendOtp')->name('resendOtp');
+
     Route::get('/forgotPassword', 'forgotPasswordPage')->name('forgotPasswordPage');
     Route::post('/forgotPassword', 'forgotPassword')->name('forgotPassword');
     Route::get('/reset-password', 'resetPasswordPage')->name('resetPasswordPage');
@@ -150,7 +155,7 @@ Route::middleware(['web', 'auth:web,admin'])->controller(TeamController::class)-
 });
 
 // Client Support Portal
-Route::middleware(['web', 'auth:web,admin'])->prefix('client')->group(function () {
+Route::middleware(['web', 'auth:client,admin'])->prefix('client')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\ClientController::class, 'dashboard'])->name('client.dashboard');
     Route::get('/tickets/create', [App\Http\Controllers\ClientController::class, 'create'])->name('client.tickets.create');
     Route::post('/tickets', [App\Http\Controllers\ClientController::class, 'store'])->name('client.tickets.store');
@@ -165,6 +170,12 @@ Route::middleware(['web', 'auth:web,admin'])->prefix('client')->group(function (
     Route::get('/chat', function () {
         return view('client.chat.index');
     })->name('client.chat.index');
+
+    // Client Profile Update
+    Route::post('/profile/update', [App\Http\Controllers\ClientController::class, 'updateProfile'])->name('client.profile.update');
+
+    // Client Notifications
+    Route::post('/notifications/mark-as-read', [App\Http\Controllers\ClientController::class, 'markNotificationsRead'])->name('client.notifications.markAsRead');
 });
 
 // Consolidated Settings

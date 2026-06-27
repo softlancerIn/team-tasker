@@ -183,7 +183,7 @@
                             <div class="position-relative">
                                 <div class="avatar-premium"
                                     style="width: 36px; height: 36px; font-size: 0.8rem; border: 2px solid var(--border-main);">
-                                    {{ substr($log->user->name, 0, 1) }}
+                                    {{ substr($log->user->name ?? $log->client->name ?? 'U', 0, 1) }}
                                 </div>
                                 @if (!$loop->last)
                                     <div class="position-absolute start-50 top-100 border-start"
@@ -194,7 +194,7 @@
                             <div class="flex-grow-1 overflow-hidden">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="fw-bold"
-                                        style="color: var(--text-high); font-size: 0.85rem;">{{ $log->user->name }}</span>
+                                        style="color: var(--text-high); font-size: 0.85rem;">{{ $log->user->name ?? $log->client->name ?? 'Unknown User' }}</span>
                                     <span class="text-low"
                                         style="font-size: 0.65rem;">{{ $log->created_at->diffForHumans() }}</span>
                                 </div>

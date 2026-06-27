@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Role;
-use App\Models\User;
+use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -13,7 +13,7 @@ class AdminClientController extends Controller
     {
         // Assuming role_id 3 is Client based on previous context.
         // Better to fetch role by name if possible, but ID 3 was used in ClientController.
-        $clients = User::where('role_id', 3)
+        $clients = Client::query()
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -28,7 +28,7 @@ class AdminClientController extends Controller
             })
             ->withCount('tickets') // Assuming relationship exists, or I need to add it to User model
             ->latest()
-            ->paginate(10);
+            ->paginate(request('per_page', 10));
 
         return view('admin.clients.index', compact('clients'));
     }
@@ -42,18 +42,18 @@ class AdminClientController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255|unique:clients|unique:users',
             'password' => 'required|string|min:8',
             'phone' => 'nullable|string|max:20',
             'company' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);
 
-        User::create([
+        Client::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role_id' => 3, // Client Role
+             // Client Role
             'phone' => $request->phone,
             'company' => $request->company,
             'status' => $request->status ?? 'active', // Assuming detail says authorized/approved?
@@ -66,24 +66,20 @@ class AdminClientController extends Controller
 
     public function edit($id)
     {
-        $client = User::findOrFail($id);
-        if ($client->role_id != 3) { // Ensure it's a client
-            abort(403, 'User is not a client');
-        }
+        $client = Client::findOrFail($id);
+        
 
         return view('admin.clients.edit', compact('client'));
     }
 
     public function update(Request $request, $id)
     {
-        $client = User::findOrFail($id);
-        if ($client->role_id != 3) {
-            abort(403, 'User is not a client');
-        }
+        $client = Client::findOrFail($id);
+        
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,'.$id,
+            'email' => 'required|string|email|max:255|unique:clients,email,' . $id . '|unique:users',
             'password' => 'nullable|string|min:8',
             'phone' => 'nullable|string|max:20',
             'company' => 'nullable|string|max:255',
@@ -109,10 +105,8 @@ class AdminClientController extends Controller
 
     public function destroy($id)
     {
-        $client = User::findOrFail($id);
-        if ($client->role_id != 3) {
-            abort(403, 'User is not a client');
-        }
+        $client = Client::findOrFail($id);
+        
 
         // Check for tickets
         if ($client->tickets()->exists()) {

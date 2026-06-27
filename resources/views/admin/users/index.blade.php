@@ -47,8 +47,8 @@
         </div>
         <div class="mb-4">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">Administrative Role</label>
-            <x-select name="role_id" placeholder="Guest Access (No Role)">
-                <option value="" class="bg-dark">Guest Access (No Role)</option>
+            <x-select name="role_id" placeholder="Normal User">
+                <option value="" class="bg-dark">Normal User</option>
                 @foreach ($roles as $role)
                     <option value="{{ $role->id }}" class="bg-dark">{{ $role->name }}</option>
                 @endforeach
@@ -186,7 +186,7 @@
                                     @if ($user->role)
                                         <span class="text-high fw-medium">{{ $user->role->name }}</span>
                                     @else
-                                        <span class="text-low italic">No role</span>
+                                        <span class="text-low italic">Normal User</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
@@ -307,8 +307,8 @@
             </div>
             <div class="mb-4">
                 <label class="heading-label mb-2" style="font-size: 0.7rem;">Access Permissions</label>
-                <x-select name="role_id" placeholder="Unassigned Role">
-                    <option value="" class="bg-dark">Unassigned Role</option>
+                <x-select name="role_id" placeholder="Normal User">
+                    <option value="" class="bg-dark">Normal User</option>
                     @foreach ($roles as $role)
                         <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}
                             class="bg-dark">

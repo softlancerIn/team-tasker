@@ -53,7 +53,7 @@ class SettingsController extends Controller
     public function statuses()
     {
         // Fetch existing statuses
-        $statuses = Status::orderBy('order')->paginate(15);
+        $statuses = Status::orderBy('order')->paginate(request('per_page', 15));
 
         return view('admin.settings.statuses', compact('statuses'));
     }

@@ -94,6 +94,7 @@
                     menubar: false,
                     statusbar: false,
                     resize: false,
+                    toolbar_mode: 'sliding',
                     toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | forecolor backcolor | table | bullist numlist',
                     extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
                     valid_elements: '*[*]',
@@ -228,6 +229,52 @@
             const newTheme = e.detail && e.detail.theme ? e.detail.theme : localStorage.getItem('theme');
             window.initGlobalEditors(newTheme);
         });
+
+        // ── Rich Editor Form Submit Fix ──────────────────────────────────────────
+        // TinyMCE hides the original <textarea>, so `required` blocks submission.
+        // Before any form submits, we: 1) sync all TinyMCE instances to their
+        // underlying textarea, 2) check data-required fields are non-empty.
+        document.addEventListener('submit', function(e) {
+            if (typeof tinymce === 'undefined') return;
+
+            const form = e.target;
+
+            // 1. Sync every TinyMCE editor that lives inside this form
+            tinymce.editors.forEach(function(editor) {
+                const el = document.getElementById(editor.id);
+                if (el && form.contains(el)) {
+                    editor.save(); // copies editor content into the textarea
+                }
+            });
+
+            // 2. Validate data-required textareas (the ones we stripped `required` from)
+            const requiredEditors = form.querySelectorAll('textarea[data-required="true"]');
+            for (let ta of requiredEditors) {
+                const val = (ta.value || '').replace(/<[^>]*>/g, '').trim(); // strip HTML tags
+                if (!val) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Highlight the TinyMCE container visually
+                    const editorContainer = ta.nextElementSibling;
+                    if (editorContainer && editorContainer.classList.contains('tox-tinymce')) {
+                        editorContainer.style.border = '1px solid #ef4444';
+                        editorContainer.style.borderRadius = '8px';
+                        setTimeout(() => {
+                            editorContainer.style.border = '';
+                            editorContainer.style.borderRadius = '';
+                        }, 3000);
+                    }
+                    // Show a SweetAlert if available, else a plain alert
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'warning', title: 'Required Field', text: 'Please fill in the description field.', confirmButtonColor: '#6366f1' });
+                    } else {
+                        alert('Please fill in the description field.');
+                    }
+                    return false;
+                }
+            }
+        }, true); // `true` = capture phase, fires before native validation
+
 
         // Global Chat Messages Component
         window.chatMessages = (wire, props) => ({
@@ -469,7 +516,7 @@
 
 <body>
     @php
-        $notificationCount = Auth::check() ? Auth::user()->unreadNotifications->count() : 0;
+        $notificationCount = Auth::guard('client')->check() ? Auth::guard('client')->user()->unreadNotifications->count() : 0;
     @endphp
 
     @if(!$fullscreen)
@@ -525,10 +572,10 @@
                     style="cursor: pointer; display: flex; align-items: center; gap: 10px;">
                     <div class="avatar-premium"
                         style="width: 38px; height: 38px; border: 1px solid var(--border-main);">
-                        @if (Auth::user()->profile_image)
-                            <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile">
+                        @if (Auth::guard('client')->user()->profile_image)
+                            <img src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile">
                         @else
-                            {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
+                            {{ substr(Auth::guard('client')->user()->name ?? 'U', 0, 1) }}
                         @endif
                     </div>
                 </div>
@@ -537,8 +584,8 @@
                     <li class="px-3 py-3"
                         style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-input); border-radius: 12px 12px 0 0;">
                         <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-high);">
-                            {{ Auth::user()->name }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-low);">{{ Auth::user()->email }}</div>
+                            {{ Auth::guard('client')->user()->name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-low);">{{ Auth::guard('client')->user()->email }}</div>
                     </li>
                     <li><a class="dropdown-item py-2 mt-1" href="#" data-bs-toggle="modal"
                             data-bs-target="#profileModal"><i class="fas fa-user-edit me-2 text-primary"></i> Edit
@@ -558,27 +605,22 @@
     <aside class="sidebar-premium">
 
         <nav>
-            @if (Auth::user()->hasPermission('tickets.view'))
-                <a href="{{ route('client.dashboard') }}"
-                    class="nav-link-premium {{ request()->routeIs('client.dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-ticket-alt"></i> My Tickets
+            <a href="{{ route('client.dashboard') }}"
+                class="nav-link-premium {{ request()->routeIs('client.dashboard') ? 'active' : '' }}">
+                <i class="fas fa-home"></i> Dashboard
+            <a href="{{ route('client.dashboard') }}#tickets"
+                    class="nav-link-premium {{ request()->routeIs('client.tickets.*') ? 'active' : '' }}">
+                    <i class="fas fa-ticket-alt"></i> Tickets
                 </a>
-            @endif
-
-            @if (Auth::user()->hasPermission('tickets.create'))
-                <a href="{{ route('client.tickets.create') }}"
-                    class="nav-link-premium {{ request()->routeIs('client.tickets.create') ? 'active' : '' }}">
-                    <i class="fas fa-plus-circle"></i> New Ticket
+            <a href="{{ route('client.dashboard') }}#tasks"
+                    class="nav-link-premium {{ request()->routeIs('client.tasks.*') ? 'active' : '' }}">
+                    <i class="fas fa-tasks"></i> Tasks
                 </a>
-            @endif
-
-            @if (Auth::user()->hasPermission('chat.view'))
-                <a href="{{ route('client.chat.index') }}"
-                    class="nav-link-premium d-flex justify-content-between align-items-center {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
-                    <div><i class="fas fa-comments"></i> Chat</div>
+            <a href="{{ route('client.chat.index') }}"
+                    class="nav-link-premium d-flex align-items-center {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
+                    <i class="fas fa-comments"></i> Chats
                     <livewire:global-chat-badge />
                 </a>
-            @endif
         </nav>
     </aside>
     @endif
@@ -601,7 +643,7 @@
                     <div class="px-4 py-2 d-flex justify-content-between align-items-center">
                         <span class="text-low small">{{ $notificationCount }} Unread</span>
                         @if ($notificationCount > 0)
-                            <form action="{{ route('notifications.markAsRead') }}" method="POST">
+                            <form action="{{ route('client.notifications.markAsRead') }}" method="POST">
                                 @csrf
                                 <button type="submit"
                                     class="btn btn-link text-primary text-decoration-none p-0 small"
@@ -610,7 +652,7 @@
                         @endif
                     </div>
                     <div class="notification-list-wrapper" style="max-height: 400px; overflow-y: auto;">
-                        @forelse (Auth::user()->notifications()->latest()->take(20)->get() as $notification)
+                        @forelse (Auth::guard('client')->user()->notifications()->latest()->take(20)->get() as $notification)
                             @php
                                 $type = 'task';
                                 $icon = 'fa-tasks';
@@ -666,15 +708,15 @@
 
     <!-- Profile Edit Modal -->
     <x-modal id="profileModal" title="Edit Profile" submitText="Save Changes"
-        formAction="{{ route('profile.update') }}" enctype="multipart/form-data">
+        formAction="{{ route('client.profile.update') }}" enctype="multipart/form-data">
         <div class="text-center mb-4">
             <div class="avatar-premium mx-auto mb-3"
                 style="width: 72px; height: 72px; font-size: 1.75rem; border: 3px solid var(--border-main);">
-                @if (Auth::user()->profile_image)
-                    <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile"
+                @if (Auth::guard('client')->user()->profile_image)
+                    <img src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile"
                         style="width: 100%; height: 100%; object-fit: cover;">
                 @else
-                    {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
+                    {{ substr(Auth::guard('client')->user()->name ?? 'U', 0, 1) }}
                 @endif
             </div>
             <div class="text-low small mb-2">Update your profile picture</div>
@@ -682,18 +724,18 @@
         </div>
         <div class="mb-3">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">Full Name</label>
-            <input type="text" name="name" value="{{ Auth::user()->name }}" class="form-premium-control"
+            <input type="text" name="name" value="{{ Auth::guard('client')->user()->name }}" class="form-premium-control"
                 required>
         </div>
         <div class="mb-3">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">Email Address</label>
-            <input type="email" name="email" value="{{ Auth::user()->email }}" class="form-premium-control"
+            <input type="email" name="email" value="{{ Auth::guard('client')->user()->email }}" class="form-premium-control"
                 required>
         </div>
         <div class="mb-3">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">New Password <span class="text-low"
                     style="font-weight: 400;">(leave blank to keep current)</span></label>
-            <input type="password" name="password" class="form-premium-control" placeholder="••••••••">
+            <input type="password" name="password" class="form-premium-control" placeholder="ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢">
         </div>
     </x-modal>
 

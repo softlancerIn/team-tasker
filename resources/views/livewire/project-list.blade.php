@@ -27,7 +27,14 @@ new class extends Component {
     public $bulkStatus = '';
     public $bulkManager = '';
 
-    protected $queryString = ['search', 'status', 'user_id', 'created_at', 'updated_at', 'sortField', 'sortDirection'];
+    protected $queryString = ['search', 'status', 'user_id', 'created_at', 'updated_at', 'sortField', 'sortDirection', 'perPage' => ['as' => 'per_page']];
+
+    public function mount()
+    {
+        if (request()->has('per_page')) {
+            $this->perPage = request('per_page');
+        }
+    }
 
     public function updated($property)
     {

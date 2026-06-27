@@ -16,6 +16,7 @@ class Ticket extends Model
         'status',
         'priority',
         'user_id',
+        'client_id',
         'assigned_to',
         'email_source',
         'attachments',
@@ -34,6 +35,11 @@ class Ticket extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
     }
 
     public function assignedTo()

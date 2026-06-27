@@ -351,6 +351,7 @@
                     menubar: false,
                     statusbar: false,
                     resize: false,
+                    toolbar_mode: 'sliding',
                     toolbar: 'undo redo | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | forecolor backcolor | table | bullist numlist',
                     extended_valid_elements: 'i[class|style],table[class|style],th[class|style],td[class|style],h1[class|style],h2[class|style],h3[class|style],h4[class|style],h5[class|style],h6[class|style]',
                     valid_elements: '*[*]',
@@ -752,6 +753,7 @@
             }
         }
     </style>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -767,11 +769,11 @@
             $appName = $appSettings['app_name'] ?? 'TeamTasker';
             $appLogo = $appSettings['app_logo'] ?? null;
         @endphp
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
             <button class="mobile-toggle-premium d-lg-none" id="mobileSidebarToggle" style="margin-right: 0;">
                 <i class="fas fa-bars"></i>
             </button>
-            <a href="{{ route('index') }}" class="sidebar-brand text-decoration-none p-0 border-0 bg-transparent">
+            <a href="{{ route('index') }}" class="sidebar-brand text-decoration-none mt-2 border-0 bg-transparent">
                 @if ($appLogo)
                     <img src="{{ asset('storage/' . $appLogo) }}" alt="Logo"
                         style="width: 32px; height: 32px; object-fit: contain; border-radius: 6px;">
@@ -1105,48 +1107,45 @@
         <div class="mb-3">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">New Password <span class="text-low"
                     style="font-weight: 400;">(leave blank to keep current)</span></label>
-            <input type="password" name="password" class="form-premium-control" placeholder="••••••••">
+            <input type="password" name="password" class="form-premium-control" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
         </div>
     </x-modal>
 
-    <!-- Toast Container -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
-        @if (session('success'))
-            <div id="successToast" class="toast align-items-center text-white bg-success border-0 shadow-lg"
-                role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-                        aria-label="Close"></button>
-                </div>
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div id="errorToast" class="toast align-items-center text-white bg-danger border-0 shadow-lg"
-                role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-                        aria-label="Close"></button>
-                </div>
-            </div>
-        @endif
-    </div>
+    @if(session('success'))
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: "{{ session('success') }}",
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
+            });
+        </script>
+    @endif
+    @if(session('error'))
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "error",
+                    title: "{{ session('error') }}",
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
+            });
+        </script>
+    @endif
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Toasts
-            const toastElList = [].slice.call(document.querySelectorAll('.toast'));
-            const toastList = toastElList.map(function(toastEl) {
-                return new bootstrap.Toast(toastEl, { delay: 4000 });
-            });
-            toastList.forEach(toast => toast.show());
+            // Toasts handled by SweetAlert
 
             // Theme Toggle Logic
             const themeToggle = document.getElementById('themeToggle');

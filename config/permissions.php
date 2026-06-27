@@ -24,6 +24,7 @@ return [
     ],
     'tickets' => [
         'view' => 'View Tickets',
+        'view_all' => 'View All Tickets',
         'create' => 'Create Ticket',
         'edit' => 'Edit Ticket',
         'delete' => 'Delete Ticket',
@@ -38,6 +39,8 @@ return [
     ],
     'chat' => [
         'view' => 'Access Team Chat',
+        'create_staff_group' => 'Create Staff Group',
+        'create_client_group' => 'Create Client Group',
     ],
     'users' => [
         'view' => 'View Users',

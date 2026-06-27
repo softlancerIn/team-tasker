@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 new class extends Component {
     public $selectedUser = null;
     public $allowedUsers = [];
+    public $allowedClients = [];
     public $searchUser = '';
     public $searchContact = '';
     public $successMessage = '';
@@ -58,12 +59,18 @@ new class extends Component {
         if ($this->contactLetter) {
             $contactsQuery->where('name', 'like', $this->contactLetter . '%');
         }
+        
+        $clientsQuery = \App\Models\Client::where('name', 'like', '%'.$this->searchContact.'%');
+        if ($this->contactLetter) {
+            $clientsQuery->where('name', 'like', $this->contactLetter . '%');
+        }
 
         return [
             'users' => (clone $usersQuery)->orderBy('name')->limit($this->userLimit)->get(),
             'totalUsers' => $usersQuery->count(),
             'contacts' => (clone $contactsQuery)->orderBy('name')->limit($this->contactLimit)->get(),
             'totalContacts' => $contactsQuery->count(),
+            'clients' => (clone $clientsQuery)->orderBy('name')->limit($this->contactLimit)->get(),
             'roles' => \App\Models\Role::all()
         ];
     }
@@ -72,9 +79,16 @@ new class extends Component {
     {
         $this->selectedUser = $userId;
         $this->successMessage = ''; // Clear message on user change
-        $this->allowedUsers = DB::table('chat_user_permissions')
-            ->where('user_id', $userId)
+        
+        $permissions = DB::table('chat_user_permissions')->where('user_id', $userId)->get();
+        
+        $this->allowedUsers = $permissions->whereNotNull('allowed_user_id')
             ->pluck('allowed_user_id')
+            ->map(fn($id) => (string)$id)
+            ->toArray();
+            
+        $this->allowedClients = $permissions->whereNotNull('allowed_client_id')
+            ->pluck('allowed_client_id')
             ->map(fn($id) => (string)$id)
             ->toArray();
     }
@@ -90,6 +104,19 @@ new class extends Component {
             $data[] = [
                 'user_id' => $this->selectedUser,
                 'allowed_user_id' => $allowedId,
+                'allowed_client_id' => null,
+                'client_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        
+        foreach ($this->allowedClients as $allowedId) {
+            $data[] = [
+                'user_id' => $this->selectedUser,
+                'allowed_user_id' => null,
+                'allowed_client_id' => $allowedId,
+                'client_id' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -173,6 +200,9 @@ new class extends Component {
                     </div>
 
                     <div class="row g-3 mb-4">
+                        <div class="col-12 mt-4 mb-2">
+                            <h6 class="text-low text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Staff Members</h6>
+                        </div>
                         @foreach($contacts as $contact)
                             @if($contact->id != $selectedUser)
                                 <div class="col-md-3">
@@ -192,6 +222,28 @@ new class extends Component {
                                     </div>
                                 </div>
                             @endif
+                        @endforeach
+                        
+                        <div class="col-12 mt-4 mb-2">
+                            <h6 class="text-low text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Clients</h6>
+                        </div>
+                        @foreach($clients as $client)
+                            <div class="col-md-3">
+                                <div class="form-check custom-checkbox p-3 rounded" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle);">
+                                    <input class="form-check-input ms-0 me-3 mt-2" type="checkbox" wire:model.live="allowedClients" value="{{ $client->id }}" id="client-{{ $client->id }}" style="transform: scale(1.2);">
+                                    <label class="form-check-label w-100" for="client-{{ $client->id }}">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-premium" style="width: 28px; height: 28px; font-size: 0.7rem; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
+                                                {{ substr($client->name, 0, 1) }}
+                                            </div>
+                                            <div>
+                                                <div class="text-high fw-medium">{{ $client->name }}</div>
+                                                <div class="text-low" style="font-size: 0.75rem;">Client</div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
                         @endforeach
                     </div>
                     @if ($contacts->count() < $totalContacts)

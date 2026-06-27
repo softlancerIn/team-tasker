@@ -13,7 +13,7 @@
                     <div class="position-relative">
                         <div class="avatar-premium"
                             style="width: 32px; height: 32px; font-size: 0.8rem; background: {{ $log->type == 'message' ? 'rgba(var(--primary-rgb), 0.1)' : 'var(--bg-input)' }}; color: {{ $log->type == 'message' ? 'var(--primary)' : 'var(--text-medium)' }};">
-                            {{ substr($log->user->name, 0, 1) }}
+                            {{ substr(($log->user ? $log->user->name : ($log->client ? $log->client->name : 'System')), 0, 1) }}
                         </div>
                         @if (!$loop->last)
                             <div class="position-absolute start-50 top-100 border-start border-secondary border-opacity-25"
@@ -23,7 +23,7 @@
                     <div class="flex-grow-1">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <div>
-                                <span class="fw-bold text-high small">{{ $log->user->name }}</span>
+                                <span class="fw-bold text-high small">{{ ($log->user ? $log->user->name : ($log->client ? $log->client->name : 'System')) }}</span>
                                 <span class="text-low small mx-1">on</span>
                                 @if($log->task_id)
                                     <span class="badge bg-secondary opacity-75" style="font-size: 0.6rem; padding: 0.2em 0.5em; margin-right: 0.3em;">Task</span>

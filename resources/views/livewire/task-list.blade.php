@@ -32,8 +32,14 @@ new class extends Component {
     public $bulkAssignee = '';
     public $bulkPriority = '';
 
-    protected $queryString = ['search', 'status_id', 'priority', 'tag_id', 'assigned_to', 'created_at', 'updated_at', 'sortField', 'sortDirection'];
+    protected $queryString = ['search', 'status_id', 'priority', 'tag_id', 'assigned_to', 'created_at', 'updated_at', 'sortField', 'sortDirection', 'perPage' => ['as' => 'per_page']];
 
+    public function mount()
+    {
+        if (request()->has('per_page')) {
+            $this->perPage = request('per_page');
+        }
+    }
     public function updated($property)
     {
         if (in_array($property, ['search', 'status_id', 'priority', 'tag_id', 'assigned_to', 'created_at', 'updated_at'])) {

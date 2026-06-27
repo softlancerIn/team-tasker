@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Registration | Team Tasker</title>
+    <title>Login | Team Tasker</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
@@ -33,7 +33,6 @@
             justify-content: center;
             margin: 0;
             overflow-x: hidden;
-            padding: 2rem 0;
         }
 
         .blob {
@@ -65,7 +64,7 @@
             border-radius: 24px;
             padding: 3rem;
             width: 100%;
-            max-width: 500px;
+            max-width: 450px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.8s ease-out;
         }
@@ -117,7 +116,7 @@
             color: #cbd5e1;
             font-weight: 500;
             font-size: 0.9rem;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.5rem;
         }
 
         .form-control {
@@ -172,9 +171,12 @@
             color: var(--accent);
         }
 
-        .invalid-feedback {
-            font-size: 0.8rem;
+        .alert-premium {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
             color: #ef4444;
+            border-radius: 12px;
+            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -186,75 +188,46 @@
         <div class="auth-card">
             <div class="logo-area">
                 <div class="logo-icon">
-                    <i class="fas fa-handshake"></i>
+                    <i class="fas fa-key"></i>
                 </div>
-                <h1 class="auth-title">Client Registration</h1>
-                <p class="auth-subtitle">Partner with Team Tasker today</p>
+                <h1 class="auth-title">Verify Email</h1>
+                <p class="auth-subtitle">We have sent a 6-digit OTP to your email.</p>
             </div>
 
             @if (session('error'))
-                <div class="alert alert-danger mb-4 bg-danger bg-opacity-10 border-danger border-opacity-20 text-danger"
-                    style="border-radius: 12px; font-size: 0.85rem;">
+                <div class="alert alert-premium mb-4">
                     <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
                 </div>
             @endif
 
-            <form action="{{ route('clientRegister') }}" method="POST">
+            @if (session('success'))
+                <div class="alert alert-success mb-4 bg-success bg-opacity-10 border-success border-opacity-20 text-success"
+                    style="border-radius: 12px; font-size: 0.85rem;">
+                    <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                </div>
+            @endif
+
+            <form action="{{ route('verifyOtp') }}" method="POST">
                 @csrf
+                <input type="hidden" name="email" value="{{ request('email') }}">
                 <div class="mb-4">
-                    <label for="name" class="form-label">Full Name</label>
-                    <input type="text" id="name" name="name"
-                        class="form-control @error('name') is-invalid @enderror" placeholder="Jane Doe"
-                        value="{{ old('name') }}" required>
-                    @error('name')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="mb-4">
-                    <label for="email" class="form-label">Business Email</label>
-                    <input type="email" id="email" name="email"
-                        class="form-control @error('email') is-invalid @enderror" placeholder="jane@company.com"
-                        value="{{ old('email') }}" required>
-                    @error('email')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="mb-4">
-                    <label for="phone" class="form-label">Mobile Number (Optional)</label>
-                    <input type="text" id="phone" name="phone"
-                        class="form-control @error('phone') is-invalid @enderror" placeholder="+1234567890"
-                        value="{{ old('phone') }}">
-                    @error('phone')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" id="password" name="password"
-                            class="form-control @error('password') is-invalid @enderror" placeholder="••••••••"
-                            required>
-                        @error('password')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="col-md-6 mb-4">
-                        <label for="password_confirmation" class="form-label">Confirm</label>
-                        <input type="password" id="password_confirmation" name="password_confirmation"
-                            class="form-control" placeholder="••••••••" required>
-                    </div>
+                    <label for="otp" class="form-label">Enter OTP</label>
+                    <input type="text" id="otp" name="otp" class="form-control text-center"
+                        placeholder="123456" maxlength="6" required style="letter-spacing: 5px; font-size: 1.2rem; font-weight: bold;">
                 </div>
 
                 <button type="submit" class="btn btn-auth">
-                    Create Client Account <i class="fas fa-check ms-2"></i>
+                    Verify & Continue <i class="fas fa-arrow-right ms-2"></i>
                 </button>
             </form>
 
-            <div class="auth-footer">
-                Already a client? <a href="{{ route('loginPage') }}" class="auth-link">Sign In</a>
+            <div class="auth-footer d-flex flex-column align-items-center gap-2 mt-4">
+                <span>Didn't receive the code?</span>
+                <form action="{{ route('resendOtp') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="email" value="{{ request('email') }}">
+                    <button type="submit" class="btn btn-link auth-link p-0 m-0" style="text-decoration: none; border: none; background: none;">Resend OTP</button>
+                </form>
             </div>
         </div>
     </div>

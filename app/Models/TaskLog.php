@@ -13,6 +13,7 @@ class TaskLog extends Model
         'task_id',
         'project_id',
         'user_id',
+        'client_id',
         'note',
         'type',
     ];
@@ -25,6 +26,11 @@ class TaskLog extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
     }
 
     public function project()

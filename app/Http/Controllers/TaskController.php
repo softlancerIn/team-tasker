@@ -43,7 +43,7 @@ class TaskController extends Controller
             });
         }
 
-        $activities = $query->paginate(20);
+        $activities = $query->paginate(request('per_page', 20));
 
         return view('admin.tasks.activity', compact('activities'));
     }
@@ -144,9 +144,7 @@ class TaskController extends Controller
      */
     public function dashboard()
     {
-        if (Auth::user()->role_id == 3) { // Client Role
-            return redirect()->route('client.dashboard');
-        }
+        if (Auth::guard('client')->check()) { return redirect()->route('client.dashboard'); }
 
         $userId = Auth::user()->id;
         // Admins see everything. Others see only their assigned/owned items.
@@ -181,7 +179,8 @@ class TaskController extends Controller
         $pendingTasksCount = $totalTasks - $completedTasksCount;
 
         $ticketQuery = \App\Models\Ticket::query();
-        if (! $isAdmin) {
+        $isTicketAdmin = Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin') || Auth::user()->hasPermission('tickets.view_all');
+        if (! $isTicketAdmin) {
             $ticketQuery->where(function ($q) use ($userId) {
                 $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
             });

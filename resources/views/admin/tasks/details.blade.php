@@ -231,7 +231,7 @@
                                     <div class="position-relative">
                                         <div class="avatar-premium"
                                             style="width: 32px; height: 32px; font-size: 0.8rem; background: {{ $log->type == 'message' ? 'rgba(var(--primary-rgb), 0.1)' : 'var(--bg-input)' }}; color: {{ $log->type == 'message' ? 'var(--primary)' : 'var(--text-medium)' }};">
-                                            {{ substr($log->user->name, 0, 1) }}
+                                            {{ substr(($log->user ? $log->user->name : ($log->client ? $log->client->name : 'System')), 0, 1) }}
                                         </div>
                                         @if (!$loop->last)
                                             <div class="position-absolute start-50 top-100 border-start border-secondary border-opacity-25"
@@ -240,7 +240,7 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="fw-bold text-high small">{{ $log->user->name }}</span>
+                                            <span class="fw-bold text-high small">{{ ($log->user ? $log->user->name : ($log->client ? $log->client->name : 'System')) }}</span>
                                             <span
                                                 class="text-low extra-small">{{ $log->created_at->diffForHumans() }}</span>
                                         </div>
@@ -390,7 +390,7 @@
                                                     {{ $attachment->file_name }}
                                                 </div>
                                                 <div class="extra-small text-muted">
-                                                    {{ round($attachment->file_size / 1024, 1) }} KB •
+                                                    {{ round($attachment->file_size / 1024, 1) }} KB â€¢
                                                     {{ $attachment->user->name }}
                                                 </div>
                                             </div>

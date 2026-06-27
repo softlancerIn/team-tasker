@@ -69,8 +69,8 @@
                                 <div class="text-low" style="font-size: 0.75rem;">{{ Str::limit(strip_tags($ticket->body), 35) }}</div>
                             </td>
                             <td>
-                                @if ($ticket->user)
-                                    <span class="text-high">{{ $ticket->user->name }}</span>
+                                @if ($ticket->user || $ticket->client)
+                                    <span class="text-high">{{ $ticket->user ? $ticket->user->name : ($ticket->client ? $ticket->client->name : 'Unknown') }}</span>
                                 @else
                                     <span class="text-low italic">{{ Str::limit($ticket->email_source, 15) }}</span>
                                 @endif

@@ -51,25 +51,34 @@ new class extends Component {
 
     public function loadConversation($conversationId)
     {
-        $this->showGroupInfo = false; // Reset on conversation change
-        $this->conversation = Conversation::with(['participants', 'messages.user', 'messages.attachments'])->find($conversationId);
+        $this->showGroupInfo = false;
+        $this->conversation = Conversation::with(['participants', 'clientParticipants', 'messages.user', 'messages.client', 'messages.attachments'])->find($conversationId);
 
         if (!$this->conversation) {
             return;
         }
 
-        // Determine Receiver (for Private Chat)
+        $isClientGuard = Auth::guard('client')->check();
+        $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
+
         if ($this->conversation->type == 'private') {
-            $this->receiver = $this->conversation->participants->where('id', '!=', Auth::id())->first();
+            $this->receiver = $this->conversation->participants->first(function($p) use ($myId, $isClientGuard) {
+                return !($p->pivot->user_id == $myId);
+            });
+            if (!$this->receiver) {
+                $this->receiver = $this->conversation->clientParticipants->first(function($p) use ($myId, $isClientGuard) {
+                    return !($p->pivot->client_id == $myId);
+                });
+                if ($this->receiver) $this->receiver->is_client = true;
+            }
         } else {
             $this->receiver = null;
         }
 
-        // Reset pagination and load initial messages
         $this->perPage = 10;
         $this->messages = $this->conversation
-            ->messages() // Relationship already loaded but we need query for pagination if we didn't eager load all
-            ->with(['user', 'attachments'])
+            ->messages()
+            ->with(['user', 'client', 'attachments'])
             ->latest()
             ->take($this->perPage)
             ->get()
@@ -78,19 +87,11 @@ new class extends Component {
             ->toArray();
 
         $this->dispatch('scroll-bottom');
-
-        // Join the Socket.IO room for this conversation
         $this->dispatch('join-chat-room', $this->conversation->id);
-
-        // Mark as read
         $this->markAsRead();
-        Auth::user()
-            ->conversations()
-            ->updateExistingPivot($this->conversation->id, ['last_read_at' => now()]);
-
-        // Check Block Status
-        $this->checkBlockStatus();
-
+        if (!$isClientGuard) {
+            $this->checkBlockStatus();
+        }
         $this->showSearch = false;
         $this->searchQuery = '';
         $this->attachment = null;
@@ -136,24 +137,30 @@ new class extends Component {
     protected function markAsRead()
     {
         if ($this->conversation) {
-            // Update pivot for last read
-            Auth::user()
-                ->conversations()
+            $isClientGuard = Auth::guard('client')->check();
+            $user = $isClientGuard ? Auth::guard('client')->user() : Auth::user();
+            $myId = $user->id;
+            
+            $user->conversations()
                 ->updateExistingPivot($this->conversation->id, ['last_read_at' => now()]);
 
-            // Update individual messages from others
-            $unreadCount = $this->conversation
-                ->messages()
-                ->where('user_id', '!=', Auth::id())
-                ->whereNull('read_at')
-                ->update(['read_at' => now()]);
+            $unreadQuery = $this->conversation->messages()->whereNull('read_at');
+            if ($isClientGuard) {
+                $unreadQuery->where(function($q) use ($myId) {
+                    $q->where('client_id', '!=', $myId)->orWhereNull('client_id');
+                });
+            } else {
+                $unreadQuery->where(function($q) use ($myId) {
+                    $q->where('user_id', '!=', $myId)->orWhereNull('user_id');
+                });
+            }
+            $unreadCount = $unreadQuery->update(['read_at' => now()]);
 
             if ($unreadCount > 0) {
-                // Determine the correct way to inform the sender that we read their messages
-                // Instead of broadcast(new MessageRead...), we use Socket.IO
                 $this->dispatch('messages-read-to-node', [
                     'room' => $this->conversation->id,
-                    'userId' => Auth::id(),
+                    'userId' => $myId,
+                    'isClient' => $isClientGuard,
                 ]);
             }
         }
@@ -162,11 +169,10 @@ new class extends Component {
     public function loadMessages()
     {
         if ($this->conversation) {
-            $this->messages = $this->conversation->messages()->with('user')->latest()->take(50)->get()->sortBy('created_at')->values()->toArray();
-
-            Auth::user()
-                ->conversations()
-                ->updateExistingPivot($this->conversation->id, ['last_read_at' => now()]);
+            $this->messages = $this->conversation->messages()->with(['user', 'client'])->latest()->take(50)->get()->sortBy('created_at')->values()->toArray();
+            $isClientGuard = Auth::guard('client')->check();
+            $user = $isClientGuard ? Auth::guard('client')->user() : Auth::user();
+            $user->conversations()->updateExistingPivot($this->conversation->id, ['last_read_at' => now()]);
         }
     }
 
@@ -176,20 +182,20 @@ new class extends Component {
             $this->dispatch('alert', ['type' => 'error', 'message' => 'You cannot send messages to this user.']);
             return;
         }
-
         $messageBody = $sentBody ?? $this->body;
-
         if ((empty(trim($messageBody)) && !$this->attachment) || !$this->conversation) {
             return;
         }
-
-        $message = $this->conversation->messages()->create([
-            'user_id' => auth()->id(),
-            'body' => $messageBody,
-        ]);
-
+        $isClientGuard = Auth::guard('client')->check();
+        $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
+        $messageData = ['body' => $messageBody];
+        if ($isClientGuard) {
+            $messageData['client_id'] = $myId;
+        } else {
+            $messageData['user_id'] = $myId;
+        }
+        $message = $this->conversation->messages()->create($messageData);
         $this->dispatch('message-sent-successfully', ['messageId' => $message->id]);
-
         if ($this->attachment) {
             // Handle single file upload
             $file = is_array($this->attachment) ? $this->attachment[0] : $this->attachment;
@@ -207,10 +213,10 @@ new class extends Component {
         // Broadcast via Socket.IO (Custom Node Server)
         $this->dispatch('send-message-to-node', [
             'room' => $this->conversation->id,
-            'message' => $message->load('user', 'attachments')->toArray(),
+            'message' => $message->load('user', 'client', 'attachments')->toArray(),
         ]);
 
-        $this->messages[] = $message->load('user', 'attachments')->toArray();
+        $this->messages[] = $message->load('user', 'client', 'attachments')->toArray();
         $this->body = '';
         $this->dispatch('scroll-bottom');
     }
@@ -265,7 +271,7 @@ new class extends Component {
 
         if ($messageId && $this->conversation) {
             foreach ($this->messages as &$msg) {
-                if ($msg['id'] == $messageId && $msg['user_id'] == Auth::id()) {
+                if ($msg['id'] == $messageId && ($isClientGuard ? ($msg['client_id'] ?? null) == $myId : ($msg['user_id'] ?? null) == $myId)) {
                     $msg['delivered_at'] = now()->toDateTimeString();
                     break;
                 }
@@ -281,7 +287,7 @@ new class extends Component {
         if ($this->conversation && $payload['room'] == $this->conversation->id) {
             foreach ($this->messages as &$msg) {
                 // If it's my message and it hasn't been read yet
-                if ($msg['user_id'] == Auth::id()) {
+                if (($isClientGuard ? ($msg['client_id'] ?? null) == $myId : ($msg['user_id'] ?? null) == $myId)) {
                     $msg['read_at'] = now()->toDateTimeString();
                     $msg['is_read'] = true;
                 }
@@ -362,7 +368,7 @@ new class extends Component {
     }
 }; ?>
 
-<div class="d-flex flex-column h-100 position-relative">
+<div class="d-flex flex-column h-100 w-100 flex-grow-1 position-relative">
     <input type="hidden" id="active-conversation-id" value="{{ $conversation ? $conversation->id : '' }}">
     @if ($conversation)
 
@@ -540,7 +546,7 @@ new class extends Component {
         </div>
         <!-- Messages Area -->
         <div class="flex-grow-1 p-3 overflow-auto" id="chat-messages"
-            style="scroll-behavior: smooth; background: transparent;" wire:key="chat-messages-{{ $conversation->id }}"
+            style="scroll-behavior: smooth; background: transparent; min-height: 0;" wire:key="chat-messages-{{ $conversation->id }}"
             x-data="chatMessages(@this, {
                 conversationId: '{{ $conversation->id }}',
                 userId: {{ auth()->id() }},
@@ -562,13 +568,24 @@ new class extends Component {
             @foreach ($messages as $message)
                 @php
                     // Handle both array (from toArray()) and object (from persistent collection) if mixed
-                    $msgUserId = is_array($message) ? $message['user_id'] : $message->user_id;
-                    $isMe = $msgUserId == auth()->id();
+                    $isClientGuard = \Illuminate\Support\Facades\Auth::guard('client')->check();
+                    $myGuardId = $isClientGuard ? \Illuminate\Support\Facades\Auth::guard('client')->id() : auth()->id();
+                    
+                    $msgUserId = is_array($message) ? ($message['user_id'] ?? null) : $message->user_id;
+                    $msgClientId = is_array($message) ? ($message['client_id'] ?? null) : $message->client_id;
+                    
+                    $isMe = $isClientGuard ? ($msgClientId == $myGuardId) : ($msgUserId == $myGuardId);
+                    
                     $msgBody = is_array($message) ? $message['body'] : $message->body;
-                    $msgUser = is_array($message) ? $message['user'] : $message->user;
-                    $msgAttachments = is_array($message) ? $message['attachments'] ?? [] : $message->attachments;
+                    
+                    // msgUser can be either staff (user) or client (client)
+                    $msgUser = is_array($message) 
+                        ? ($message['user'] ?? $message['client'] ?? null) 
+                        : ($message->user ?? $message->client ?? null);
+                        
+                    $msgAttachments = is_array($message) ? ($message['attachments'] ?? []) : $message->attachments;
                     $createdAt = is_array($message) ? $message['created_at'] : $message->created_at;
-                    $isRead = is_array($message) ? $message['is_read'] ?? false : $message->is_read;
+                    $isRead = is_array($message) ? ($message['is_read'] ?? false) : $message->is_read;
                 @endphp
                 <div class="d-flex mb-4 {{ $isMe ? 'justify-content-end' : '' }}"
                     wire:key="msg-{{ $message['id'] ?? $message->id }}">
@@ -678,7 +695,7 @@ new class extends Component {
         </div>
 
         <!-- Input Area -->
-        <div class="p-3 border-top border-main sm:mb-4" wire:key="chat-input-{{ $conversation->id }}"
+        <div class="p-3 pb-4 pb-md-3 border-top border-main" wire:key="chat-input-{{ $conversation->id }}"
             style="background: var(--bg-surface);">
             @if ($isBlocked || $isBlockedBy)
                 <div class="text-center py-3 text-low" style="font-size: 0.85rem;">
@@ -716,7 +733,7 @@ new class extends Component {
 
                 <form wire:submit.prevent="sendMessage">
                     <div class="d-flex align-items-end gap-2">
-                        <div class="flex-grow-1 position-relative">
+                        <div class="flex-grow-1 position-relative" style="min-width: 0;">
                             <div wire:ignore wire:key="editor-{{ $conversation->id }}" x-data="chatEditor(@this, {
                                 editorId: 'message-editor-{{ $conversation->id }}',
                                 conversationId: '{{ $conversation->id }}',
