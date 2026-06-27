@@ -376,7 +376,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 24px;
+            padding: 0 8px;
             z-index: 1050;
             backdrop-filter: blur(10px);
         }
