@@ -269,6 +269,9 @@ new class extends Component {
         $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : $data;
         $messageId = $payload['messageId'] ?? null;
 
+        $isClientGuard = \Illuminate\Support\Facades\Auth::guard('client')->check();
+        $myId = $isClientGuard ? \Illuminate\Support\Facades\Auth::guard('client')->id() : \Illuminate\Support\Facades\Auth::id();
+
         if ($messageId && $this->conversation) {
             foreach ($this->messages as &$msg) {
                 if ($msg['id'] == $messageId && ($isClientGuard ? ($msg['client_id'] ?? null) == $myId : ($msg['user_id'] ?? null) == $myId)) {
@@ -283,6 +286,9 @@ new class extends Component {
     public function onSocketMessagesRead($data)
     {
         $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : $data;
+
+        $isClientGuard = \Illuminate\Support\Facades\Auth::guard('client')->check();
+        $myId = $isClientGuard ? \Illuminate\Support\Facades\Auth::guard('client')->id() : \Illuminate\Support\Facades\Auth::id();
 
         if ($this->conversation && $payload['room'] == $this->conversation->id) {
             foreach ($this->messages as &$msg) {

@@ -34,16 +34,27 @@ class FirebaseChannel
             return;
         }
 
-        $fcmToken = $notifiable->fcm_token;
+        $fcmTokens = $notifiable->fcm_token;
 
-        if ($fcmToken) {
-            \Illuminate\Support\Facades\Log::info('FirebaseChannel: Sending notification to token '.substr($fcmToken, 0, 10).'...');
-            $this->firebaseService->sendNotification(
-                $fcmToken,
-                $message['title'],
-                $message['body'],
-                $message['data'] ?? []
-            );
+        if ($fcmTokens) {
+            $tokens = json_decode($fcmTokens, true);
+            if (!is_array($tokens)) {
+                $tokens = [$fcmTokens];
+            }
+
+            foreach ($tokens as $token) {
+                \Illuminate\Support\Facades\Log::info('FirebaseChannel: Sending notification to token '.substr($token, 0, 10).'...');
+                try {
+                    $this->firebaseService->sendNotification(
+                        $token,
+                        $message['title'],
+                        $message['body'],
+                        $message['data'] ?? []
+                    );
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('FirebaseChannel: Error sending to token '.substr($token, 0, 10).' - '.$e->getMessage());
+                }
+            }
         } else {
             \Illuminate\Support\Facades\Log::warning('FirebaseChannel: User has no FCM token.');
         }

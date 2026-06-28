@@ -35,20 +35,33 @@ Route::controller(AuthController::class)->group(function () {
 Route::middleware(['web', 'auth:web,admin'])->get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.global');
 
 // Notifications
-Route::middleware(['web', 'auth:web,admin'])->group(function () {
+Route::middleware(['web', 'auth:web,admin,client'])->group(function () {
     Route::post('/notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
     Route::post('/update-fcm-token', function (Illuminate\Http\Request $request) {
         $request->validate(['token' => 'required|string']);
-        $user = auth('web')->user() ?? auth('admin')->user();
+        $user = auth('client')->user() ?? auth('web')->user() ?? auth('admin')->user();
         if ($user) {
-            $user->fcm_token = $request->token;
-            $user->save();
+            $tokens = json_decode($user->fcm_token, true);
+            if (!is_array($tokens)) {
+                $tokens = $user->fcm_token ? [$user->fcm_token] : [];
+            }
+            if (!in_array($request->token, $tokens)) {
+                $tokens[] = $request->token;
+                if (count($tokens) > 5) {
+                    $tokens = array_slice($tokens, -5);
+                }
+                $user->fcm_token = json_encode($tokens);
+                $user->save();
+            }
 
             // Sync with counterpart
-            if ($user instanceof \App\Models\Admin) {
-                \App\Models\User::where('email', $user->email)->update(['fcm_token' => $request->token]);
-            } elseif ($user instanceof \App\Models\User) {
-                \App\Models\Admin::where('email', $user->email)->update(['fcm_token' => $request->token]);
+            if (!$user instanceof \App\Models\Client) {
+                $syncTokens = json_encode($tokens);
+                if ($user instanceof \App\Models\Admin) {
+                    \App\Models\User::where('email', $user->email)->update(['fcm_token' => $syncTokens]);
+                } elseif ($user instanceof \App\Models\User) {
+                    \App\Models\Admin::where('email', $user->email)->update(['fcm_token' => $syncTokens]);
+                }
             }
         }
 
