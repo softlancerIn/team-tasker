@@ -751,6 +751,9 @@
             .header-search-premium {
                 display: none;
             }
+            .main-content-premium {
+                padding-top: 0px !important;
+            }
         }
     </style>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -773,7 +776,7 @@
             <button class="mobile-toggle-premium d-lg-none" id="mobileSidebarToggle" style="margin-right: 0;">
                 <i class="fas fa-bars"></i>
             </button>
-            <a href="{{ route('index') }}" class="sidebar-brand text-decoration-none mt-2 border-0 bg-transparent">
+            <a href="{{ route('dashboard') }}" class="sidebar-brand text-decoration-none mt-2 border-0 bg-transparent">
                 @if ($appLogo)
                     <img src="{{ asset('storage/' . $appLogo) }}" alt="Logo"
                         style="width: 32px; height: 32px; object-fit: contain; border-radius: 6px;">
@@ -795,6 +798,25 @@
         @endif
 
         <div class="header-utils">
+            @php
+                $today = \Carbon\Carbon::today();
+                $myAttendance = \App\Models\Attendance::where('user_id', auth()->id())->where('date', $today)->first();
+            @endphp
+            
+            @if(!$myAttendance)
+                <button class="btn-premium btn-premium-primary btn-sm" data-bs-toggle="modal" data-bs-target="#globalClockInModal" style="padding: 6px 16px;">
+                    <i class="fas fa-sign-in-alt me-1"></i> Clock In
+                </button>
+            @elseif(!$myAttendance->clock_out)
+                <button type="button" class="btn-premium btn btn-danger btn-sm m-0" style="padding: 6px 16px;" data-bs-toggle="modal" data-bs-target="#globalClockOutModal">
+                    <i class="fas fa-sign-out-alt me-1"></i> Clock Out
+                </button>
+            @else
+                <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 8px 16px; border-radius: 6px;">
+                    <i class="fas fa-check-circle me-1"></i> Shift Ended
+                </span>
+            @endif
+
             <!-- Theme Toggle -->
             <button class="header-icon-btn" id="themeToggle" title="Toggle Theme">
                 <i class="fas fa-moon"></i>
@@ -816,7 +838,7 @@
                     <div class="avatar-premium"
                         style="width: 38px; height: 38px; border: 1px solid var(--border-main);">
                         @if (Auth::user()->profile_image)
-                            <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile">
+                            <img alt="team-tasker" src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile">
                         @else
                             {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
                         @endif
@@ -939,6 +961,57 @@
                     <i class="fas fa-user-tie"></i> Clients
                 </a>
             @endif
+
+            <div class="nav-item">
+                <a href="javascript:void(0)"
+                    class="nav-link-premium nav-dropdown {{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}"
+                    onclick="toggleSubmenu(this)">
+                    <i class="fas fa-clock"></i>
+                    <span>Attendance</span>
+                    <i class="fas fa-chevron-right ms-auto toggle-icon-premium {{ request()->routeIs('admin.attendance.*') ? 'rotate' : '' }}"></i>
+                </a>
+                <div class="nav-submenu-premium {{ request()->routeIs('admin.attendance.*') ? 'show' : '' }}">
+                    <a href="{{ route('admin.attendance.dashboard') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.dashboard') ? 'active' : '' }}">
+                        <i class="fas fa-chart-pie"></i> Dashboard
+                    </a>
+                    
+                    @if (Auth::user()->hasPermission('attendance.daily'))
+                    <a href="{{ route('admin.attendance.daily') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.daily') ? 'active' : '' }}">
+                        <i class="fas fa-calendar-day"></i> Daily Attendance
+                    </a>
+                    @endif
+                    @if (Auth::user()->hasPermission('attendance.monthly'))
+                    <a href="{{ route('admin.attendance.monthly') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.monthly') ? 'active' : '' }}">
+                        <i class="fas fa-calendar-days"></i> Monthly Attendance
+                    </a>
+                    @endif
+                    
+                    <a href="{{ route('admin.attendance.calendar') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.calendar') ? 'active' : '' }}">
+                        <i class="fas fa-calendar-alt"></i> Calendar
+                    </a>
+                    <a href="{{ route('admin.attendance.requests') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.requests') ? 'active' : '' }}">
+                        <i class="fas fa-envelope-open-text"></i> Leave Requests
+                    </a>
+                    
+                    @if (Auth::user()->hasPermission('attendance.reports'))
+                    <a href="{{ route('admin.attendance.reports') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.reports') ? 'active' : '' }}">
+                        <i class="fas fa-file-export"></i> Reports
+                    </a>
+                    @endif
+                    @if (Auth::user()->hasPermission('attendance.settings'))
+                    <a href="{{ route('admin.attendance.settings') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.settings') ? 'active' : '' }}">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                    @endif
+                </div>
+            </div>
 
             @if (Auth::user()->hasPermission('settings.view'))
                 <div class="nav-item">
@@ -1085,7 +1158,7 @@
             <div class="avatar-premium mx-auto mb-3"
                 style="width: 72px; height: 72px; font-size: 1.75rem; border: 3px solid var(--border-main);">
                 @if (Auth::user()->profile_image)
-                    <img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile"
+                    <img alt="team-tasker" src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="Profile"
                         style="width: 100%; height: 100%; object-fit: cover;">
                 @else
                     {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
@@ -1107,7 +1180,7 @@
         <div class="mb-3">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">New Password <span class="text-low"
                     style="font-weight: 400;">(leave blank to keep current)</span></label>
-            <input type="password" name="password" class="form-premium-control" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
+            <input type="password" name="password" class="form-premium-control" placeholder="••••••••••••">
         </div>
     </x-modal>
 
@@ -1432,11 +1505,72 @@
                     overlay.classList.remove('show');
                 });
             }
+            
+            @if(empty($myAttendance))
+            var punchModal = new bootstrap.Modal(document.getElementById('globalClockInModal'));
+            punchModal.show();
+            @endif
         });
     </script>
     {{-- Page-specific scripts pushed via @push('scripts') --}}
     @stack('scripts')
     @livewireScripts
+    
+    <!-- Global Clock In Modal -->
+    <div class="modal fade" id="globalClockInModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-main">
+                <div class="modal-header border-subtle">
+                    <h5 class="modal-title fw-bold text-high">Punch In</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('admin.attendance.clockIn') }}" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <p class="text-medium mb-3">You haven't punched in for today yet. Please record your attendance.</p>
+                        <div class="mb-3">
+                            <label class="form-label text-high fw-semibold">Note (Optional)</label>
+                            <textarea name="notes" class="form-premium-control w-100" rows="3" placeholder="Working remotely, running late, etc."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-subtle">
+                        <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-premium btn-premium-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i> Punch In Now
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Clock Out Modal -->
+    <div class="modal fade" id="globalClockOutModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-main">
+                <div class="modal-header border-subtle">
+                    <h5 class="modal-title fw-bold text-high">Confirm Clock Out</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('admin.attendance.clockOut') }}" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <p class="text-medium mb-3">Are you sure you want to clock out? This will end your shift for the day.</p>
+                        <div class="mb-3">
+                            <label class="form-label text-high fw-semibold">Closing Note (Optional)</label>
+                            <textarea name="notes" class="form-premium-control w-100" rows="3" placeholder="Completed tasks, handing over, etc."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-subtle">
+                        <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-premium btn btn-danger">
+                            <i class="fas fa-sign-out-alt me-2"></i> Confirm Clock Out
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

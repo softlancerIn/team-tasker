@@ -59,4 +59,13 @@ return [
         'view' => 'View Settings',
         'edit' => 'Edit Settings',
     ],
+    'attendance' => [
+        'dashboard_overview' => 'View All Users Dashboard Stats',
+        'daily' => 'View/Edit Daily Attendance',
+        'monthly' => 'View Monthly Attendance',
+        'calendar_all' => 'View All Users Calendars',
+        'requests_manage' => 'Manage All Leave Requests',
+        'reports' => 'View Attendance Reports',
+        'settings' => 'Manage Attendance Settings',
+    ],
 ];

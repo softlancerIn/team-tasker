@@ -109,7 +109,7 @@
             <div class="data-grid-top">
                 <div class="data-grid-search">
                     <i class="fas fa-search"></i>
-                    <input type="text" name="search" placeholder="Search anything..." value="{{ request('search') }}" onchange="this.form.submit()">
+                    <input type="text" placeholder="Search anything..." value="{{ request('search') }}" onkeypress="if(event.key === 'Enter') { event.preventDefault(); window.location.href='{{ route('admin.users.index') }}?search=' + this.value; }">
                 </div>
                 <div class="data-grid-results">{{ $users->total() }} Results</div>
                 <div class="data-grid-actions">
@@ -169,7 +169,7 @@
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="avatar-premium" style="width: 32px; height: 32px;">
                                             @if ($user->profile_image)
-                                                <img src="{{ asset('storage/' . $user->profile_image) }}" alt="">
+                                                <img alt="team-tasker" src="{{ asset('storage/' . $user->profile_image) }}" alt="">
                                             @else
                                                 <div class="d-flex align-items-center justify-content-center w-100 h-100" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-weight: 600; font-size: 0.8rem;">
                                                     {{ substr($user->name, 0, 1) }}

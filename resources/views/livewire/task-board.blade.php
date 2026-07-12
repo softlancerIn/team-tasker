@@ -239,7 +239,7 @@ new class extends Component {
                                                 style="width: 22px; height: 22px; font-size: 0.55rem; border: 1.5px solid var(--border-main);"
                                                 title="{{ $task->assignedTo->name }}">
                                                 @if ($task->assignedTo->profile_image)
-                                                    <img src="{{ asset('storage/' . $task->assignedTo->profile_image) }}"
+                                                    <img alt="team-tasker" src="{{ asset('storage/' . $task->assignedTo->profile_image) }}"
                                                         alt="">
                                                 @else
                                                     {{ substr($task->assignedTo->name, 0, 1) }}

@@ -10,14 +10,32 @@ new class extends Component {
     
     public $modalTitle = '';
     public $modalId = null;
+    
+    public $targetUserId = null;
+
+    private function getUserId() 
+    {
+        return $this->targetUserId ?: Auth::id();
+    }
+    
+    private function getUserType()
+    {
+        if ($this->targetUserId) {
+            // Assuming impersonated users are from the main User model which typically uses 'web' 
+            // or we fall back to checking if they have an admin role if needed.
+            // For safety, we'll check the guard just like the original code, but 
+            // since we're viewing a specific User model, 'web' is the standard user type.
+            return 'web'; 
+        }
+        return Auth::guard('admin')->check() ? 'admin' : 'web';
+    }
 
     public function with()
     {
-        $userType = Auth::guard('admin')->check() ? 'admin' : 'web';
         
         return [
-            'todos' => Todo::where('user_id', Auth::id())
-                        ->where('user_type', $userType)
+            'todos' => Todo::where('user_id', $this->getUserId())
+                        ->where('user_type', $this->getUserType())
                         ->orderBy('is_completed')
                         ->orderBy('updated_at', 'desc')
                         ->get()
@@ -26,15 +44,13 @@ new class extends Component {
 
     public function toggleTodo($id)
     {
-        $userType = Auth::guard('admin')->check() ? 'admin' : 'web';
-        $todo = Todo::where('user_id', Auth::id())->where('user_type', $userType)->findOrFail($id);
+        $todo = Todo::where('user_id', $this->getUserId())->where('user_type', $this->getUserType())->findOrFail($id);
         $todo->update(['is_completed' => !$todo->is_completed]);
     }
 
     public function deleteTodo($id)
     {
-        $userType = Auth::guard('admin')->check() ? 'admin' : 'web';
-        Todo::where('user_id', Auth::id())->where('user_type', $userType)->findOrFail($id)->delete();
+        Todo::where('user_id', $this->getUserId())->where('user_type', $this->getUserType())->findOrFail($id)->delete();
     }
 
     #[\Livewire\Attributes\On('open-todo-modal')]
@@ -53,15 +69,14 @@ new class extends Component {
     public function saveTodo()
     {
         $this->validate(['modalTitle' => 'required|string|max:255']);
-        $userType = Auth::guard('admin')->check() ? 'admin' : 'web';
         
         if ($this->modalId) {
-            $todo = Todo::where('user_id', Auth::id())->where('user_type', $userType)->findOrFail($this->modalId);
+            $todo = Todo::where('user_id', $this->getUserId())->where('user_type', $this->getUserType())->findOrFail($this->modalId);
             $todo->update(['title' => $this->modalTitle]);
         } else {
             Todo::create([
-                'user_id' => Auth::id(),
-                'user_type' => $userType,
+                'user_id' => $this->getUserId(),
+                'user_type' => $this->getUserType(),
                 'title' => $this->modalTitle,
                 'is_completed' => false,
             ]);
@@ -171,7 +186,7 @@ new class extends Component {
     </div> <!-- End glass-card -->
 
     <!-- Todo Modal -->
-    <div wire:ignore.self class="modal fade" id="todoModal" tabindex="-1" aria-labelledby="todoModalLabel" aria-hidden="true">
+    <div wire:ignore.self class="modal fade" id="todoModal" tabindex="-1" aria-labelledby="todoModalLabel" aria-hidden="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content glass-card border-main">
                 <div class="modal-header border-subtle">

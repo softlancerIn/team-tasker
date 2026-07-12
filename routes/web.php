@@ -91,6 +91,7 @@ Route::middleware(['web', 'auth:web,admin', 'permission:tasks.todo'])->get('/adm
 // Task Controller
 Route::middleware(['web', 'auth:web,admin'])->controller(TaskController::class)->prefix('admin/tasks')->group(function () {
     Route::get('/dashboard', 'dashboard')->name('dashboard')->middleware('permission:dashboard.view');
+    Route::get('/api/users/search', 'searchUsers')->name('admin.api.users.search');
     Route::get('/', 'index')->name('index')->middleware('permission:tasks.my_tasks');
     Route::get('activity', 'activity')->name('tasks.activity')->middleware('permission:tasks.activity');
     Route::get('board', 'board')->name('tasks.board')->middleware('permission:tasks.board');
@@ -189,6 +190,26 @@ Route::middleware(['web', 'auth:client,admin'])->prefix('client')->group(functio
 
     // Client Notifications
     Route::post('/notifications/mark-as-read', [App\Http\Controllers\ClientController::class, 'markNotificationsRead'])->name('client.notifications.markAsRead');
+});
+
+// Attendance Management
+Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\AttendanceController::class)->prefix('admin/attendance')->group(function () {
+    Route::get('/', 'dashboard')->name('admin.attendance.dashboard');
+    Route::post('/clock-in', 'clockIn')->name('admin.attendance.clockIn');
+    Route::post('/clock-out', 'clockOut')->name('admin.attendance.clockOut');
+    Route::get('/requests', 'requests')->name('admin.attendance.requests');
+    Route::post('/requests', 'storeRequest')->name('admin.attendance.requests.store');
+    Route::put('/requests/{id}', 'updateRequest')->name('admin.attendance.requests.update');
+    Route::get('/calendar', 'calendar')->name('admin.attendance.calendar');
+    
+    // Admin Only Attendance Routes
+    Route::get('/daily', 'daily')->name('admin.attendance.daily')->middleware('permission:attendance.daily');
+    Route::post('/daily/update', 'updateDailyAttendance')->name('admin.attendance.daily.update')->middleware('permission:attendance.daily');
+    Route::get('/monthly', 'monthly')->name('admin.attendance.monthly')->middleware('permission:attendance.monthly');
+    Route::put('/requests/{id}/status', 'updateRequestStatus')->name('admin.attendance.requests.updateStatus')->middleware('permission:attendance.requests_manage');
+    Route::get('/reports', 'reports')->name('admin.attendance.reports')->middleware('permission:attendance.reports');
+    Route::get('/settings', 'settings')->name('admin.attendance.settings')->middleware('permission:attendance.settings');
+    Route::put('/settings', 'updateSettings')->name('admin.attendance.settings.update')->middleware('permission:attendance.settings');
 });
 
 // Consolidated Settings

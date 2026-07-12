@@ -30,7 +30,7 @@
                         <div class="avatar-premium"
                             style="width: 44px; height: 44px; border: 2px solid var(--border-main);">
                             @if ($ticket->user && $ticket->user->profile_image)
-                                <img src="{{ asset('storage/' . $ticket->user->profile_image) }}" alt="Avatar">
+                                <img alt="team-tasker" src="{{ asset('storage/' . $ticket->user->profile_image) }}" alt="Avatar">
                             @else
                                 <div class="d-flex align-items-center justify-content-center w-100 h-100"
                                     style="background: var(--primary); color: white; font-weight: 700;">
@@ -92,7 +92,7 @@
                                 <div class="avatar-premium"
                                     style="width: 36px; height: 36px; border: 1px solid var(--border-main);">
                                     @if ($reply->user && $reply->user->profile_image)
-                                        <img src="{{ asset('storage/' . $reply->user->profile_image) }}"
+                                        <img alt="team-tasker" src="{{ asset('storage/' . $reply->user->profile_image) }}"
                                             alt="Avatar">
                                     @else
                                         <div class="d-flex align-items-center justify-content-center w-100 h-100"
@@ -129,7 +129,7 @@
                         <div class="avatar-premium {{ $reply->type == 'internal' ? 'border-primary' : '' }}"
                             style="width: 40px; height: 40px;">
                             @if ($reply->user && $reply->user->profile_image)
-                                <img src="{{ asset('storage/' . $reply->user->profile_image) }}" alt="Avatar">
+                                <img alt="team-tasker" src="{{ asset('storage/' . $reply->user->profile_image) }}" alt="Avatar">
                             @else
                                 {{ substr($reply->user ? $reply->user->name : 'S', 0, 1) }}
                             @endif

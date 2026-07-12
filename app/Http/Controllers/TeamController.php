@@ -12,15 +12,15 @@ class TeamController extends Controller
     {
         $query = User::with('role');
 
-        // Only exclude clients if we are not explicitly filtering by a specific role
-        if (! $request->filled('role_id')) {
-            $query->where(function ($q) {
-                $q->where('role_id', '!=', 3)->orWhereNull('role_id');
-            });
-        }
-
         if ($request->filled('name')) {
             $query->where('name', 'like', '%'.$request->name.'%');
+        }
+
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%'.$request->search.'%')
+                  ->orWhere('email', 'like', '%'.$request->search.'%');
+            });
         }
 
         if ($request->filled('email')) {

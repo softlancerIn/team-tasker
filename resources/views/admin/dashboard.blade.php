@@ -2,11 +2,58 @@
     <x-slot:title>
         Admin Dashboard | Team Tasker
     </x-slot:title>
+    
+    @php
+        $viewUserQuery = request('view_user_id') ? '?user_id=' . request('view_user_id') : '';
+        $viewTaskQuery = request('view_user_id') ? '?assigned_to=' . request('view_user_id') : '';
+        $viewTaskAppend = request('view_user_id') ? '&assigned_to=' . request('view_user_id') : '';
+    @endphp
+
+    @push('styles')
+    <style>
+        .dashboard-view-as .ts-control {
+            min-height: 32px !important;
+            padding: 4px 8px !important;
+            font-size: 0.85rem !important;
+        }
+        .dashboard-view-as .ts-control .item {
+            font-size: 0.85rem !important;
+            padding: 1px 6px !important;
+        }
+    </style>
+    @endpush
+
+    @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0 text-white" style="font-weight: 600;">
+            @if(isset($viewUser))
+                Viewing Dashboard As: <span class="text-primary">{{ $viewUser->name }}</span>
+            @else
+                Dashboard Overview
+            @endif
+        </h4>
+        
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-low" style="font-size: 0.85rem;"><i class="fas fa-eye me-1"></i> View As:</span>
+            <form action="{{ route('dashboard') }}" method="GET" class="m-0" id="viewAsForm">
+                @php
+                    $userOptions = [];
+                    foreach($allUsers as $u) {
+                        $userOptions[$u->id] = $u->name . ' (' . ($u->role_id == 1 ? 'Admin' : 'User') . ')';
+                    }
+                @endphp
+                <div class="dashboard-view-as">
+                    <x-select name="view_user_id" placeholder="-- All (My View) --" :options="$userOptions" :selected="request('view_user_id')" onchange="document.getElementById('viewAsForm').submit()" style="min-width: 250px;" />
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
 
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-4 mb-4">
         <!-- Project Overall Stats -->
         <div class="col">
-            <a href="{{ url('admin/projects') }}" class="text-decoration-none text-reset d-block h-100">
+            <a href="{{ url('admin/projects') }}{{ $viewUserQuery }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="stat-icon-premium icon-primary-premium mb-3" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
                         <i class="fas fa-layer-group"></i>
@@ -18,7 +65,7 @@
             </a>
         </div>
         <div class="col">
-            <a href="{{ url('admin/tasks') }}" class="text-decoration-none text-reset d-block h-100">
+            <a href="{{ url('admin/tasks') }}{{ $viewTaskQuery }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="stat-icon-premium icon-primary-premium mb-3">
                         <i class="fas fa-project-diagram"></i>
@@ -32,7 +79,7 @@
             </a>
         </div>
         <div class="col">
-            <a href="{{ url('admin/tasks') }}?status_id={{ \App\Models\Status::where('slug', 'completed')->orWhere('name', 'Completed')->first()->id ?? '' }}" class="text-decoration-none text-reset d-block h-100">
+            <a href="{{ url('admin/tasks') }}?status_id={{ \App\Models\Status::where('slug', 'completed')->orWhere('name', 'Completed')->first()->id ?? '' }}{{ $viewTaskAppend }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="stat-icon-premium icon-success-premium mb-3">
                         <i class="fas fa-check-double"></i>
@@ -49,7 +96,7 @@
         </div>
         @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))
         <div class="col">
-            <a href="{{ url('admin/tickets') }}" class="text-decoration-none text-reset d-block h-100">
+            <a href="{{ url('admin/tickets') }}{{ $viewUserQuery }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="stat-icon-premium mb-3"
                         style="background: rgba(var(--accent-h), var(--accent-s), var(--accent-l), 0.1); color: var(--accent);">
@@ -62,11 +109,11 @@
             </a>
         </div>
         @endif
-        @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))
+        @if($isAdmin)
         <div class="col">
             <a href="{{ url('admin/users') }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
-                    <div class="stat-icon-premium icon-primary-premium mb-3">
+                    <div class="stat-icon-premium icon-primary-premium mb-3" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="heading-label" style="font-size: 0.75rem;">Team Members</div>
@@ -81,7 +128,7 @@
     <!-- Health & Progress Row -->
     <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <a href="{{ url('admin/tasks') }}?priority=Critical" class="text-decoration-none text-reset d-block h-100">
+            <a href="{{ url('admin/tasks') }}?priority=Critical{{ $viewTaskAppend }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100"
                     style="border: 1px solid rgba(var(--danger-rgb), 0.2); background: rgba(var(--danger-rgb), 0.02);">
                     <div class="d-flex justify-content-between align-items-center">
@@ -101,7 +148,7 @@
             </a>
         </div>
         <div class="col-md-6">
-            <a href="{{ url('admin/tasks') }}" class="text-decoration-none text-reset d-block h-100">
+            <a href="{{ url('admin/tasks') }}{{ $viewTaskQuery }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="heading-label" style="font-size: 0.75rem;">Project Completion Trend</div>
@@ -315,7 +362,7 @@
             </div>
         </div>
         <div class="col-lg-4">
-            @livewire('todo-list')
+            @livewire('todo-list', ['targetUserId' => isset($viewUser) ? $viewUser->id : null])
         </div>
     </div>
 

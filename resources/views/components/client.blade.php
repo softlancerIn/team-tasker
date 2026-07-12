@@ -573,7 +573,7 @@
                     <div class="avatar-premium"
                         style="width: 38px; height: 38px; border: 1px solid var(--border-main);">
                         @if (Auth::guard('client')->user()->profile_image)
-                            <img src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile">
+                            <img alt="team-tasker" src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile">
                         @else
                             {{ substr(Auth::guard('client')->user()->name ?? 'U', 0, 1) }}
                         @endif
@@ -713,7 +713,7 @@
             <div class="avatar-premium mx-auto mb-3"
                 style="width: 72px; height: 72px; font-size: 1.75rem; border: 3px solid var(--border-main);">
                 @if (Auth::guard('client')->user()->profile_image)
-                    <img src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile"
+                    <img alt="team-tasker" src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile"
                         style="width: 100%; height: 100%; object-fit: cover;">
                 @else
                     {{ substr(Auth::guard('client')->user()->name ?? 'U', 0, 1) }}

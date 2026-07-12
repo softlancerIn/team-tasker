@@ -448,8 +448,8 @@
                     <div class="text-muted small">Owner</div>
                     <div class="d-inline-flex align-items-center gap-2 rounded-pill px-2 py-1 border border-secondary">
                         <div class="avatar-premium" style="width: 24px; height: 24px; font-size: 0.6rem;">
-                            {{ substr($task->assignedTo->name, 0, 1) }}</div>
-                        <span class="text-main small">{{ $task->assignedTo->name }}</span>
+                            {{ substr($task->assignedTo->name ?? 'Unassigned', 0, 1) }}</div>
+                        <span class="text-main small">{{ $task->assignedTo->name ?? 'Unassigned' }}</span>
                     </div>
                 </div>
                 <div class="mb-0 mt-3">

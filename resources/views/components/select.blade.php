@@ -16,6 +16,16 @@
             plugins: ['clear_button'],
             allowEmptyOption: true,
             dropdownParent: 'body',
+            maxOptions: 20,
+            onInitialize: function() {
+                const self = this;
+                self.dropdown_content.addEventListener('scroll', function() {
+                    if (this.scrollTop + this.clientHeight >= this.scrollHeight - 10) {
+                        self.settings.maxOptions += 20;
+                        self.refreshOptions(false);
+                    }
+                });
+            },
             onItemAdd: () => this.instance.setTextboxValue(''),
             onChange: (val) => {
                 this.value = val;
@@ -26,7 +36,7 @@
         if (this.value !== null) {
             this.$watch('value', (val) => {
                 if (this.instance.getValue() !== val) {
-                    this.instance.setValue(val);
+                    this.instance.setValue(val, true);
                 }
             });
         }
@@ -34,7 +44,7 @@
         // Always set initial value if present, but priority to Livewire
         const initialValue = this.value || this.selected;
         if (initialValue !== null && initialValue !== undefined) {
-            this.instance.setValue(initialValue);
+            this.instance.setValue(initialValue, true);
         }
     }
 }">

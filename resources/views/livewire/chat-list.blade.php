@@ -425,7 +425,7 @@ new class extends Component {
                         <div class="position-relative">
                             <div class="avatar-premium" style="width: 42px; height: 42px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
                                 @if ($client->profile_image)
-                                    <img src="{{ asset('storage/' . $client->profile_image) }}" alt="Avatar">
+                                    <img alt="team-tasker" src="{{ asset('storage/' . $client->profile_image) }}" alt="Avatar">
                                 @else
                                     {{ substr($client->name, 0, 1) }}
                                 @endif
@@ -460,7 +460,7 @@ new class extends Component {
                     <div class="position-relative">
                         <div class="avatar-premium" style="width: 42px; height: 42px;">
                             @if ($user->profile_image)
-                                <img src="{{ asset('storage/' . $user->profile_image) }}" alt="Avatar">
+                                <img alt="team-tasker" src="{{ asset('storage/' . $user->profile_image) }}" alt="Avatar">
                             @else
                                 {{ substr($user->name, 0, 1) }}
                             @endif

@@ -135,7 +135,7 @@
     </div>
 
     <!-- Assign Existing Task Modal -->
-    <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-labelledby="assignTaskModalLabel" aria-hidden="true">
+    <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-labelledby="assignTaskModalLabel" aria-hidden="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: var(--radius-lg);">
                 <form action="{{ route('admin.projects.assignTask', $project->id) }}" method="POST">

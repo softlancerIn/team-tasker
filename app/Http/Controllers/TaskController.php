@@ -140,6 +140,39 @@ class TaskController extends Controller
     }
 
     /**
+     * API for searching users (AJAX)
+     */
+    public function searchUsers(Request $request)
+    {
+        $search = $request->get('q', '');
+        $page = $request->get('page', 1);
+        
+        $query = \App\Models\User::query();
+        
+        if (!empty($search)) {
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+        }
+        
+        $users = $query->select('id', 'name', 'role_id')->paginate(20, ['*'], 'page', $page);
+        
+        $formattedUsers = $users->map(function($user) {
+            $roleLabel = $user->role_id == 1 ? 'Admin' : 'User';
+            return [
+                'id' => $user->id,
+                'name' => "{$user->name} ({$roleLabel})"
+            ];
+        });
+        
+        return response()->json([
+            'items' => $formattedUsers,
+            'total_count' => $users->total(),
+            'has_more' => $users->hasMorePages(),
+            'next_page' => $users->hasMorePages() ? $page + 1 : null
+        ]);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function dashboard()
@@ -149,6 +182,18 @@ class TaskController extends Controller
         $userId = Auth::user()->id;
         // Admins see everything. Others see only their assigned/owned items.
         $isAdmin = Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin') || Auth::user()->hasPermission('tasks.view_all');
+        $isTicketAdmin = Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin') || Auth::user()->hasPermission('tickets.view_all');
+
+        $viewUserId = request('view_user_id');
+        $viewUser = null;
+        
+        // Impersonation for dashboard metrics
+        if ($viewUserId && (Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))) {
+            $userId = $viewUserId;
+            $isAdmin = false; // Act as standard user to filter metrics
+            $isTicketAdmin = false;
+            $viewUser = \App\Models\User::find($userId);
+        }
 
         // Personal tasks for the list
         $personalTasks = Task::with(['user', 'assignedTo', 'status'])
@@ -179,7 +224,6 @@ class TaskController extends Controller
         $pendingTasksCount = $totalTasks - $completedTasksCount;
 
         $ticketQuery = \App\Models\Ticket::query();
-        $isTicketAdmin = Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin') || Auth::user()->hasPermission('tickets.view_all');
         if (! $isTicketAdmin) {
             $ticketQuery->where(function ($q) use ($userId) {
                 $q->where('user_id', $userId)->orWhere('assigned_to', $userId);
@@ -204,7 +248,12 @@ class TaskController extends Controller
 
         // Recent Activity
         $activityQuery = \App\Models\TaskLog::with(['user', 'task', 'project']);
-        if (! $isAdmin) {
+        
+        if ($viewUserId && (Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))) {
+            // When an admin is viewing AS a specific user, show the activity performed BY that user
+            $activityQuery->where('user_id', $userId);
+        } elseif (! $isAdmin) {
+            // Standard user logic: show activity on tasks/projects they are involved in
             $activityQuery->where(function ($q) use ($userId) {
                 $q->whereHas('task', function ($q) use ($userId) {
                     $q->where('user_id', $userId)
@@ -226,6 +275,8 @@ class TaskController extends Controller
         // Default view: Last 7 days
         $chartData = $chart7d['data'];
         $chartLabels = $chart7d['labels'];
+        
+        $allUsers = \App\Models\User::all(); // For the dropdown
 
         return view('admin.dashboard', compact(
             'personalTasks',
@@ -243,7 +294,11 @@ class TaskController extends Controller
             'chart7d',
             'chart30d',
             'chart90d',
-            'chartAll'
+            'chartAll',
+            'viewUser',
+            'allUsers',
+            'isAdmin',
+            'isTicketAdmin'
         ));
     }
 

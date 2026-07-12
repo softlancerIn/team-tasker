@@ -471,7 +471,7 @@ new class extends Component {
                         <div class="d-flex align-items-center">
                             <div class="avatar-premium" style="width: 45px; height: 45px;">
                                 @if ($otherParticipant->profile_image)
-                                    <img src="{{ asset('storage/' . $otherParticipant->profile_image) }}"
+                                    <img alt="team-tasker" src="{{ asset('storage/' . $otherParticipant->profile_image) }}"
                                         alt="Avatar">
                                 @else
                                     {{ substr($otherParticipant->name ?? 'U', 0, 1) }}
@@ -633,7 +633,7 @@ new class extends Component {
                                             @if (str_starts_with($fileType, 'image/'))
                                                 <div
                                                     class="position-relative d-inline-block group-hover-show-download mb-2">
-                                                    <img src="{{ asset('storage/' . $filePath) }}"
+                                                    <img alt="team-tasker" src="{{ asset('storage/' . $filePath) }}"
                                                         class="img-fluid rounded" style="max-height: 200px;">
                                                     <a href="{{ asset('storage/' . $filePath) }}"
                                                         download="{{ $fileName }}"
@@ -644,7 +644,7 @@ new class extends Component {
                                                 </div>
                                             @else
                                                 <div class="d-flex align-items-center mb-2">
-                                                    <a href="{{ asset('storage/' . $filePath) }}" target="_blank"
+                                                    <a href="{{ asset('storage/' . $filePath) }}" target="_blank" rel="noopener noreferrer"
                                                         class="text-decoration-none"
                                                         style="color: {{ $isMe ? 'white' : 'var(--text-main)' }};">
                                                         <i class="fas fa-file me-1"></i> {{ $fileName }}
@@ -718,7 +718,7 @@ new class extends Component {
                             <div class="position-relative d-inline-block border-main rounded-premium"
                                 style="width: 70px; height: 70px; background: var(--bg-surface); overflow: hidden;">
                                 @if (is_object($file) && method_exists($file, 'temporaryUrl') && str_starts_with($file->getMimeType(), 'image/'))
-                                    <img src="{{ $file->temporaryUrl() }}"
+                                    <img alt="team-tasker" src="{{ $file->temporaryUrl() }}"
                                         style="width: 100%; height: 100%; object-fit: cover;">
                                 @else
                                     <div class="d-flex align-items-center justify-content-center h-100 w-100">
@@ -855,7 +855,7 @@ new class extends Component {
                         <div class="d-flex align-items-center p-2 rounded-premium transition-base hover-bg-input">
                             <div class="avatar-premium flex-shrink-0" style="width: 38px; height: 38px;">
                                 @if ($participant->profile_image)
-                                    <img src="{{ asset('storage/' . $participant->profile_image) }}" alt="Avatar">
+                                    <img alt="team-tasker" src="{{ asset('storage/' . $participant->profile_image) }}" alt="Avatar">
                                 @else
                                     {{ substr($participant->name, 0, 1) }}
                                 @endif
