@@ -1507,8 +1507,15 @@
             }
             
             @if(empty($myAttendance))
-            var punchModal = new bootstrap.Modal(document.getElementById('globalClockInModal'));
-            punchModal.show();
+            if (sessionStorage.getItem('punchInModalDismissed') !== 'true') {
+                var punchModalElement = document.getElementById('globalClockInModal');
+                var punchModal = new bootstrap.Modal(punchModalElement);
+                punchModal.show();
+
+                punchModalElement.addEventListener('hidden.bs.modal', function () {
+                    sessionStorage.setItem('punchInModalDismissed', 'true');
+                });
+            }
             @endif
         });
     </script>
