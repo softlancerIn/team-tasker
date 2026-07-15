@@ -10,9 +10,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 try {
-    $closeTime = Setting::where('key', 'office_close_time')->value('value') ?: '19:00';
-    Schedule::command('app:auto-stop-timers')->dailyAt($closeTime);
+    Schedule::command('app:auto-stop-timers')->dailyAt('20:00');
 } catch (\Exception $e) {
     // Fallback if database is not migrated yet
-    Schedule::command('app:auto-stop-timers')->dailyAt('19:00');
+    Schedule::command('app:auto-stop-timers')->dailyAt('20:00');
 }

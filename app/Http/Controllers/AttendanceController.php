@@ -323,7 +323,7 @@ class AttendanceController extends Controller
             'reason' => 'required|string',
         ]);
 
-        AttendanceRequest::create([
+        $attendanceReq = AttendanceRequest::create([
             'user_id' => Auth::id(),
             'type' => $validated['type'],
             'start_date' => $validated['start_date'],
@@ -331,6 +331,14 @@ class AttendanceController extends Controller
             'reason' => $validated['reason'],
             'status' => 'Pending',
         ]);
+
+        $superAdmins = \App\Models\User::whereHas('role', function ($query) {
+            $query->where('slug', 'super-admin');
+        })->get();
+        
+        foreach ($superAdmins as $admin) {
+            $admin->notify(new \App\Notifications\LeaveRequestNotification($attendanceReq, 'applied'));
+        }
 
         return redirect()->back()->with('success', 'Request submitted successfully.');
     }
@@ -373,6 +381,8 @@ class AttendanceController extends Controller
             'action_by' => Auth::id(),
             'action_notes' => $validated['action_notes'] ?? null
         ]);
+
+        $attendanceReq->user->notify(new \App\Notifications\LeaveRequestNotification($attendanceReq, strtolower($validated['status'])));
 
         return redirect()->back()->with('success', 'Request status updated successfully.');
     }

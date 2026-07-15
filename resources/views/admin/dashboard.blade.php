@@ -24,8 +24,8 @@
     @endpush
 
     @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0 text-white" style="font-weight: 600;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h4 class="mb-0 dark:text-white" style="font-weight: 600;">
             @if(isset($viewUser))
                 Viewing Dashboard As: <span class="text-primary">{{ $viewUser->name }}</span>
             @else

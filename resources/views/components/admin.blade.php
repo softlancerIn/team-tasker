@@ -747,6 +747,16 @@
             box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
         }
 
+        body {
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 991.98px) {
+            .mobile-hide {
+                display: none !important;
+            }
+        }
+
         @media (max-width: 768px) {
             .header-search-premium {
                 display: none;
@@ -804,15 +814,15 @@
             @endphp
             
             @if(!$myAttendance)
-                <button class="btn-premium btn-premium-primary btn-sm" data-bs-toggle="modal" data-bs-target="#globalClockInModal" style="padding: 6px 16px;">
+                <button class="btn-premium btn-premium-primary btn-sm mobile-hide" data-bs-toggle="modal" data-bs-target="#globalClockInModal" style="padding: 6px 16px;">
                     <i class="fas fa-sign-in-alt me-1"></i> Clock In
                 </button>
             @elseif(!$myAttendance->clock_out)
-                <button type="button" class="btn-premium btn btn-danger btn-sm m-0" style="padding: 6px 16px;" data-bs-toggle="modal" data-bs-target="#globalClockOutModal">
+                <button type="button" class="btn-premium btn btn-danger btn-sm m-0 mobile-hide" style="padding: 6px 16px;" data-bs-toggle="modal" data-bs-target="#globalClockOutModal">
                     <i class="fas fa-sign-out-alt me-1"></i> Clock Out
                 </button>
             @else
-                <span class="badge-premium" style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 8px 16px; border-radius: 6px;">
+                <span class="badge-premium mobile-hide" style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 8px 16px; border-radius: 6px;">
                     <i class="fas fa-check-circle me-1"></i> Shift Ended
                 </span>
             @endif

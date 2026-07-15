@@ -4,7 +4,7 @@
     </x-slot:title>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0 text-white" style="font-weight: 600;">Attendance Dashboard</h4>
+        <h4 class="mb-0 dark:text-white" style="font-weight: 600;">Attendance Dashboard</h4>
         <div class="d-flex gap-2">
             @if(session('success'))
                 <div class="alert alert-success py-2 px-3 mb-0 d-flex align-items-center border-0 me-3" style="background: rgba(var(--success-rgb), 0.1); color: var(--success);">
