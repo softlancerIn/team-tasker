@@ -6,6 +6,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? 'Admin Dashboard | Team Tasker' }}</title>
+
+    @php
+        $appSettings = \App\Models\Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
+        $appLogo = $appSettings['app_logo'] ?? null;
+    @endphp
+
+    @if ($appLogo)
+        <link rel="icon" href="{{ asset('storage/' . $appLogo) }}">
+    @else
+        <link rel="icon" href="{{ asset('favicon.ico') }}">
+    @endif
+
     @livewireStyles
 
     <!-- Firebase SDK (Compat) -->
@@ -149,7 +161,7 @@
                                 }
                             }
                         });
-                        editor.on('init', function() {
+                        editor.on('init', function () {
                             const container = editor.getContainer();
                             if (container) {
                                 container.style.border = 'none';
@@ -204,8 +216,8 @@
                 entity_encoding: 'raw',
                 remove_trailing_brs: false,
                 valid_children: '+body[style|i]',
-                setup: function(editor) {
-                    editor.on('init', function() {
+                setup: function (editor) {
+                    editor.on('init', function () {
                         const container = editor.getContainer();
                         if (container) {
                             container.style.border = isDark ? '1px solid rgba(99, 102, 241, 0.3)' :
@@ -234,13 +246,13 @@
         // TinyMCE hides the original <textarea>, so `required` blocks submission.
         // Before any form submits, we: 1) sync all TinyMCE instances to their
         // underlying textarea, 2) check data-required fields are non-empty.
-        document.addEventListener('submit', function(e) {
+        document.addEventListener('submit', function (e) {
             if (typeof tinymce === 'undefined') return;
 
             const form = e.target;
 
             // 1. Sync every TinyMCE editor that lives inside this form
-            tinymce.editors.forEach(function(editor) {
+            tinymce.editors.forEach(function (editor) {
                 const el = document.getElementById(editor.id);
                 if (el && form.contains(el)) {
                     editor.save(); // copies editor content into the textarea
@@ -419,18 +431,23 @@
         [data-theme="dark"] .tox-tinymce {
             border: 1px solid var(--border-main) !important;
         }
+
         [data-theme="dark"] .tox .tox-toolbar,
         [data-theme="dark"] .tox .tox-toolbar__overflow,
         [data-theme="dark"] .tox .tox-toolbar__primary {
             background: var(--bg-surface) !important;
         }
+
         [data-theme="dark"] .tox .tox-tbtn {
             color: var(--text-high) !important;
         }
+
         [data-theme="dark"] .tox .tox-tbtn:hover {
             background: var(--bg-input) !important;
         }
-        [data-theme="dark"] .tox .tox-tbtn--enabled, [data-theme="dark"] .tox .tox-tbtn--enabled:hover {
+
+        [data-theme="dark"] .tox .tox-tbtn--enabled,
+        [data-theme="dark"] .tox .tox-tbtn--enabled:hover {
             background: rgba(var(--primary-rgb), 0.2) !important;
         }
 
@@ -520,112 +537,116 @@
     @endphp
 
     @if(!$fullscreen)
-    <header class="layout-header-premium">
-        @php
-            $appSettings = \App\Models\Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
-            $appName = $appSettings['app_name'] ?? 'TeamTasker';
-            $appLogo = $appSettings['app_logo'] ?? null;
-        @endphp
-        <div class="d-flex align-items-center gap-3">
-            <button class="mobile-toggle-premium d-lg-none" id="mobileSidebarToggle" style="margin-right: 0;">
-                <i class="fas fa-bars"></i>
-            </button>
-            <a href="{{ route('client.dashboard') }}"
-                class="sidebar-brand text-decoration-none p-0 border-0 bg-transparent">
-                @if ($appLogo)
-                    <img src="{{ asset('storage/' . $appLogo) }}" alt="Logo"
-                        style="width: 32px; height: 32px; object-fit: contain; border-radius: 6px;">
-                @else
-                    <i class="fas fa-layer-group text-primary" style="font-size: 1.5rem;"></i>
-                @endif
-                <span class="text-high fw-bold"
-                    style="font-size: 1.25rem; letter-spacing: -0.5px;">{{ $appName }}</span>
-            </a>
-        </div>
-
-        <!-- Global Search -->
-        @if (!request()->routeIs('client.chat.index'))
-        <form action="{{ route('search.global') }}" method="GET" class="header-search-premium">
-            <i class="fas fa-search"></i>
-            <input type="text" name="q" placeholder="Search tickets, tasks..." value="{{ request('q') }}">
-        </form>
-        @endif
-
-        <div class="header-utils">
-            <!-- Theme Toggle -->
-            <button class="header-icon-btn" id="themeToggle" title="Toggle Theme">
-                <i class="fas fa-moon"></i>
-            </button>
-
-            <!-- Notification Placeholder -->
-            <button class="header-icon-btn position-relative" title="Notifications" data-bs-toggle="modal"
-                data-bs-target="#notificationsModal">
-                <i class="far fa-bell"></i>
-                @if ($notificationCount > 0)
-                    <span class="notification-badge">{{ $notificationCount > 99 ? '99+' : $notificationCount }}</span>
-                @endif
-            </button>
-
-            <!-- User Profile -->
-            <div class="dropdown">
-                <div class="user-profile-premium dropdown-toggle p-0 bg-transparent border-0" data-bs-toggle="dropdown"
-                    style="cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                    <div class="avatar-premium"
-                        style="width: 38px; height: 38px; border: 1px solid var(--border-main);">
-                        @if (Auth::guard('client')->user()->profile_image)
-                            <img alt="team-tasker" src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile">
-                        @else
-                            {{ substr(Auth::guard('client')->user()->name ?? 'U', 0, 1) }}
-                        @endif
-                    </div>
-                </div>
-                <ul class="dropdown-menu dropdown-menu-end shadow-premium mt-3"
-                    style="min-width: 200px; border-radius: 12px; border: 1px solid var(--border-subtle);">
-                    <li class="px-3 py-3"
-                        style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-input); border-radius: 12px 12px 0 0;">
-                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-high);">
-                            {{ Auth::guard('client')->user()->name }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-low);">{{ Auth::guard('client')->user()->email }}</div>
-                    </li>
-                    <li><a class="dropdown-item py-2 mt-1" href="#" data-bs-toggle="modal"
-                            data-bs-target="#profileModal"><i class="fas fa-user-edit me-2 text-primary"></i> Edit
-                            Profile</a></li>
-                    <li>
-                        <hr class="dropdown-divider" style="opacity: 0.1;">
-                    </li>
-                    <li><a class="dropdown-item text-danger py-2 mb-1" href="{{ route('logout') }}"><i
-                                class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                </ul>
+        <header class="layout-header-premium">
+            @php
+                $appSettings = \App\Models\Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
+                $appName = $appSettings['app_name'] ?? 'TeamTasker';
+                $appLogo = $appSettings['app_logo'] ?? null;
+            @endphp
+            <div class="d-flex align-items-center gap-3">
+                <button class="mobile-toggle-premium d-lg-none" id="mobileSidebarToggle" style="margin-right: 0;">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="{{ route('client.dashboard') }}"
+                    class="sidebar-brand text-decoration-none p-0 border-0 bg-transparent">
+                    @if ($appLogo)
+                        <img src="{{ asset('storage/' . $appLogo) }}" alt="Logo"
+                            style="width: 32px; height: 32px; object-fit: contain; border-radius: 6px;">
+                    @else
+                        <i class="fas fa-layer-group text-primary" style="font-size: 1.5rem;"></i>
+                    @endif
+                    <span class="text-high fw-bold"
+                        style="font-size: 1.25rem; letter-spacing: -0.5px;">{{ $appName }}</span>
+                </a>
             </div>
-        </div>
-    </header>
+
+            <!-- Global Search -->
+            @if (!request()->routeIs('client.chat.index'))
+                <form action="{{ route('search.global') }}" method="GET" class="header-search-premium">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="q" placeholder="Search tickets, tasks..." value="{{ request('q') }}">
+                </form>
+            @endif
+
+            <div class="header-utils">
+                <!-- Theme Toggle -->
+                <button class="header-icon-btn" id="themeToggle" title="Toggle Theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+
+                <!-- Notification Placeholder -->
+                <button class="header-icon-btn position-relative" title="Notifications" data-bs-toggle="modal"
+                    data-bs-target="#notificationsModal">
+                    <i class="far fa-bell"></i>
+                    @if ($notificationCount > 0)
+                        <span class="notification-badge">{{ $notificationCount > 99 ? '99+' : $notificationCount }}</span>
+                    @endif
+                </button>
+
+                <!-- User Profile -->
+                <div class="dropdown">
+                    <div class="user-profile-premium dropdown-toggle p-0 bg-transparent border-0" data-bs-toggle="dropdown"
+                        style="cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                        <div class="avatar-premium"
+                            style="width: 38px; height: 38px; border: 1px solid var(--border-main);">
+                            @if (Auth::guard('client')->user()->profile_image)
+                                <img alt="team-tasker"
+                                    src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile">
+                            @else
+                                {{ substr(Auth::guard('client')->user()->name ?? 'U', 0, 1) }}
+                            @endif
+                        </div>
+                    </div>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-premium mt-3"
+                        style="min-width: 200px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                        <li class="px-3 py-3"
+                            style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-input); border-radius: 12px 12px 0 0;">
+                            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-high);">
+                                {{ Auth::guard('client')->user()->name }}
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-low);">
+                                {{ Auth::guard('client')->user()->email }}</div>
+                        </li>
+                        <li><a class="dropdown-item py-2 mt-1" href="#" data-bs-toggle="modal"
+                                data-bs-target="#profileModal"><i class="fas fa-user-edit me-2 text-primary"></i> Edit
+                                Profile</a></li>
+                        <li>
+                            <hr class="dropdown-divider" style="opacity: 0.1;">
+                        </li>
+                        <li><a class="dropdown-item text-danger py-2 mb-1" href="{{ route('logout') }}"><i
+                                    class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
     @endif
 
     @if(!$fullscreen && !$hideSidebar)
-    <aside class="sidebar-premium">
+        <aside class="sidebar-premium">
 
-        <nav>
-            <a href="{{ route('client.dashboard') }}"
-                class="nav-link-premium {{ request()->routeIs('client.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-home"></i> Dashboard
-            <a href="{{ route('client.dashboard') }}#tickets"
-                    class="nav-link-premium {{ request()->routeIs('client.tickets.*') ? 'active' : '' }}">
-                    <i class="fas fa-ticket-alt"></i> Tickets
-                </a>
-            <a href="{{ route('client.dashboard') }}#tasks"
-                    class="nav-link-premium {{ request()->routeIs('client.tasks.*') ? 'active' : '' }}">
-                    <i class="fas fa-tasks"></i> Tasks
-                </a>
-            <a href="{{ route('client.chat.index') }}"
-                    class="nav-link-premium d-flex align-items-center {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
-                    <i class="fas fa-comments"></i> Chats
-                    <livewire:global-chat-badge />
-                </a>
-        </nav>
-    </aside>
+            <nav>
+                <a href="{{ route('client.dashboard') }}"
+                    class="nav-link-premium {{ request()->routeIs('client.dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-home"></i> Dashboard
+                    <a href="{{ route('client.dashboard') }}#tickets"
+                        class="nav-link-premium {{ request()->routeIs('client.tickets.*') ? 'active' : '' }}">
+                        <i class="fas fa-ticket-alt"></i> Tickets
+                    </a>
+                    <a href="{{ route('client.dashboard') }}#tasks"
+                        class="nav-link-premium {{ request()->routeIs('client.tasks.*') ? 'active' : '' }}">
+                        <i class="fas fa-tasks"></i> Tasks
+                    </a>
+                    <a href="{{ route('client.chat.index') }}"
+                        class="nav-link-premium d-flex align-items-center {{ request()->routeIs('client.chat.index') ? 'active' : '' }}">
+                        <i class="fas fa-comments"></i> Chats
+                        <livewire:global-chat-badge />
+                    </a>
+            </nav>
+        </aside>
     @endif
 
-    <main class="main-content-premium" style="{{ $fullscreen ? 'margin: 0 !important; padding: 0 !important; max-width: 100% !important;' : ($hideSidebar ? 'margin-left: 0 !important; max-width: 100% !important;' : '') }} {{ $noPadding ? 'padding: 0 !important;' : '' }}">
+    <main class="main-content-premium"
+        style="{{ $fullscreen ? 'margin: 0 !important; padding: 0 !important; max-width: 100% !important;' : ($hideSidebar ? 'margin-left: 0 !important; max-width: 100% !important;' : '') }} {{ $noPadding ? 'padding: 0 !important;' : '' }}">
         {{ $slot }}
     </main>
 
@@ -645,8 +666,7 @@
                         @if ($notificationCount > 0)
                             <form action="{{ route('client.notifications.markAsRead') }}" method="POST">
                                 @csrf
-                                <button type="submit"
-                                    class="btn btn-link text-primary text-decoration-none p-0 small"
+                                <button type="submit" class="btn btn-link text-primary text-decoration-none p-0 small"
                                     style="font-size: 0.75rem;">Mark all as read</button>
                             </form>
                         @endif
@@ -713,8 +733,8 @@
             <div class="avatar-premium mx-auto mb-3"
                 style="width: 72px; height: 72px; font-size: 1.75rem; border: 3px solid var(--border-main);">
                 @if (Auth::guard('client')->user()->profile_image)
-                    <img alt="team-tasker" src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile"
-                        style="width: 100%; height: 100%; object-fit: cover;">
+                    <img alt="team-tasker" src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}"
+                        alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
                 @else
                     {{ substr(Auth::guard('client')->user()->name ?? 'U', 0, 1) }}
                 @endif
@@ -724,26 +744,27 @@
         </div>
         <div class="mb-3">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">Full Name</label>
-            <input type="text" name="name" value="{{ Auth::guard('client')->user()->name }}" class="form-premium-control"
-                required>
+            <input type="text" name="name" value="{{ Auth::guard('client')->user()->name }}"
+                class="form-premium-control" required>
         </div>
         <div class="mb-3">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">Email Address</label>
-            <input type="email" name="email" value="{{ Auth::guard('client')->user()->email }}" class="form-premium-control"
-                required>
+            <input type="email" name="email" value="{{ Auth::guard('client')->user()->email }}"
+                class="form-premium-control" required>
         </div>
         <div class="mb-3">
             <label class="heading-label mb-2" style="font-size: 0.7rem;">New Password <span class="text-low"
                     style="font-weight: 400;">(leave blank to keep current)</span></label>
-            <input type="password" name="password" class="form-premium-control" placeholder="ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢">
+            <input type="password" name="password" class="form-premium-control"
+                placeholder="ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢">
         </div>
     </x-modal>
 
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
         @if (session('success'))
-            <div id="successToast" class="toast align-items-center text-white bg-success border-0 shadow-lg"
-                role="alert" aria-live="assertive" aria-atomic="true">
+            <div id="successToast" class="toast align-items-center text-white bg-success border-0 shadow-lg" role="alert"
+                aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
                         <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
@@ -755,8 +776,8 @@
         @endif
 
         @if (session('error'))
-            <div id="errorToast" class="toast align-items-center text-white bg-danger border-0 shadow-lg"
-                role="alert" aria-live="assertive" aria-atomic="true">
+            <div id="errorToast" class="toast align-items-center text-white bg-danger border-0 shadow-lg" role="alert"
+                aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
                         <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
@@ -771,7 +792,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Theme Toggle Logic
             const themeToggle = document.getElementById('themeToggle');
             const icon = themeToggle.querySelector('i');
@@ -809,7 +830,7 @@
             }
 
             // Request Notification Permission on user interaction
-            document.addEventListener('click', function() {
+            document.addEventListener('click', function () {
                 if (Notification.permission === 'default') {
                     Notification.requestPermission();
                 }
@@ -875,7 +896,7 @@
                             } else {
                                 console.warn(
                                     'No registration token available. Request permission to generate one.'
-                                    );
+                                );
                             }
                         }).catch((err) => {
                             console.error('An error occurred while retrieving token. ', err);
@@ -888,16 +909,16 @@
 
             function sendTokenToServer(token) {
                 fetch("{{ route('update.fcm_token') }}", {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': "{{ csrf_token() }}"
-                        },
-                        body: JSON.stringify({
-                            token: token
-                        })
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({
+                        token: token
                     })
+                })
                     .then(response => response.json())
                     .then(data => console.log('FCM Token sync:', data))
                     .catch(err => console.error('Error syncing FCM token:', err));

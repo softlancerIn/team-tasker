@@ -188,7 +188,7 @@ new class extends Component {
         }
         $isClientGuard = Auth::guard('client')->check();
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
-        $messageData = ['body' => $messageBody];
+        $messageData = ['body' => $messageBody ?? ''];
         if ($isClientGuard) {
             $messageData['client_id'] = $myId;
         } else {
@@ -197,16 +197,26 @@ new class extends Component {
         $message = $this->conversation->messages()->create($messageData);
         $this->dispatch('message-sent-successfully', ['messageId' => $message->id]);
         if ($this->attachment) {
-            // Handle single file upload
-            $file = is_array($this->attachment) ? $this->attachment[0] : $this->attachment;
-
-            $path = $file->store('chat-attachments', 'public');
-            $message->attachments()->create([
-                'file_path' => $path,
-                'file_name' => $file->getClientOriginalName(),
-                'file_type' => $file->getMimeType(),
-                'file_size' => $file->getSize(),
-            ]);
+            if (is_array($this->attachment) && isset($this->attachment['path'])) {
+                // Handle chunked file upload array
+                $message->attachments()->create([
+                    'file_path' => $this->attachment['path'],
+                    'file_name' => $this->attachment['original_name'],
+                    'file_type' => $this->attachment['mime_type'],
+                    'file_size' => $this->attachment['size'],
+                ]);
+            } else {
+                // Handle traditional single file upload (fallback)
+                $file = is_array($this->attachment) ? $this->attachment[0] : $this->attachment;
+    
+                $path = $file->store('chat-attachments', 'public');
+                $message->attachments()->create([
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
             $this->attachment = null;
         }
 
@@ -524,6 +534,12 @@ new class extends Component {
                         @if ($conversation->type != 'private')
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                    wire:click.prevent="$dispatch('openEditGroupModal', { conversationId: {{ $conversation->id }} })" style="color: var(--text-high);">
+                                    <i class="fas fa-edit" style="font-size: 0.8rem;"></i> <span>Edit Group</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
                                     wire:click.prevent="$set('showGroupInfo', true)" style="color: var(--text-high);">
                                     <i class="fas fa-info-circle" style="font-size: 0.8rem;"></i> <span>Group
                                         Info</span>
@@ -702,7 +718,66 @@ new class extends Component {
 
         <!-- Input Area -->
         <div class="p-3 pb-4 pb-md-3 border-top border-main" wire:key="chat-input-{{ $conversation->id }}"
-            style="background: var(--bg-surface);">
+            style="background: var(--bg-surface);"
+            x-data="{
+                uploadProgress: 0,
+                isUploading: false,
+                async uploadFile(event) {
+                    const file = event.target.files[0];
+                    if(!file) return;
+                    
+                    this.isUploading = true;
+                    this.uploadProgress = 0;
+                    
+                    const chunkSize = 2 * 1024 * 1024; // 2MB
+                    const totalChunks = Math.ceil(file.size / chunkSize);
+                    const fileId = Date.now() + '-' + Math.floor(Math.random() * 1000);
+                    
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * chunkSize;
+                        const end = Math.min(start + chunkSize, file.size);
+                        const chunk = file.slice(start, end);
+                        
+                        const formData = new FormData();
+                        formData.append('file', chunk);
+                        formData.append('chunkIndex', i);
+                        formData.append('totalChunks', totalChunks);
+                        formData.append('fileName', file.name);
+                        formData.append('fileId', fileId);
+                        formData.append('mimeType', file.type || 'application/octet-stream');
+                        
+                        let token = document.querySelector('meta[name=\'csrf-token\']');
+                        if (token) {
+                            formData.append('_token', token.content);
+                        } else {
+                            formData.append('_token', '{{ csrf_token() }}');
+                        }
+                        
+                        try {
+                            const response = await fetch('{{ route('upload.chunk') }}', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const data = await response.json();
+                            
+                            this.uploadProgress = Math.round(((i + 1) / totalChunks) * 100);
+                            
+                            if (data.status === 'completed') {
+                                @this.set('attachment', data);
+                                this.isUploading = false;
+                                event.target.value = '';
+                                break;
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            this.isUploading = false;
+                            alert('Upload failed!');
+                            event.target.value = '';
+                            break;
+                        }
+                    }
+                }
+            }">
             @if ($isBlocked || $isBlockedBy)
                 <div class="text-center py-3 text-low" style="font-size: 0.85rem;">
                     <i class="fas fa-lock me-2"></i> Chat is disabled.
@@ -712,13 +787,20 @@ new class extends Component {
                     <div class="chat-media-preview d-flex flex-wrap gap-2 mb-3 p-2 border-main rounded-premium"
                         style="background: var(--bg-input);">
                         @php
-                            $files = is_array($attachment) ? $attachment : [$attachment];
+                            if (is_array($attachment) && isset($attachment['path'])) {
+                                $files = [$attachment];
+                            } else {
+                                $files = is_array($attachment) ? $attachment : [$attachment];
+                            }
                         @endphp
                         @foreach ($files as $file)
                             <div class="position-relative d-inline-block border-main rounded-premium"
                                 style="width: 70px; height: 70px; background: var(--bg-surface); overflow: hidden;">
                                 @if (is_object($file) && method_exists($file, 'temporaryUrl') && str_starts_with($file->getMimeType(), 'image/'))
                                     <img alt="team-tasker" src="{{ $file->temporaryUrl() }}"
+                                        style="width: 100%; height: 100%; object-fit: cover;">
+                                @elseif(is_array($file) && isset($file['url']) && str_starts_with($file['mime_type'] ?? '', 'image/'))
+                                    <img alt="team-tasker" src="{{ $file['url'] }}"
                                         style="width: 100%; height: 100%; object-fit: cover;">
                                 @else
                                     <div class="d-flex align-items-center justify-content-center h-100 w-100">
@@ -738,6 +820,11 @@ new class extends Component {
                 @endif
 
                 <form wire:submit.prevent="sendMessage">
+                    <!-- Progress Bar -->
+                    <div x-show="isUploading" style="display: none;" class="progress mb-2" style="height: 5px; border-radius: 5px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" :style="'width: ' + uploadProgress + '%'"></div>
+                    </div>
+                    
                     <div class="d-flex align-items-end gap-2">
                         <div class="flex-grow-1 position-relative" style="min-width: 0;">
                             <div wire:ignore wire:key="editor-{{ $conversation->id }}" x-data="chatEditor(@this, {
@@ -755,7 +842,7 @@ new class extends Component {
                                 <label class="btn btn-link text-low p-1 mb-0 hover-text-high" style="cursor: pointer;"
                                     title="Attach file">
                                     <i class="fas fa-paperclip"></i>
-                                    <input type="file" wire:model.live="attachment" class="d-none">
+                                    <input type="file" @change="uploadFile" class="d-none" :disabled="isUploading">
                                 </label>
 
                                 <div class="position-relative" x-data="{ showEmojiPicker: false }"

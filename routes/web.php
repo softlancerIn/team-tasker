@@ -69,6 +69,9 @@ Route::middleware(['web', 'auth:web,admin,client'])->group(function () {
     })->name('update.fcm_token');
 });
 
+// Chunk Upload Route
+Route::post('/upload-chunk', [App\Http\Controllers\ChunkUploadController::class, 'upload'])->name('upload.chunk')->middleware(['web']);
+
 // Public Enquiry Route
 Route::get('/enquire', [App\Http\Controllers\EnquiryController::class, 'create'])->name('enquiry.create');
 Route::post('/enquire', [App\Http\Controllers\EnquiryController::class, 'store'])->name('enquiry.store');

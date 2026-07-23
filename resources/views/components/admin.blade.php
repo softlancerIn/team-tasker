@@ -10,6 +10,17 @@
         <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     @endif
 
+    @php
+        $appSettings = \App\Models\Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
+        $appLogo = $appSettings['app_logo'] ?? null;
+    @endphp
+
+    @if ($appLogo)
+        <link rel="icon" href="{{ asset('storage/' . $appLogo) }}">
+    @else
+        <link rel="icon" href="{{ asset('favicon.ico') }}">
+    @endif
+
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
