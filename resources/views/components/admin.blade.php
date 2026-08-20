@@ -969,6 +969,11 @@
                 </a>
             @endif
 
+            <a href="{{ route('admin.meetings.index') }}"
+                class="nav-link-premium {{ request()->routeIs('admin.meetings.*') ? 'active' : '' }}">
+                <i class="fas fa-video"></i> <span>Meetings & Calls</span>
+            </a>
+
             @if (Auth::user()->hasPermission('tickets.view'))
                 <a href="{{ route('admin.tickets.index') }}"
                     class="nav-link-premium {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
@@ -1351,6 +1356,89 @@
                     data
                 });
             });
+
+            // Global Call Listeners inside Socket Connection
+            window.socket.on('incoming_call', function(data) {
+                console.log('Incoming call received in browser:', data);
+                currentCallData = data;
+
+                const callerNameEl = document.getElementById('incomingCallerName');
+                const callTypeEl = document.getElementById('incomingCallType');
+                const callIconEl = document.getElementById('incomingCallIcon');
+
+                if (callerNameEl) callerNameEl.innerText = data.callerName || 'Unknown Caller';
+                if (callTypeEl) callTypeEl.innerText = data.mode === 'audio' ? '📞 Audio Call' : '📹 Video Call';
+                if (callIconEl) callIconEl.className = data.mode === 'audio' ? 'fas fa-phone-alt' : 'fas fa-video';
+                
+                playRingtone();
+
+                // 1. Show Bootstrap Modal
+                if (incomingModal) {
+                    incomingModal.show();
+                }
+
+                const callTitle = data.isGroup ? `Incoming Group ${data.mode === 'audio' ? 'Audio' : 'Video'} Call` : `Incoming ${data.mode === 'audio' ? 'Audio' : 'Video'} Call`;
+                const callText = data.isGroup ? `<strong>${data.callerName}</strong> is calling group <strong>${data.groupName}</strong>...` : `<strong>${data.callerName}</strong> is calling you...`;
+
+                // 2. Show SweetAlert Pickup Popup
+                Swal.fire({
+                    title: callTitle,
+                    html: `<div class="py-2"><h4 class="fw-bold mb-1">${data.isGroup ? data.groupName : data.callerName}</h4><p class="text-muted">${callText}</p></div>`,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-phone-alt me-1"></i> Accept Call',
+                    cancelButtonText: '<i class="fas fa-phone-slash me-1"></i> Decline',
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#ef4444',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    customClass: {
+                        popup: 'glass-card border-main shadow-lg text-center'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        acceptIncomingCall();
+                    } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        rejectIncomingCall();
+                    }
+                });
+            });
+
+            window.socket.on('call_accepted', function(data) {
+                if (currentCallData && currentCallData.meeting.uuid === data.meetingUuid) {
+                    stopOutgoingRingtone();
+                    Swal.close();
+                    window.location.href = currentCallData.join_url;
+                }
+            });
+
+            window.socket.on('call_rejected', function(data) {
+                stopOutgoingRingtone();
+                Swal.fire('Call Rejected', 'The user declined your call.', 'warning');
+                currentCallData = null;
+            });
+
+            window.socket.on('call_cancelled', function(data) {
+                stopRingtone();
+                stopOutgoingRingtone();
+                incomingModal?.hide();
+                Swal.close();
+                Swal.fire('Call Cancelled', 'The caller cancelled the call.', 'info');
+                currentCallData = null;
+            });
+
+            window.socket.on('call_ended', function(data) {
+                stopRingtone();
+                stopOutgoingRingtone();
+                incomingModal?.hide();
+                Swal.close();
+                currentCallData = null;
+                if (window.location.pathname.includes('/meetings/')) {
+                    Swal.fire('Call Ended', 'The call was ended by the host.', 'info').then(() => {
+                        window.location.href = "{{ route('admin.meetings.index') }}";
+                    });
+                }
+            });
             @endif
 
             // Catch dispatch from Livewire to emit to Node
@@ -1391,15 +1479,18 @@
 
             // Submenu Toggle JS
             window.toggleSubmenu = function(el) {
+                if (!el) return;
                 const submenu = el.nextElementSibling;
-                const icon = el.querySelector('.toggle-icon');
+                const icon = el.querySelector('.toggle-icon-premium') || el.querySelector('.toggle-icon');
 
-                if (submenu.classList.contains('show')) {
-                    submenu.classList.remove('show');
-                    icon.classList.remove('rotate');
-                } else {
-                    submenu.classList.add('show');
-                    icon.classList.add('rotate');
+                if (submenu) {
+                    if (submenu.classList.contains('show')) {
+                        submenu.classList.remove('show');
+                        if (icon) icon.classList.remove('rotate');
+                    } else {
+                        submenu.classList.add('show');
+                        if (icon) icon.classList.add('rotate');
+                    }
                 }
             };
 
@@ -1599,6 +1690,300 @@
             </div>
         </div>
     </div>
+    <!-- Incoming Call Modal -->
+    <div class="modal fade" id="incomingCallModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-main shadow-lg text-center p-4" style="background: var(--bg-surface);">
+                <div class="mb-3">
+                    <div class="avatar-premium mx-auto rounded-circle d-flex align-items-center justify-content-center pulse-animation" 
+                        style="width: 80px; height: 80px; font-size: 2.2rem; background: rgba(var(--primary-rgb), 0.15); color: var(--primary);">
+                        <i id="incomingCallIcon" class="fas fa-video"></i>
+                    </div>
+                </div>
+                <h4 class="fw-bold text-high mb-1" id="incomingCallTitle">Incoming Call</h4>
+                <p class="text-medium mb-1 fs-5" id="incomingCallerName">John Doe</p>
+                <p class="text-low small mb-4" id="incomingCallType">📹 Video Call</p>
+
+                <audio id="incomingRingTone" loop src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+                <audio id="outgoingRingTone" loop src="https://assets.mixkit.co/active_storage/sfx/1360/1360-preview.mp3" preload="auto"></audio>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-danger btn-lg px-4 rounded-pill d-flex align-items-center gap-2" id="rejectCallBtn">
+                        <i class="fas fa-phone-slash"></i> Reject
+                    </button>
+                    <button type="button" class="btn btn-success btn-lg px-4 rounded-pill d-flex align-items-center gap-2" id="acceptCallBtn">
+                        <i class="fas fa-phone-alt"></i> Accept
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .pulse-animation {
+            box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.7);
+            animation: pulse-ring 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+        }
+        @keyframes pulse-ring {
+            to {
+                box-shadow: 0 0 0 20px rgba(var(--primary-rgb), 0);
+            }
+        }
+    </style>
+
+    <script>
+        let currentCallData = null;
+        let ringtoneAudio = null;
+        let incomingModal = null;
+
+        let outgoingAudio = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            ringtoneAudio = document.getElementById('incomingRingTone');
+            outgoingAudio = document.getElementById('outgoingRingTone');
+            const modalEl = document.getElementById('incomingCallModal');
+            if (modalEl) {
+                incomingModal = new bootstrap.Modal(modalEl);
+            }
+
+            document.getElementById('acceptCallBtn')?.addEventListener('click', acceptIncomingCall);
+            document.getElementById('rejectCallBtn')?.addEventListener('click', rejectIncomingCall);
+        });
+
+        // Initiate a 1-on-1 Call
+        window.initiateDirectCall = function(receiverId, mode, receiverName, conversationId = null) {
+            const routeUrl = mode === 'audio' ? "{{ route('admin.calls.audio') }}" : "{{ route('admin.calls.video') }}";
+            
+            playOutgoingRingtone();
+
+            Swal.fire({
+                title: `Calling ${receiverName}...`,
+                text: 'Please wait for the user to accept.',
+                icon: 'info',
+                showCancelButton: true,
+                cancelButtonText: 'End Call',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            }).then((result) => {
+                stopOutgoingRingtone();
+                if (result.dismiss === Swal.DismissReason.cancel && currentCallData) {
+                    cancelCall(currentCallData.meeting.uuid);
+                }
+            });
+
+            fetch(routeUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    receiver_id: receiverId,
+                    mode: mode
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentCallData = data;
+                    if (window.socket) {
+                        window.socket.emit('call_initiated', {
+                            meeting: data.meeting,
+                            receiverId: receiverId,
+                            callerId: "{{ auth()->id() }}",
+                            callerName: "{{ auth()->user() ? auth()->user()->name : 'User' }}",
+                            mode: mode,
+                            conversationId: conversationId
+                        });
+                    }
+                } else {
+                    stopOutgoingRingtone();
+                    Swal.fire('Error', data.message || 'Could not initiate call', 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                stopOutgoingRingtone();
+                Swal.fire('Error', 'Failed to initiate call.', 'error');
+            });
+        };
+
+        // Initiate a Group Call
+        window.initiateGroupCall = function(conversationId, mode, groupName) {
+            playOutgoingRingtone();
+
+            Swal.fire({
+                title: `Calling Group (${groupName})...`,
+                text: 'Waiting for participants to join...',
+                icon: 'info',
+                showCancelButton: true,
+                cancelButtonText: 'End Group Call',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            }).then((result) => {
+                stopOutgoingRingtone();
+                if (result.dismiss === Swal.DismissReason.cancel && currentCallData) {
+                    cancelCall(currentCallData.meeting.uuid);
+                }
+            });
+
+            fetch("{{ route('admin.meetings.store') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    title: `Group ${mode === 'audio' ? 'Audio' : 'Video'} Call - ${groupName}`,
+                    type: 'group_call',
+                    mode: mode,
+                    provider: 'livekit'
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success || data.meeting) {
+                    const meeting = data.meeting || data;
+                    const joinUrl = data.join_url || `/admin/meetings/${meeting.uuid}/join`;
+                    currentCallData = { meeting: meeting, join_url: joinUrl };
+                    
+                    if (window.socket) {
+                        window.socket.emit('call_initiated', {
+                            meeting: meeting,
+                            callerId: "{{ auth()->id() }}",
+                            callerName: "{{ auth()->user() ? auth()->user()->name : 'User' }}",
+                            mode: mode,
+                            conversationId: conversationId,
+                            isGroup: true,
+                            groupName: groupName
+                        });
+                    }
+
+                    // Host immediately redirects to join meeting room
+                    stopOutgoingRingtone();
+                    Swal.close();
+                    window.location.href = joinUrl;
+                } else {
+                    stopOutgoingRingtone();
+                    Swal.fire('Error', data.message || 'Could not initiate group call', 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                stopOutgoingRingtone();
+                Swal.fire('Error', 'Failed to initiate group call.', 'error');
+            });
+        };
+
+        function acceptIncomingCall() {
+            if (!currentCallData) return;
+            stopRingtone();
+            incomingModal?.hide();
+            Swal.close();
+
+            const acceptUrl = "{{ route('admin.meetings.accept', ':uuid') }}".replace(':uuid', currentCallData.meeting.uuid);
+
+            fetch(acceptUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (window.socket) {
+                        window.socket.emit('call_accepted', {
+                            meetingUuid: currentCallData.meeting.uuid,
+                            callerId: currentCallData.callerId
+                        });
+                    }
+                    window.location.href = data.join_url;
+                }
+            });
+        }
+
+        function rejectIncomingCall() {
+            if (!currentCallData) return;
+            stopRingtone();
+            incomingModal?.hide();
+            Swal.close();
+
+            const rejectUrl = "{{ route('admin.meetings.reject', ':uuid') }}".replace(':uuid', currentCallData.meeting.uuid);
+
+            fetch(rejectUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            });
+
+            if (window.socket) {
+                window.socket.emit('call_rejected', {
+                    meetingUuid: currentCallData.meeting.uuid,
+                    callerId: currentCallData.callerId
+                });
+            }
+            currentCallData = null;
+        }
+
+        function cancelCall(meetingUuid) {
+            stopOutgoingRingtone();
+            const cancelUrl = "{{ route('admin.meetings.cancel', ':uuid') }}".replace(':uuid', meetingUuid);
+
+            fetch(cancelUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            });
+
+            if (window.socket && currentCallData) {
+                window.socket.emit('call_cancelled', {
+                    meetingUuid: meetingUuid,
+                    receiverId: currentCallData.receiverId
+                });
+            }
+            currentCallData = null;
+        }
+
+        function playRingtone() {
+            if (ringtoneAudio) {
+                ringtoneAudio.currentTime = 0;
+                ringtoneAudio.play().catch(e => console.log('Ringtone autoplay prevented:', e));
+            }
+        }
+
+        function stopRingtone() {
+            if (ringtoneAudio) {
+                ringtoneAudio.pause();
+                ringtoneAudio.currentTime = 0;
+            }
+        }
+
+        function playOutgoingRingtone() {
+            if (outgoingAudio) {
+                outgoingAudio.currentTime = 0;
+                outgoingAudio.play().catch(e => console.log('Outgoing ringtone autoplay prevented:', e));
+            }
+        }
+
+        function stopOutgoingRingtone() {
+            if (outgoingAudio) {
+                outgoingAudio.pause();
+                outgoingAudio.currentTime = 0;
+            }
+        }
+
+    </script>
 </body>
 
 </html>

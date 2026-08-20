@@ -21,7 +21,7 @@ new class extends Component {
         $isClientGuard = Auth::guard('client')->check();
         $user = $isClientGuard ? Auth::guard('client')->user() : Auth::user();
         $userId = $user->id;
-        
+
         $isClient = $isClientGuard;
         $isSuperAdmin = !$isClientGuard && $user->role_id == 1;
 
@@ -105,12 +105,12 @@ new class extends Component {
         // 3. Get Users (Direct Messages)
         // If Client, they can only see Users (Staff) that they are allowed to see
         // If Staff, they can see Users (Staff) and Clients
-        
+
         $users = collect();
-        
+
         // Pre-load all private conversations for the current user FIRST
         $myPrivateConversations = Conversation::where('type', 'private')
-            ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function($q) use ($userId, $isClientGuard) {
+            ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function ($q) use ($userId, $isClientGuard) {
                 if ($isClientGuard) {
                     $q->where('conversation_participants.client_id', $userId);
                 } else {
@@ -119,16 +119,18 @@ new class extends Component {
             })
             ->with(['latestMessage', 'participants', 'clientParticipants'])
             ->get();
-            
+
         // Collect existing contact IDs we already have an active conversation with
         $existingStaffIds = [];
         $existingClientIds = [];
         foreach ($myPrivateConversations as $c) {
             foreach ($c->participants as $p) {
-                if ($p->pivot->user_id) $existingStaffIds[] = $p->pivot->user_id;
+                if ($p->pivot->user_id)
+                    $existingStaffIds[] = $p->pivot->user_id;
             }
             foreach ($c->clientParticipants as $p) {
-                if ($p->pivot->client_id) $existingClientIds[] = $p->pivot->client_id;
+                if ($p->pivot->client_id)
+                    $existingClientIds[] = $p->pivot->client_id;
             }
         }
 
@@ -140,14 +142,14 @@ new class extends Component {
                 ->where('client_id', $userId) // Explicit permission to Client
                 ->pluck('allowed_user_id')
                 ->toArray();
-                
+
             $staffWhoAllowedMe = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
                 ->where('allowed_client_id', $userId) // Staff who explicitly granted permission to Client
                 ->pluck('user_id')
                 ->toArray();
-                
+
             $allowedIds = array_unique(array_merge($allowedIds, $staffWhoAllowedMe, $existingStaffIds));
-                
+
             $usersQuery->where(function ($q) use ($allowedIds) {
                 // Always show Super Admins
                 $q->where('role_id', 1);
@@ -155,24 +157,24 @@ new class extends Component {
                     $q->orWhereIn('id', $allowedIds);
                 }
             });
-            
+
             $users = $usersQuery
                 ->when($this->search, function ($query) {
                     $query->where('name', 'like', '%' . $this->search . '%');
                 })
                 ->limit($this->userLimit)
                 ->get();
-                
+
             $clients = collect(); // empty for clients looking at staff
         } else {
             // Staff looking at Staff
             $usersQuery = User::where('id', '!=', $userId);
-            
+
             $allowedIds = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
                 ->where('user_id', $userId)
                 ->pluck('allowed_user_id')
                 ->toArray();
-                
+
             $allowedIds = array_unique(array_merge($allowedIds, $existingStaffIds));
 
             if (!$isSuperAdmin) {
@@ -183,23 +185,23 @@ new class extends Component {
                     }
                 });
             }
-            
+
             $users = $usersQuery
                 ->when($this->search, function ($query) {
                     $query->where('name', 'like', '%' . $this->search . '%');
                 })
                 ->limit($this->userLimit)
                 ->get();
-                
+
             // Staff looking at Clients
             $clientsQuery = \App\Models\Client::query();
-            
+
             $allowedClientIds = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
                 ->where('user_id', $userId)
                 ->whereNotNull('allowed_client_id')
                 ->pluck('allowed_client_id')
                 ->toArray();
-                
+
             $allowedClientIds = array_unique(array_merge($allowedClientIds, $existingClientIds));
 
             if (!$isSuperAdmin) {
@@ -222,46 +224,46 @@ new class extends Component {
         }
 
         $users = $users->map(function ($targetUser) use ($myPrivateConversations, $unreadCounts, $isClientGuard, $userId) {
-                // Determine if target is client
-                $targetIsClient = false;
-                
-                $conversation = $myPrivateConversations->first(function ($c) use ($targetUser, $targetIsClient) {
-                    return $c->participants->contains(function($p) use ($targetUser, $targetIsClient) {
-                        return !$targetIsClient && $p->pivot->user_id == $targetUser->id;
-                    });
+            // Determine if target is client
+            $targetIsClient = false;
+
+            $conversation = $myPrivateConversations->first(function ($c) use ($targetUser, $targetIsClient) {
+                return $c->participants->contains(function ($p) use ($targetUser, $targetIsClient) {
+                    return !$targetIsClient && $p->pivot->user_id == $targetUser->id;
                 });
+            });
 
-                if ($conversation) {
-                    $conversation->unread_count = $unreadCounts[$conversation->id] ?? 0;
-                }
+            if ($conversation) {
+                $conversation->unread_count = $unreadCounts[$conversation->id] ?? 0;
+            }
 
-                $targetUser->conversation = $conversation;
-                $targetUser->is_client = $targetIsClient;
-                return $targetUser;
-            })
+            $targetUser->conversation = $conversation;
+            $targetUser->is_client = $targetIsClient;
+            return $targetUser;
+        })
             ->sortByDesc(function ($user) {
                 return $user->conversation?->latestMessage?->created_at?->timestamp ?? 0;
             })
             ->values();
-            
+
         $clients = $clients->map(function ($targetUser) use ($myPrivateConversations, $unreadCounts, $isClientGuard, $userId) {
-                // Determine if target is client
-                $targetIsClient = true;
-                
-                $conversation = $myPrivateConversations->first(function ($c) use ($targetUser, $targetIsClient) {
-                    return $c->clientParticipants->contains(function($p) use ($targetUser, $targetIsClient) {
-                        return $targetIsClient && $p->pivot->client_id == $targetUser->id;
-                    });
+            // Determine if target is client
+            $targetIsClient = true;
+
+            $conversation = $myPrivateConversations->first(function ($c) use ($targetUser, $targetIsClient) {
+                return $c->clientParticipants->contains(function ($p) use ($targetUser, $targetIsClient) {
+                    return $targetIsClient && $p->pivot->client_id == $targetUser->id;
                 });
+            });
 
-                if ($conversation) {
-                    $conversation->unread_count = $unreadCounts[$conversation->id] ?? 0;
-                }
+            if ($conversation) {
+                $conversation->unread_count = $unreadCounts[$conversation->id] ?? 0;
+            }
 
-                $targetUser->conversation = $conversation;
-                $targetUser->is_client = $targetIsClient;
-                return $targetUser;
-            })
+            $targetUser->conversation = $conversation;
+            $targetUser->is_client = $targetIsClient;
+            return $targetUser;
+        })
             ->sortByDesc(function ($user) {
                 return $user->conversation?->latestMessage?->created_at?->timestamp ?? 0;
             })
@@ -280,20 +282,20 @@ new class extends Component {
     public function selectUser($userId, $isClientTarget = false)
     {
         \Illuminate\Support\Facades\Log::info('selectUser called', ['userId' => $userId, 'isClientTarget' => $isClientTarget]);
-        
+
         $isClientGuard = Auth::guard('client')->check();
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
 
         // Find or create private conversation
         $conversation = Conversation::where('type', 'private')
-            ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function($q) use ($myId, $isClientGuard) {
+            ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function ($q) use ($myId, $isClientGuard) {
                 if ($isClientGuard) {
                     $q->where('conversation_participants.client_id', $myId);
                 } else {
                     $q->where('conversation_participants.user_id', $myId);
                 }
             })
-            ->whereHas($isClientTarget ? 'clientParticipants' : 'participants', function($q) use ($userId, $isClientTarget) {
+            ->whereHas($isClientTarget ? 'clientParticipants' : 'participants', function ($q) use ($userId, $isClientTarget) {
                 if ($isClientTarget) {
                     $q->where('conversation_participants.client_id', $userId);
                 } else {
@@ -330,7 +332,7 @@ new class extends Component {
         // Update last_read_at
         $isClientGuard = Auth::guard('client')->check();
         $user = $isClientGuard ? Auth::guard('client')->user() : Auth::user();
-        
+
         $user->conversations()
             ->updateExistingPivot($conversationId, ['last_read_at' => now()]);
     } // Listen for the event dispatched by layout
@@ -356,7 +358,8 @@ new class extends Component {
 }">
     <div class="p-3 border-bottom border-main">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $isClient ? 'My Groups' : 'Conversations' }}</h5>
+            <h5 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $isClient ? 'My Groups' : 'Conversations' }}
+            </h5>
             @if (!$isClient && ($isSuperAdmin || auth()->user()->hasPermission('chat.create_staff_group')))
                 <button class="btn-premium btn-premium-secondary p-0 rounded-circle" data-bs-toggle="modal"
                     data-bs-target="#createGroupModal"
@@ -378,8 +381,7 @@ new class extends Component {
             <div class="heading-label mb-0" style="font-size: 0.7rem;">Client Groups</div>
             @if (!$isClient && ($isSuperAdmin || auth()->user()->hasPermission('chat.create_client_group')))
                 <button class="btn btn-sm px-1 py-0 border-0 opacity-50" data-bs-toggle="modal"
-                    data-bs-target="#createClientGroupModal" style="color: var(--text-high);"
-                    title="Create Client Group">
+                    data-bs-target="#createClientGroupModal" style="color: var(--text-high);" title="Create Client Group">
                     <i class="fas fa-plus-circle"></i>
                 </button>
             @endif
@@ -396,7 +398,8 @@ new class extends Component {
                     <div class="ms-3 flex-grow-1 overflow-hidden">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <h6 class="mb-0 text-truncate fw-bold" style="color: var(--text-high); font-size: 0.9rem;">
-                                {{ $group->name }}</h6>
+                                {{ $group->name }}
+                            </h6>
                             @if ($group->unread_count > 0)
                                 <span class="badge-premium py-0 px-2 rounded-pill"
                                     style="background: var(--accent); color: white; font-size: 0.65rem;">{{ $group->unread_count }}</span>
@@ -423,7 +426,8 @@ new class extends Component {
                         wire:click="selectUser({{ $client->id }}, true)" wire:key="user-client-{{ $client->id }}"
                         data-user-id="{{ $client->id }}">
                         <div class="position-relative">
-                            <div class="avatar-premium" style="width: 42px; height: 42px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
+                            <div class="avatar-premium"
+                                style="width: 42px; height: 42px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
                                 @if ($client->profile_image)
                                     <img alt="team-tasker" src="{{ asset('storage/' . $client->profile_image) }}" alt="Avatar">
                                 @else
@@ -434,7 +438,8 @@ new class extends Component {
                         <div class="ms-3 flex-grow-1 overflow-hidden">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
-                                    {{ $client->name }}</h6>
+                                    {{ $client->name }}
+                                </h6>
                                 @if ($client->conversation && $client->conversation->unread_count > 0)
                                     <span class="badge-premium py-0 px-2 rounded-pill"
                                         style="background: var(--primary); color: white; font-size: 0.65rem;">{{ $client->conversation->unread_count }}</span>
@@ -454,45 +459,48 @@ new class extends Component {
 
         <!-- Direct Messages -->
         @foreach ($users as $user)
-                <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'active' : '' }}"
-                    wire:click="selectUser({{ $user->id }}, {{ isset($user->is_client) && $user->is_client ? 'true' : 'false' }})" wire:key="user-{{ isset($user->is_client) && $user->is_client ? 'client' : 'user' }}-{{ $user->id }}"
-                    data-user-id="{{ $user->id }}">
-                    <div class="position-relative">
-                        <div class="avatar-premium" style="width: 42px; height: 42px;">
-                            @if ($user->profile_image)
-                                <img alt="team-tasker" src="{{ asset('storage/' . $user->profile_image) }}" alt="Avatar">
-                            @else
-                                {{ substr($user->name, 0, 1) }}
-                            @endif
-                        </div>
-                        <!-- Online Status Dot -->
-                        <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
-                            :class="onlineUsers.includes('{{ $user->id }}') ? 'bg-success' : 'bg-secondary'"
-                            style="width: 12px; height: 12px; transform: translate(10%, 10%);"></span>
+            <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'active' : '' }}"
+                wire:click="selectUser({{ $user->id }}, {{ isset($user->is_client) && $user->is_client ? 'true' : 'false' }})"
+                wire:key="user-{{ isset($user->is_client) && $user->is_client ? 'client' : 'user' }}-{{ $user->id }}"
+                data-user-id="{{ $user->id }}">
+                <div class="position-relative">
+                    <div class="avatar-premium" style="width: 42px; height: 42px;">
+                        @if ($user->profile_image)
+                            <img alt="team-tasker" src="{{ asset('storage/' . $user->profile_image) }}" alt="Avatar">
+                        @else
+                            {{ substr($user->name, 0, 1) }}
+                        @endif
                     </div>
-                    <div class="ms-3 flex-grow-1 overflow-hidden">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
-                                {{ $user->name }}</h6>
-                            @if ($user->conversation && $user->conversation->unread_count > 0)
-                                <span class="badge-premium py-0 px-2 rounded-pill"
-                                    style="background: var(--primary); color: white; font-size: 0.65rem;">{{ $user->conversation->unread_count }}</span>
-                            @endif
-                        </div>
-                        <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
-                            {{ $user->email }}
-                        </div>
+                    <!-- Online Status Dot -->
+                    <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
+                        :class="onlineUsers.includes('{{ $user->id }}') ? 'bg-success' : 'bg-secondary'"
+                        style="width: 12px; height: 12px;"></span>
+                </div>
+                <div class="ms-3 flex-grow-1 overflow-hidden">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
+                            {{ $user->name }}
+                        </h6>
+                        @if ($user->conversation && $user->conversation->unread_count > 0)
+                            <span class="badge-premium py-0 px-2 rounded-pill"
+                                style="background: var(--primary); color: white; font-size: 0.65rem;">{{ $user->conversation->unread_count }}</span>
+                        @endif
+                    </div>
+                    <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
+                        {{ $user->email }}
                     </div>
                 </div>
-            @endforeach
+            </div>
+        @endforeach
 
-            @if ($users->count() >= $userLimit)
-                <div class="text-center py-2">
-                    <button wire:click="loadMoreUsers" class="btn btn-sm btn-link text-decoration-none" style="font-size: 0.75rem;">
-                        Load More Users
-                    </button>
-                </div>
-            @endif
+        @if ($users->count() >= $userLimit)
+            <div class="text-center py-2">
+                <button wire:click="loadMoreUsers" class="btn btn-sm btn-link text-decoration-none"
+                    style="font-size: 0.75rem;">
+                    Load More Users
+                </button>
+            </div>
+        @endif
 
         @if (!$isClient)
             <!-- Groups -->
@@ -501,15 +509,14 @@ new class extends Component {
                     style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle);">Staff Groups</div>
                 @foreach ($conversations as $group)
                     <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $selectedConversationId == $group->id ? 'active' : '' }}"
-                        wire:click="selectConversation({{ $group->id }})"
-                        wire:key="staff-group-{{ $group->id }}">
+                        wire:click="selectConversation({{ $group->id }})" wire:key="staff-group-{{ $group->id }}">
                         <div class="avatar-premium" style="width: 42px; height: 42px; background: var(--bg-input);">
                             <i class="fas fa-users" style="color: var(--primary);"></i>
                         </div>
                         <div class="ms-3 flex-grow-1 overflow-hidden">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <h6 class="mb-0 text-truncate fw-bold"
-                                    style="color: var(--text-high); font-size: 0.9rem;">{{ $group->name }}
+                                <h6 class="mb-0 text-truncate fw-bold" style="color: var(--text-high); font-size: 0.9rem;">
+                                    {{ $group->name }}
                                 </h6>
                                 @if ($group->unread_count > 0)
                                     <span class="badge-premium py-0 px-2 rounded-pill"
@@ -554,13 +561,16 @@ new class extends Component {
         .overflow-auto::-webkit-scrollbar {
             width: 4px;
         }
+
         .overflow-auto::-webkit-scrollbar-track {
             background: transparent;
         }
+
         .overflow-auto::-webkit-scrollbar-thumb {
             background-color: rgba(156, 163, 175, 0.3);
             border-radius: 10px;
         }
+
         .overflow-auto::-webkit-scrollbar-thumb:hover {
             background-color: rgba(156, 163, 175, 0.5);
         }

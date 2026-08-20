@@ -125,10 +125,13 @@
                         </a>
                     @endif
                     @if(Auth::user()->hasPermission('projects.edit'))
-                        <button type="button" class="btn btn-outline-secondary shadow-none w-100" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
+                        <button type="button" class="btn btn-outline-secondary shadow-none w-100 mb-2" data-bs-toggle="modal" data-bs-target="#assignTaskModal">
                             <i class="fas fa-link me-1"></i> Assign Existing Task
                         </button>
                     @endif
+                    <a href="{{ route('admin.meetings.create') }}?project_id={{ $project->id }}" class="btn btn-outline-success shadow-none w-100">
+                        <i class="fas fa-video me-1"></i> Start Project Meeting
+                    </a>
                 </div>
             @endif
         </div>

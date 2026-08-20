@@ -169,6 +169,25 @@ Route::middleware(['web', 'auth:web,admin'])->controller(TeamController::class)-
         Route::post('/{id}/update', 'update')->name('admin.clients.update')->middleware('permission:clients.edit');
         Route::delete('/{id}/delete', 'destroy')->name('admin.clients.delete')->middleware('permission:clients.delete');
     });
+
+    // Meetings & Calls
+    Route::controller(App\Http\Controllers\MeetingController::class)->group(function () {
+        Route::get('/meetings', 'index')->name('admin.meetings.index');
+        Route::get('/meetings/create', 'create')->name('admin.meetings.create');
+        Route::post('/meetings', 'store')->name('admin.meetings.store');
+        Route::get('/meetings/{meeting:uuid}', 'show')->name('admin.meetings.show');
+        Route::get('/meetings/{meeting:uuid}/join', 'join')->name('admin.meetings.join');
+
+        Route::post('/meetings/{meeting:uuid}/accept', 'accept')->name('admin.meetings.accept');
+        Route::post('/meetings/{meeting:uuid}/reject', 'reject')->name('admin.meetings.reject');
+        Route::post('/meetings/{meeting:uuid}/cancel', 'cancel')->name('admin.meetings.cancel');
+        Route::post('/meetings/{meeting:uuid}/end', 'end')->name('admin.meetings.end');
+        Route::post('/meetings/{meeting:uuid}/leave', 'leave')->name('admin.meetings.leave');
+        Route::post('/meetings/{meeting:uuid}/check-timeout', 'checkTimeout')->name('admin.meetings.check-timeout');
+
+        Route::post('/calls/audio', 'initiateAudioCall')->name('admin.calls.audio');
+        Route::post('/calls/video', 'initiateVideoCall')->name('admin.calls.video');
+    });
 });
 
 // Client Support Portal

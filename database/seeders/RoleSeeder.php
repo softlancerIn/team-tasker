@@ -43,6 +43,10 @@ class RoleSeeder extends Seeder
             'users.edit',
             'users.approve',
             'roles.view',
+            'meetings.view',
+            'meetings.create',
+            'meetings.join',
+            'meetings.cancel',
         ];
 
         $clientPermissions = [

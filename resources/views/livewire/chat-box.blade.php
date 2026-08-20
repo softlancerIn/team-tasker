@@ -509,8 +509,42 @@ new class extends Component {
                 @endif
             </div>
 
-            <div class="d-flex align-items-center gap-3">
-                <div class="search-container-premium" style="width: 240px;">
+            <div class="d-flex align-items-center gap-2">
+                @if ($conversation->type == 'private' && $receiver)
+                    <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
+                        type="button"
+                        title="Audio Call"
+                        onclick="initiateDirectCall({{ $receiver->id }}, 'audio', '{{ addslashes($receiver->name) }}', {{ $conversation->id }})"
+                        style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
+                        <i class="fas fa-phone-alt" style="font-size: 0.85rem;"></i>
+                    </button>
+
+                    <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" 
+                        type="button"
+                        title="Video Call"
+                        onclick="initiateDirectCall({{ $receiver->id }}, 'video', '{{ addslashes($receiver->name) }}', {{ $conversation->id }})"
+                        style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
+                        <i class="fas fa-video" style="font-size: 0.85rem;"></i>
+                    </button>
+                @elseif ($conversation->type == 'group' || $conversation->type == 'client_group')
+                    <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
+                        type="button"
+                        title="Group Audio Call"
+                        onclick="initiateGroupCall({{ $conversation->id }}, 'audio', '{{ addslashes($conversation->name ?? 'Group') }}')"
+                        style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
+                        <i class="fas fa-phone-alt" style="font-size: 0.85rem;"></i>
+                    </button>
+
+                    <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" 
+                        type="button"
+                        title="Group Video Call"
+                        onclick="initiateGroupCall({{ $conversation->id }}, 'video', '{{ addslashes($conversation->name ?? 'Group') }}')"
+                        style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
+                        <i class="fas fa-video" style="font-size: 0.85rem;"></i>
+                    </button>
+                @endif
+
+                <div class="search-container-premium" style="width: 200px;">
                     <i class="fas fa-search search-icon-premium" style="font-size: 0.8rem;"></i>
                     <input type="text" wire:model.live="searchQuery" class="form-premium-control ps-5 py-1"
                         placeholder="Search message..." style="font-size: 0.8rem;">

@@ -18,7 +18,6 @@
     }
 @endphp
 
-@if ($paginator->hasPages() || $paginator->total() > 0)
     <style>
         .pagination-input::-webkit-outer-spin-button,
         .pagination-input::-webkit-inner-spin-button {
@@ -124,4 +123,3 @@
             window.filterModalListenerAdded = true;
         }
     </script>
-@endif

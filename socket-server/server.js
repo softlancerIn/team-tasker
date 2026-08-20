@@ -42,6 +42,10 @@ io.on('connection', (socket) => {
     // Join room event
     socket.on('join_room', (room) => {
         socket.join(room);
+        if (!isNaN(room)) {
+            socket.join(Number(room));
+            socket.join(String(room));
+        }
     });
 
     // Send message event
@@ -99,6 +103,94 @@ io.on('connection', (socket) => {
         }
         onlineUsers.get(userId).add(socket.id);
         io.emit('online_users', Array.from(onlineUsers.keys()));
+    });
+
+    // Call & Meeting Signaling Events
+    socket.on('call_initiated', (data) => {
+        if (!data) return;
+        console.log('call_initiated event received:', data);
+        // Broadcast incoming call to receiver if online
+        if (data.receiverId) {
+            const receiverSockets = onlineUsers.get(Number(data.receiverId));
+            if (receiverSockets) {
+                for (const socketId of receiverSockets) {
+                    io.to(socketId).emit('incoming_call', data);
+                }
+            }
+        }
+        // Broadcast to room fallback
+        if (data.conversationId) {
+            socket.to(Number(data.conversationId)).emit('incoming_call', data);
+            socket.to(String(data.conversationId)).emit('incoming_call', data);
+        } else if (data.room) {
+            socket.to(data.room).emit('incoming_call', data);
+        }
+    });
+
+    socket.on('call_accepted', (data) => {
+        if (!data) return;
+        if (data.callerId) {
+            const callerSockets = onlineUsers.get(Number(data.callerId));
+            if (callerSockets) {
+                for (const socketId of callerSockets) {
+                    io.to(socketId).emit('call_accepted', data);
+                }
+            }
+        }
+        if (data.room) {
+            socket.to(data.room).emit('call_accepted', data);
+        }
+    });
+
+    socket.on('call_rejected', (data) => {
+        if (!data) return;
+        if (data.callerId) {
+            const callerSockets = onlineUsers.get(Number(data.callerId));
+            if (callerSockets) {
+                for (const socketId of callerSockets) {
+                    io.to(socketId).emit('call_rejected', data);
+                }
+            }
+        }
+        if (data.room) {
+            socket.to(data.room).emit('call_rejected', data);
+        }
+    });
+
+    socket.on('call_cancelled', (data) => {
+        if (!data) return;
+        if (data.receiverId) {
+            const receiverSockets = onlineUsers.get(Number(data.receiverId));
+            if (receiverSockets) {
+                for (const socketId of receiverSockets) {
+                    io.to(socketId).emit('call_cancelled', data);
+                }
+            }
+        }
+        if (data.room) {
+            socket.to(data.room).emit('call_cancelled', data);
+        }
+    });
+
+    socket.on('call_ended', (data) => {
+        if (!data) return;
+        if (data.room) {
+            io.to(data.room).emit('call_ended', data);
+        }
+    });
+
+    socket.on('meeting_invitation', (data) => {
+        if (!data) return;
+        if (data.userIds && Array.isArray(data.userIds)) {
+            data.userIds.forEach(uId => {
+                const userSockets = onlineUsers.get(Number(uId));
+                if (userSockets) {
+                    for (const socketId of userSockets) {
+                        io.to(socketId).emit('meeting_invitation', data);
+                    }
+                }
+            });
+        }
     });
 
     socket.on('disconnect', () => {

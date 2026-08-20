@@ -5,11 +5,11 @@ return [
         'view' => 'View Dashboard',
     ],
     'tasks' => [
+        'my_tasks' => 'View My Tasks',
         'view' => 'View Tasks',
         'create' => 'Create Task',
         'edit' => 'Edit Task',
         'delete' => 'Delete Task',
-        'my_tasks' => 'View My Tasks',
         'todo' => 'View My To-Do List',
         'activity' => 'View My Task Activity',
         'board' => 'View Task Board',
@@ -67,5 +67,12 @@ return [
         'requests_manage' => 'Manage All Leave Requests',
         'reports' => 'View Attendance Reports',
         'settings' => 'Manage Attendance Settings',
+    ],
+    'meetings' => [
+        'view' => 'View Meetings',
+        'create' => 'Create/Schedule Meeting',
+        'join' => 'Join Meeting/Call',
+        'cancel' => 'Cancel Meeting',
+        'delete' => 'Delete Meeting History',
     ],
 ];
