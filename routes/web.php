@@ -279,3 +279,42 @@ Route::get('/firebase-messaging-sw.js', function () {
         ->header('Content-Type', 'application/javascript')
         ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
 })->name('firebase.sw');
+
+// Dynamic PWA Manifest Route
+Route::get('/manifest.json', function () {
+    $settings = \App\Models\Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
+    $appName = $settings['app_name'] ?? 'TeamTasker';
+    $appLogo = $settings['app_logo'] ?? null;
+
+    $iconUrl = ($appLogo && \Illuminate\Support\Facades\Storage::disk('public')->exists($appLogo))
+        ? asset('storage/' . $appLogo)
+        : asset('icons/icon-192x192.png');
+
+    $manifest = [
+        "name" => $appName . " - Modern Collaboration Hub",
+        "short_name" => $appName,
+        "description" => "WhatsApp-style Chat, Audio/Video Meetings & Task Management Platform",
+        "start_url" => url('/admin/chat'),
+        "scope" => url('/'),
+        "display" => "standalone",
+        "background_color" => "#0b141a",
+        "theme_color" => "#00a884",
+        "orientation" => "any",
+        "icons" => [
+            [
+                "src" => $iconUrl,
+                "sizes" => "192x192",
+                "type" => "image/png",
+                "purpose" => "any maskable"
+            ],
+            [
+                "src" => $iconUrl,
+                "sizes" => "512x512",
+                "type" => "image/png",
+                "purpose" => "any maskable"
+            ]
+        ]
+    ];
+
+    return response()->json($manifest, 200, [], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+})->name('pwa.manifest');

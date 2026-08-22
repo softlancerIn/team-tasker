@@ -15,6 +15,15 @@
         $appLogo = $appSettings['app_logo'] ?? null;
     @endphp
 
+    <!-- PWA Web App Manifest & Meta Tags -->
+    <link rel="manifest" href="{{ route('pwa.manifest') }}">
+    <meta name="theme-color" content="#00a884">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ $appSettings['app_name'] ?? 'TeamTasker' }}">
+    <link rel="apple-touch-icon" href="{{ ($appLogo && \Illuminate\Support\Facades\Storage::disk('public')->exists($appLogo)) ? asset('storage/' . $appLogo) : asset('icons/icon-192x192.png') }}">
+
     @if ($appLogo)
         <link rel="icon" href="{{ asset('storage/' . $appLogo) }}">
     @else
@@ -2008,6 +2017,14 @@
             }
         }
 
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ asset('sw.js') }}")
+                    .then(reg => console.log('PWA ServiceWorker registered with scope:', reg.scope))
+                    .catch(err => console.warn('PWA ServiceWorker registration failed:', err));
+            });
+        }
     </script>
 </body>
 

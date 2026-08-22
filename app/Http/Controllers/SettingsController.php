@@ -80,7 +80,132 @@ class SettingsController extends Controller
             );
         }
 
+        $this->updateManifestFile();
+
         return back()->with('success', 'General settings updated successfully.');
+    }
+
+    private function updateManifestFile()
+    {
+        try {
+            $settings = Setting::whereIn('key', ['app_name', 'app_logo'])->pluck('value', 'key');
+            $appName = $settings['app_name'] ?? 'TeamTasker';
+            $appLogo = $settings['app_logo'] ?? null;
+
+            $pwa192Path = public_path('icons/pwa-192x192.png');
+            $pwa512Path = public_path('icons/pwa-512x512.png');
+
+            $hasCustomPwaIcon = false;
+
+            if ($appLogo && \Illuminate\Support\Facades\Storage::disk('public')->exists($appLogo)) {
+                $fullLogoPath = \Illuminate\Support\Facades\Storage::disk('public')->path($appLogo);
+                $hasCustomPwaIcon = $this->generatePwaIconsFromImage($fullLogoPath, $pwa192Path, $pwa512Path);
+            }
+
+            $icon192Src = $hasCustomPwaIcon ? '/team-tasker/public/icons/pwa-192x192.png' : '/team-tasker/public/icons/icon-192x192.png';
+            $icon512Src = $hasCustomPwaIcon ? '/team-tasker/public/icons/pwa-512x512.png' : '/team-tasker/public/icons/icon-512x512.png';
+
+            $manifestData = [
+                "name" => $appName,
+                "short_name" => $appName,
+                "description" => "WhatsApp-style Chat, Audio/Video Meetings & Task Management Platform",
+                "start_url" => "/team-tasker/public/admin/chat",
+                "scope" => "/team-tasker/public/",
+                "display" => "standalone",
+                "background_color" => "#0b141a",
+                "theme_color" => "#00a884",
+                "orientation" => "any",
+                "icons" => [
+                    [
+                        "src" => $icon192Src,
+                        "sizes" => "192x192",
+                        "type" => "image/png",
+                        "purpose" => "any maskable"
+                    ],
+                    [
+                        "src" => $icon512Src,
+                        "sizes" => "512x512",
+                        "type" => "image/png",
+                        "purpose" => "any maskable"
+                    ]
+                ]
+            ];
+
+            file_put_contents(public_path('manifest.json'), json_encode($manifestData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to update manifest.json: ' . $e->getMessage());
+        }
+    }
+
+    private function generatePwaIconsFromImage($sourcePath, $target192, $target512)
+    {
+        try {
+            $info = @getimagesize($sourcePath);
+            if (!$info)
+                return false;
+
+            $mime = $info['mime'];
+            switch ($mime) {
+                case 'image/jpeg':
+                    $srcImg = @imagecreatefromjpeg($sourcePath);
+                    break;
+                case 'image/png':
+                    $srcImg = @imagecreatefrompng($sourcePath);
+                    break;
+                case 'image/webp':
+                    $srcImg = @imagecreatefromwebp($sourcePath);
+                    break;
+                default:
+                    return false;
+            }
+
+            if (!$srcImg)
+                return false;
+
+            $origW = imagesx($srcImg);
+            $origH = imagesy($srcImg);
+
+            // Create 192x192 & 512x512 square icons with dark background (#0b141a) or transparency
+            $sizes = [192 => $target192, 512 => $target512];
+
+            if (!file_exists(dirname($target192))) {
+                mkdir(dirname($target192), 0755, true);
+            }
+
+            foreach ($sizes as $size => $outPath) {
+                $dstImg = imagecreatetruecolor($size, $size);
+                imagealphablending($dstImg, false);
+                imagesavealpha($dstImg, true);
+
+                if ($mime === 'image/png' || $mime === 'image/webp') {
+                    // Fully transparent background for PNG/WebP icons
+                    $transparent = imagecolorallocatealpha($dstImg, 0, 0, 0, 127);
+                    imagefilledrectangle($dstImg, 0, 0, $size, $size, $transparent);
+                    imagealphablending($dstImg, true);
+                } else {
+                    // Solid dark background for JPEG/other non-transparent images
+                    $bgColor = imagecolorallocatealpha($dstImg, 11, 20, 26, 0);
+                    imagefilledrectangle($dstImg, 0, 0, $size, $size, $bgColor);
+                }
+
+                // Calculate aspect ratio fit (100% full fit)
+                $ratio = min($size / $origW, $size / $origH);
+                $newW = (int) ($origW * $ratio);
+                $newH = (int) ($origH * $ratio);
+                $dstX = (int) (($size - $newW) / 2);
+                $dstY = (int) (($size - $newH) / 2);
+
+                imagecopyresampled($dstImg, $srcImg, $dstX, $dstY, 0, 0, $newW, $newH, $origW, $origH);
+                imagepng($dstImg, $outPath, 6);
+                imagedestroy($dstImg);
+            }
+
+            imagedestroy($srcImg);
+            return true;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error generating PWA icons: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function storeEmail(Request $request)
@@ -102,20 +227,20 @@ class SettingsController extends Controller
         ]);
 
         // Validate SMTP connectivity if host is provided
-        if (! empty($data['smtp_host'])) {
+        if (!empty($data['smtp_host'])) {
             try {
                 $this->testSmtpConnection($data);
             } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['smtp_host' => 'SMTP Connection failed: '.$e->getMessage()]);
+                return back()->withInput()->withErrors(['smtp_host' => 'SMTP Connection failed: ' . $e->getMessage()]);
             }
         }
 
         // Validate IMAP connectivity
-        if (! empty($data['imap_host'])) {
+        if (!empty($data['imap_host'])) {
             try {
                 $this->testImapConnection($data);
             } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['imap_host' => 'IMAP Connection failed: '.$e->getMessage()]);
+                return back()->withInput()->withErrors(['imap_host' => 'IMAP Connection failed: ' . $e->getMessage()]);
             }
         }
 
