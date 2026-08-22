@@ -163,6 +163,10 @@ class MeetingService
             }
 
             if ($meeting->status === Meeting::STATUS_RINGING) {
+                $meeting->update([
+                    'status' => Meeting::STATUS_ACTIVE,
+                    'started_at' => now(),
+                ]);
                 $this->provider->startMeeting($meeting);
             }
         });
@@ -238,6 +242,11 @@ class MeetingService
         }
 
         DB::transaction(function () use ($meeting) {
+            $meeting->update([
+                'status' => Meeting::STATUS_COMPLETED,
+                'ended_at' => now(),
+            ]);
+
             $this->provider->endMeeting($meeting);
 
             // Mark left timestamp for active participants
@@ -420,8 +429,15 @@ class MeetingService
             $modeLabel = ucfirst($meeting->mode) . ' Call';
 
             if ($eventState === 'completed') {
-                $startedAt = $meeting->started_at ?? $meeting->created_at;
-                $seconds = $startedAt ? max(1, now()->diffInSeconds($startedAt)) : 0;
+                $startedAt = $meeting->started_at;
+                $endedAt = $meeting->ended_at ?? now();
+
+                if ($startedAt) {
+                    $seconds = max(1, $endedAt->diffInSeconds($startedAt));
+                } else {
+                    $seconds = max(1, $endedAt->diffInSeconds($meeting->created_at));
+                }
+
                 if ($seconds < 60) {
                     $durationStr = " · {$seconds} sec";
                 } else {

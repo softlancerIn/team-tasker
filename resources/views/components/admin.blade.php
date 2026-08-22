@@ -1303,6 +1303,12 @@
                 console.log('Connected to Socket.IO server:', window.socket.id);
                 @if (auth()->check())
                     window.socket.emit('user_connected', {{ auth()->id() }});
+                    window.socket.emit('get_user_statuses');
+
+                    const savedStatus = localStorage.getItem('user_presence_status_' + {{ auth()->id() }});
+                    if (savedStatus) {
+                        window.socket.emit('update_status', { userId: {{ auth()->id() }}, status: savedStatus });
+                    }
 
                     // Auto-join all user's conversation rooms so we receive
                     // typing indicators, messages, and read receipts for ALL conversations
@@ -1321,6 +1327,23 @@
                 window.onlineUsers = users;
                 window.dispatchEvent(new CustomEvent('online-users-updated', {
                     detail: users
+                }));
+            });
+
+            window.socket.on('all_user_statuses', (statuses) => {
+                window.userStatuses = statuses;
+                window.dispatchEvent(new CustomEvent('all-user-statuses-updated', {
+                    detail: statuses
+                }));
+            });
+
+            window.socket.on('user_status_changed', (data) => {
+                if (!window.userStatuses) window.userStatuses = {};
+                if (data && data.userId) {
+                    window.userStatuses[data.userId] = data.status;
+                }
+                window.dispatchEvent(new CustomEvent('user-status-changed-event', {
+                    detail: data
                 }));
             });
 

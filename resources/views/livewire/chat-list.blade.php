@@ -350,16 +350,68 @@ new class extends Component {
 
 <div class="d-flex flex-column h-100" style="background: var(--bg-surface);" x-data="{
     onlineUsers: window.onlineUsers ? window.onlineUsers.map(String) : [],
+    myStatus: localStorage.getItem('user_presence_status_' + {{ auth()->id() ?? 0 }}) || 'online',
+    userStatuses: window.userStatuses || {},
     init() {
+        if (window.userStatuses) {
+            this.userStatuses = window.userStatuses;
+        }
         window.addEventListener('online-users-updated', (e) => {
             this.onlineUsers = e.detail.map(String);
         });
+        window.addEventListener('all-user-statuses-updated', (e) => {
+            this.userStatuses = e.detail || {};
+            if (this.userStatuses[{{ auth()->id() ?? 0 }}]) {
+                this.myStatus = this.userStatuses[{{ auth()->id() ?? 0 }}];
+            }
+        });
+        window.addEventListener('user-status-changed-event', (e) => {
+            if (e.detail && e.detail.userId) {
+                this.userStatuses[e.detail.userId] = e.detail.status;
+                if (String(e.detail.userId) === String({{ auth()->id() ?? 0 }})) {
+                    this.myStatus = e.detail.status;
+                }
+            }
+        });
+    },
+    changeStatus(status) {
+        this.myStatus = status;
+        localStorage.setItem('user_presence_status_' + {{ auth()->id() ?? 0 }}, status);
+        if (window.socket) {
+            window.socket.emit('update_status', { userId: {{ auth()->id() ?? 0 }}, status: status });
+        }
+    },
+    getStatusBadge(userId) {
+        const uId = Number(userId);
+        const st = (this.userStatuses || {})[uId] || (this.userStatuses || {})[String(userId)];
+        if (st === 'away') return { color: '#f59e0b', label: 'Away', dot: '🟡' };
+        if (st === 'busy') return { color: '#ea4335', label: 'Busy', dot: '🔴' };
+        if (st === 'offline') return { color: '#6b7280', label: 'Offline', dot: '⚫' };
+        if (this.onlineUsers.includes(String(userId)) || this.onlineUsers.includes(uId) || st === 'online') {
+            return { color: '#00a884', label: 'Online', dot: '🟢' };
+        }
+        return { color: '#6b7280', label: 'Offline', dot: '⚫' };
     }
 }">
     <div class="p-3 border-bottom border-main">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $isClient ? 'My Groups' : 'Conversations' }}
-            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $isClient ? 'My Groups' : 'Conversations' }}</h5>
+                <!-- Status Picker Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle py-0 px-2 rounded-pill d-flex align-items-center gap-1"
+                        type="button" data-bs-toggle="dropdown" style="font-size: 0.75rem; border-color: var(--border-main); color: var(--text-high);">
+                        <span x-text="myStatus === 'online' ? '🟢' : (myStatus === 'away' ? '🟡' : (myStatus === 'busy' ? '🔴' : '⚫'))"></span>
+                        <span class="text-capitalize" x-text="myStatus"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark shadow-premium border-main" style="font-size: 0.8rem; min-width: 140px;">
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#" @click.prevent="changeStatus('online')">🟢 Online</a></li>
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#" @click.prevent="changeStatus('away')">🟡 Away</a></li>
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#" @click.prevent="changeStatus('busy')">🔴 Busy</a></li>
+                    </ul>
+                </div>
+            </div>
+
             @if (!$isClient && ($isSuperAdmin || auth()->user()->hasPermission('chat.create_staff_group')))
                 <button class="btn-premium btn-premium-secondary p-0 rounded-circle" data-bs-toggle="modal"
                     data-bs-target="#createGroupModal"
@@ -473,8 +525,7 @@ new class extends Component {
                     </div>
                     <!-- Online Status Dot -->
                     <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
-                        :class="onlineUsers.includes('{{ $user->id }}') ? 'bg-success' : 'bg-secondary'"
-                        style="width: 12px; height: 12px;"></span>
+                        :style="'width: 12px; height: 12px; background-color: ' + getStatusBadge('{{ $user->id }}').color"></span>
                 </div>
                 <div class="ms-3 flex-grow-1 overflow-hidden">
                     <div class="d-flex justify-content-between align-items-center mb-1">

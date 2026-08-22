@@ -35,9 +35,24 @@ const io = new Server(server, {
 
 const onlineUsers = new Map(); // userId -> Set(socketId)
 const typingUsers = new Map(); // conversationId -> Set(userId)
+const userStatuses = new Map(); // userId -> status string ('online' | 'away' | 'busy' | 'offline')
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
+
+    // User status update event
+    socket.on('update_status', (data) => {
+        if (!data || !data.userId) return;
+        const status = data.status || 'online';
+        userStatuses.set(Number(data.userId), status);
+        io.emit('user_status_changed', { userId: Number(data.userId), status: status });
+        io.emit('all_user_statuses', Object.fromEntries(userStatuses));
+    });
+
+    // Request initial statuses
+    socket.on('get_user_statuses', () => {
+        socket.emit('all_user_statuses', Object.fromEntries(userStatuses));
+    });
 
     // Join room event
     socket.on('join_room', (room) => {
@@ -201,7 +216,10 @@ io.on('connection', (socket) => {
                 socketIds.delete(socket.id);
                 if (socketIds.size === 0) {
                     onlineUsers.delete(userId);
+                    userStatuses.set(Number(userId), 'offline');
                     io.emit('online_users', Array.from(onlineUsers.keys()));
+                    io.emit('user_status_changed', { userId: Number(userId), status: 'offline' });
+                    io.emit('all_user_statuses', Object.fromEntries(userStatuses));
                 }
                 break;
             }

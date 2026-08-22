@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +27,8 @@
             --text-medium: #8696a0;
         }
 
-        body, html {
+        body,
+        html {
             height: 100%;
             margin: 0;
             padding: 0;
@@ -149,9 +151,11 @@
             0% {
                 box-shadow: 0 0 0 0 rgba(0, 168, 132, 0.5);
             }
+
             70% {
                 box-shadow: 0 0 0 25px rgba(0, 168, 132, 0);
             }
+
             100% {
                 box-shadow: 0 0 0 0 rgba(0, 168, 132, 0);
             }
@@ -179,68 +183,213 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Floating Bottom Control Bar (WhatsApp Style) */
-        .call-controls-wrapper {
+        /* Reconnection Overlay Banner */
+        #reconnect-banner {
             position: absolute;
-            bottom: 24px;
+            top: 75px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(17, 27, 33, 0.9);
+            background: rgba(234, 67, 53, 0.9);
+            color: #ffffff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 100;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+        }
+
+        /* Connection Quality Badge */
+        .conn-quality {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .conn-excellent {
+            background: rgba(0, 168, 132, 0.2);
+            color: #00a884;
+        }
+
+        .conn-good {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .conn-poor {
+            background: rgba(234, 67, 53, 0.2);
+            color: #ea4335;
+        }
+
+        /* In-Meeting Chat Drawer */
+        #meeting-chat-drawer {
+            position: absolute;
+            right: -360px;
+            top: 70px;
+            bottom: 0;
+            width: 340px;
+            background: var(--wa-surface);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 60;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 25px rgba(0, 0, 0, 0.5);
+        }
+
+        #meeting-chat-drawer.open {
+            right: 0;
+        }
+
+        .chat-drawer-header {
+            padding: 16px;
+            background: var(--wa-card);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-drawer-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-msg-bubble {
+            background: var(--wa-card);
+            padding: 8px 12px;
+            border-radius: 12px;
+            max-width: 85%;
+            font-size: 0.85rem;
+            align-self: flex-start;
+        }
+
+        .chat-msg-bubble.self {
+            align-self: flex-end;
+            background: var(--wa-green);
+            color: #ffffff;
+        }
+
+        .chat-drawer-input {
+            padding: 12px;
+            background: var(--wa-card);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-drawer-input input {
+            flex: 1;
+            background: rgba(11, 20, 26, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #ffffff !important;
+            border-radius: 20px !important;
+            padding: 8px 14px !important;
+        }
+
+        .chat-drawer-input button {
+            border-radius: 50% !important;
+            width: 38px;
+            height: 38px;
+            padding: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--wa-green) !important;
+            border: none !important;
+            color: #ffffff !important;
+            flex-shrink: 0;
+        }
+
+        .chat-drawer-input button:hover {
+            background: #008f70 !important;
+        }
+
+        /* WhatsApp Floating Controls Bar */
+        .call-controls-wrapper {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(32, 44, 51, 0.85);
             padding: 12px 24px;
             border-radius: 40px;
             display: flex;
             align-items: center;
-            gap: 20px;
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
+            gap: 16px;
             z-index: 50;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .control-btn {
-            width: 50px;
-            height: 50px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
             border: none;
-            background: #202c33;
             color: var(--text-high);
+            font-size: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
+            text-decoration: none;
         }
 
         .control-btn:hover {
-            background: #2a3942;
-            transform: scale(1.08);
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            transform: scale(1.05);
         }
 
         .control-btn.active-off {
-            background: var(--wa-red) !important;
-            color: #ffffff;
+            background: rgba(234, 67, 53, 0.2);
+            color: var(--wa-red);
         }
 
         .control-btn.end-btn {
             background: var(--wa-red);
             color: #ffffff;
-            width: 58px;
-            height: 58px;
+            width: 54px;
+            height: 54px;
         }
 
         .control-btn.end-btn:hover {
             background: #d93025;
-            transform: scale(1.1);
+            transform: scale(1.08);
+            box-shadow: 0 0 15px rgba(234, 67, 53, 0.5);
         }
     </style>
 </head>
+
 <body>
+
+    <!-- Connection Lost Overlay -->
+    <div id="reconnect-banner">
+        <i class="fas fa-spinner fa-spin"></i> <span>Connection lost... Reconnecting to meeting</span>
+    </div>
 
     <!-- WhatsApp Style Top Header -->
     <div class="call-header">
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('admin.meetings.index') }}" class="control-btn p-0" style="width: 40px; height: 40px; font-size: 1rem;" title="Back">
+            <a href="{{ route('admin.meetings.index') }}" class="control-btn p-0"
+                style="width: 40px; height: 40px; font-size: 1rem;" title="Back">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>
@@ -252,18 +401,23 @@
                     <span class="call-status-badge" id="callTimer">
                         <i class="fas fa-clock"></i> 00:00
                     </span>
+                    <span class="conn-quality conn-excellent" id="connStatusBadge">
+                        🟢 Excellent
+                    </span>
                 </div>
             </div>
         </div>
 
         <div class="d-flex align-items-center gap-2">
             @if($meeting->project)
-                <span class="call-status-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">
+                <span class="call-status-badge"
+                    style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">
                     <i class="fas fa-folder me-1"></i> {{ $meeting->project->name }}
                 </span>
             @endif
             @if($meeting->task)
-                <span class="call-status-badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border-color: rgba(14, 165, 233, 0.3);">
+                <span class="call-status-badge"
+                    style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border-color: rgba(14, 165, 233, 0.3);">
                     <i class="fas fa-tasks me-1"></i> {{ $meeting->task->title }}
                 </span>
             @endif
@@ -273,6 +427,25 @@
     <!-- Call Main Screen -->
     <div class="call-body">
         <div id="media-grid"></div>
+
+        <!-- In-Meeting Chat Side Drawer -->
+        <div id="meeting-chat-drawer">
+            <div class="chat-drawer-header">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-comments me-2 text-success"></i> Meeting Chat</h6>
+                <button class="btn btn-link text-high p-0" onclick="toggleChatDrawer()"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <div class="chat-drawer-messages" id="chatMessagesBox">
+                <div class="text-center text-medium small my-2">In-meeting messages are encrypted</div>
+            </div>
+            <div class="chat-drawer-input">
+                <input type="text" id="chatInput"
+                    class="form-control bg-dark text-white border-secondary form-control-sm"
+                    placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendInMeetingMessage()">
+                <button class="btn btn-success btn-sm px-3" onclick="sendInMeetingMessage()"><i
+                        class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
 
         <!-- WhatsApp Floating Toolbar -->
         <div class="call-controls-wrapper">
@@ -288,6 +461,10 @@
                     <i class="fas fa-desktop"></i>
                 </button>
             @endif
+
+            <button class="control-btn" id="chatToggleBtn" onclick="toggleChatDrawer()" title="Meeting Chat">
+                <i class="fas fa-comments"></i>
+            </button>
 
             <button class="control-btn end-btn" onclick="leaveMeeting()" title="End Call">
                 <i class="fas fa-phone-slash"></i>
@@ -321,7 +498,7 @@
             }, 1000);
         }
 
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', async function () {
             if (typeof LivekitClient === 'undefined') {
                 console.warn('LiveKit SDK loading fallback...');
             }
@@ -337,7 +514,11 @@
                     .on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
                     .on(LivekitClient.RoomEvent.ParticipantConnected, participantJoined)
                     .on(LivekitClient.RoomEvent.ParticipantDisconnected, participantLeft)
-                    .on(LivekitClient.RoomEvent.Disconnected, handleDisconnected);
+                    .on(LivekitClient.RoomEvent.Disconnected, handleDisconnected)
+                    .on(LivekitClient.RoomEvent.Reconnecting, handleReconnecting)
+                    .on(LivekitClient.RoomEvent.Reconnected, handleReconnected)
+                    .on(LivekitClient.RoomEvent.ConnectionQualityChanged, handleConnectionQualityChanged)
+                    .on(LivekitClient.RoomEvent.DataReceived, handleDataReceived);
 
                 // Connect to LiveKit Room
                 await room.connect(url, token);
@@ -449,14 +630,109 @@
                 if (window.socket) {
                     window.socket.emit('call_ended', { meetingUuid: "{{ $meeting->uuid }}", room: "{{ $meeting->room_name }}" });
                 }
-                alert("The other participant left. Call ended.");
+
                 leaveMeeting();
             }
         }
 
         function handleDisconnected() {
             notifyBackend('leave');
-            window.location.href = "{{ route('admin.meetings.index') }}";
+            window.location.href = "{{ route('admin.chat.index') }}";
+        }
+
+        function leaveMeeting() {
+            if (isDirectCall && window.socket) {
+                window.socket.emit('call_ended', { meetingUuid: "{{ $meeting->uuid }}", room: "{{ $meeting->room_name }}" });
+            }
+            notifyBackend('leave');
+            if (room) {
+                try {
+                    room.disconnect();
+                } catch(e) {}
+            }
+            window.location.href = "{{ route('admin.chat.index') }}";
+        }
+
+        function handleReconnecting() {
+            console.warn('LiveKit room reconnecting...');
+            const banner = document.getElementById('reconnect-banner');
+            if (banner) banner.style.display = 'flex';
+        }
+
+        function handleReconnected() {
+            console.log('LiveKit room reconnected successfully!');
+            const banner = document.getElementById('reconnect-banner');
+            if (banner) banner.style.display = 'none';
+        }
+
+        function handleConnectionQualityChanged(quality, participant) {
+            // quality: 0 = Poor/Unknown, 1 = Good, 2 = Excellent
+            if (!participant || participant === room.localParticipant) {
+                const badge = document.getElementById('connStatusBadge');
+                if (badge) {
+                    if (quality === LivekitClient.ConnectionQuality.Excellent || quality === 2) {
+                        badge.className = 'conn-quality conn-excellent';
+                        badge.innerHTML = '🟢 Excellent';
+                    } else if (quality === LivekitClient.ConnectionQuality.Good || quality === 1) {
+                        badge.className = 'conn-quality conn-good';
+                        badge.innerHTML = '🟡 Good';
+                    } else {
+                        badge.className = 'conn-quality conn-poor';
+                        badge.innerHTML = '🔴 Poor';
+                    }
+                }
+            }
+        }
+
+        function toggleChatDrawer() {
+            const drawer = document.getElementById('meeting-chat-drawer');
+            if (drawer) drawer.classList.toggle('open');
+        }
+
+        function sendInMeetingMessage() {
+            const input = document.getElementById('chatInput');
+            if (!input || !input.value.trim() || !room) return;
+
+            const msgText = input.value.trim();
+            const payload = JSON.stringify({
+                sender: "{{ addslashes($user->name) }}",
+                text: msgText,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            // Send payload via LiveKit Room Data Channel
+            const encoder = new TextEncoder();
+            const data = encoder.encode(payload);
+            room.localParticipant.publishData(data, LivekitClient.DataPacket_Kind.RELIABLE);
+
+            // Render locally
+            renderChatMessage("{{ addslashes($user->name) }}", msgText, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), true);
+            input.value = '';
+        }
+
+        function handleDataReceived(payload, participant) {
+            try {
+                const decoder = new TextDecoder();
+                const str = decoder.decode(payload);
+                const data = JSON.parse(str);
+                renderChatMessage(data.sender || participant.identity, data.text, data.time, false);
+            } catch (e) {
+                console.error('Data error:', e);
+            }
+        }
+
+        function renderChatMessage(sender, text, time, isSelf) {
+            const box = document.getElementById('chatMessagesBox');
+            if (!box) return;
+            const bubble = document.createElement('div');
+            bubble.className = `chat-msg-bubble ${isSelf ? 'self' : ''}`;
+            bubble.innerHTML = `
+                <div style="font-size:0.75rem; font-weight:700; opacity:0.8;">${sender}</div>
+                <div class="my-1">${text}</div>
+                <div style="font-size:0.68rem; opacity:0.6; text-align:right;">${time}</div>
+            `;
+            box.appendChild(bubble);
+            box.scrollTop = box.scrollHeight;
         }
 
         async function toggleMic() {
@@ -504,17 +780,6 @@
             }
         }
 
-        function leaveMeeting() {
-            if (isDirectCall && window.socket) {
-                window.socket.emit('call_ended', { meetingUuid: "{{ $meeting->uuid }}", room: "{{ $meeting->room_name }}" });
-            }
-            if (room) {
-                room.disconnect();
-            } else {
-                window.location.href = "{{ route('admin.meetings.index') }}";
-            }
-        }
-
         function notifyBackend(action) {
             const url = action === 'join' ? "{{ route('admin.meetings.join', $meeting->uuid) }}" : "{{ route('admin.meetings.leave', $meeting->uuid) }}";
             fetch(url, {
@@ -527,4 +792,5 @@
         }
     </script>
 </body>
+
 </html>

@@ -28,11 +28,170 @@ new class extends Component {
     public $showGroupInfo = false;
     public $perPage = 10; // Added for pagination
 
+    public $replyMessageId = null;
+    public $replyingToMessage = null;
+    public $showForwardModal = false;
+    public $forwardMessageId = null;
+    public $forwardSearchQuery = '';
+    public $userConversationsList = [];
+
     public function mount($selectedConversationId = null)
     {
         if ($selectedConversationId) {
             $this->loadConversation($selectedConversationId);
         }
+    }
+
+    public function setReplyTo($messageId)
+    {
+        $msg = Message::with(['user', 'client'])->find($messageId);
+        if ($msg) {
+            $this->replyMessageId = $msg->id;
+            $this->replyingToMessage = [
+                'id' => $msg->id,
+                'body' => $msg->body,
+                'sender_name' => $msg->user->name ?? $msg->client->name ?? 'User',
+            ];
+        }
+    }
+
+    public function cancelReply()
+    {
+        $this->replyMessageId = null;
+        $this->replyingToMessage = null;
+    }
+
+    public function openForwardModal($messageId)
+    {
+        $this->forwardMessageId = $messageId;
+        $this->forwardSearchQuery = '';
+        $isClientGuard = Auth::guard('client')->check();
+        $user = $isClientGuard ? Auth::guard('client')->user() : Auth::user();
+        
+        $this->userConversationsList = $user->conversations()
+            ->with(['participants', 'clientParticipants'])
+            ->get()
+            ->map(function($conv) use ($user, $isClientGuard) {
+                $name = $conv->name;
+                if ($conv->type === 'private') {
+                    $other = $conv->participants->first(fn($p) => $p->id != $user->id);
+                    if (!$other) {
+                        $other = $conv->clientParticipants->first(fn($p) => $p->id != $user->id);
+                    }
+                    $name = $other->name ?? 'Direct Chat';
+                }
+                return [
+                    'id' => $conv->id,
+                    'name' => $name,
+                    'type' => $conv->type,
+                ];
+            })->toArray();
+
+        $this->showForwardModal = true;
+    }
+
+    public function closeForwardModal()
+    {
+        $this->showForwardModal = false;
+        $this->forwardMessageId = null;
+        $this->forwardSearchQuery = '';
+    }
+
+    public function forwardMessageTo($targetConversationId)
+    {
+        if (!$this->forwardMessageId) return;
+
+        $originalMsg = Message::with(['attachments'])->find($this->forwardMessageId);
+        if (!$originalMsg) return;
+
+        $isClientGuard = Auth::guard('client')->check();
+        $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
+
+        $targetConv = Conversation::find($targetConversationId);
+        if (!$targetConv) return;
+
+        $newMsgData = [
+            'body' => $originalMsg->body,
+            'is_forwarded' => true,
+        ];
+        if ($isClientGuard) {
+            $newMsgData['client_id'] = $myId;
+        } else {
+            $newMsgData['user_id'] = $myId;
+        }
+
+        $forwardedMsg = $targetConv->messages()->create($newMsgData);
+
+        foreach ($originalMsg->attachments as $att) {
+            $forwardedMsg->attachments()->create([
+                'file_path' => $att->file_path,
+                'file_name' => $att->file_name,
+                'file_type' => $att->file_type,
+                'file_size' => $att->file_size,
+            ]);
+        }
+
+        $loadedMsg = $forwardedMsg->load(['user', 'client', 'replyTo', 'attachments'])->toArray();
+
+        // Broadcast to socket
+        $this->dispatch('send-message-to-node', [
+            'room' => $targetConv->id,
+            'message' => $loadedMsg,
+        ]);
+
+        if ($this->conversation && $this->conversation->id == $targetConv->id) {
+            $this->messages[] = $loadedMsg;
+            $this->dispatch('scroll-bottom');
+        }
+
+        $this->closeForwardModal();
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Message forwarded successfully!']);
+    }
+
+    public function toggleReaction($messageId, $emoji)
+    {
+        $message = Message::find($messageId);
+        if (!$message) return;
+
+        $isClientGuard = Auth::guard('client')->check();
+        $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
+        $userIdStr = ($isClientGuard ? 'c_' : 'u_') . $myId;
+
+        $reactions = $message->reactions;
+        if (is_string($reactions)) {
+            $reactions = json_decode($reactions, true) ?? [];
+        }
+        if (!is_array($reactions)) {
+            $reactions = [];
+        }
+
+        if (isset($reactions[$userIdStr]) && $reactions[$userIdStr] === $emoji) {
+            unset($reactions[$userIdStr]);
+        } else {
+            $reactions[$userIdStr] = $emoji;
+        }
+
+        $message->reactions = $reactions;
+        $message->save();
+
+        // Update local messages array
+        foreach ($this->messages as $key => $msg) {
+            $currId = is_array($msg) ? ($msg['id'] ?? null) : ($msg->id ?? null);
+            if ($currId == $messageId) {
+                if (is_array($this->messages[$key])) {
+                    $this->messages[$key]['reactions'] = $reactions;
+                } else {
+                    $this->messages[$key]->reactions = $reactions;
+                }
+                break;
+            }
+        }
+
+        // Broadcast to socket room
+        $this->dispatch('send-message-to-node', [
+            'room' => $this->conversation->id,
+            'message' => $message->load(['user', 'client', 'replyTo', 'attachments'])->toArray(),
+        ]);
     }
 
     public function updatedSelectedConversationId($value)
@@ -78,7 +237,7 @@ new class extends Component {
         $this->perPage = 10;
         $this->messages = $this->conversation
             ->messages()
-            ->with(['user', 'client', 'attachments'])
+            ->with(['user', 'client', 'replyTo', 'attachments'])
             ->latest()
             ->take($this->perPage)
             ->get()
@@ -189,6 +348,9 @@ new class extends Component {
         $isClientGuard = Auth::guard('client')->check();
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
         $messageData = ['body' => $messageBody ?? ''];
+        if ($this->replyMessageId) {
+            $messageData['reply_to_id'] = $this->replyMessageId;
+        }
         if ($isClientGuard) {
             $messageData['client_id'] = $myId;
         } else {
@@ -220,14 +382,17 @@ new class extends Component {
             $this->attachment = null;
         }
 
+        $loadedMessage = $message->load(['user', 'client', 'replyTo', 'attachments'])->toArray();
+
         // Broadcast via Socket.IO (Custom Node Server)
         $this->dispatch('send-message-to-node', [
             'room' => $this->conversation->id,
-            'message' => $message->load('user', 'client', 'attachments')->toArray(),
+            'message' => $loadedMessage,
         ]);
 
-        $this->messages[] = $message->load('user', 'client', 'attachments')->toArray();
+        $this->messages[] = $loadedMessage;
         $this->body = '';
+        $this->cancelReply();
         $this->dispatch('scroll-bottom');
     }
 
@@ -393,23 +558,49 @@ new class extends Component {
             wire:key="chat-header-{{ $conversation->id }}" style="min-height: 73px; background: var(--bg-surface);"
             x-data="{
                 status: 'Offline',
+                statusText: 'Offline',
+                statusColor: '#6b7280',
                 isTyping: false,
                 typingUser: '',
                 typingTimeout: null,
                 userId: {{ $conversation->type == 'private' && $receiver ? $receiver->id : 'null' }},
                 conversationId: '{{ $conversation->id }}',
                 currentUserId: {{ auth()->id() }},
+                updatePresence(users, statuses) {
+                    if (!this.userId) return;
+                    const normStatuses = statuses || window.userStatuses || {};
+                    const st = normStatuses[this.userId] || normStatuses[String(this.userId)];
+                    const normUsers = (users || window.onlineUsers || []).map(Number);
+                    
+                    if (st === 'away') { 
+                        this.statusText = 'Away'; 
+                        this.statusColor = '#f59e0b'; 
+                    } else if (st === 'busy') { 
+                        this.statusText = 'Busy'; 
+                        this.statusColor = '#ea4335'; 
+                    } else if (st === 'offline') { 
+                        this.statusText = 'Offline'; 
+                        this.statusColor = '#6b7280'; 
+                    } else if (st === 'online' || normUsers.includes(Number(this.userId))) {
+                        this.statusText = 'Online'; 
+                        this.statusColor = '#00a884';
+                    } else {
+                        this.statusText = 'Offline'; 
+                        this.statusColor = '#6b7280';
+                    }
+                },
                 init() {
                     if (this.userId) {
-                        this.status = window.onlineUsers && window.onlineUsers.includes(Number(this.userId)) ? 'Online' : 'Offline';
-            
+                        this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
+
                         window.addEventListener('online-users-updated', (e) => {
-                            const users = e.detail;
-                            if (users.includes(Number(this.userId))) {
-                                this.status = 'Online';
-                            } else {
-                                this.status = 'Offline';
-                            }
+                            this.updatePresence(e.detail, window.userStatuses || {});
+                        });
+                        window.addEventListener('all-user-statuses-updated', (e) => {
+                            this.updatePresence(window.onlineUsers || [], e.detail || {});
+                        });
+                        window.addEventListener('user-status-changed-event', (e) => {
+                            this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
                         });
                     }
             
@@ -492,10 +683,8 @@ new class extends Component {
                                     {{ $otherParticipant->name ?? 'User' }}</h6>
                                 <div class="d-flex align-items-center gap-1">
                                     <span class="rounded-circle" x-show="!isTyping"
-                                        :class="status == 'Online' ? 'bg-success' : 'bg-secondary'"
-                                        style="width: 8px; height: 8px;"></span>
-                                    <small x-show="!isTyping" :class="status == 'Online' ? 'text-success' : 'text-low'"
-                                        style="font-size: 0.7rem;" x-text="status"></small>
+                                        :style="'width: 8px; height: 8px; background-color: ' + statusColor"></span>
+                                    <small x-show="!isTyping" :style="'font-size: 0.7rem; color: ' + statusColor" x-text="statusText"></small>
 
                                     <small x-show="isTyping" class="text-primary fw-bold"
                                         style="font-size: 0.75rem; font-style: italic;"
@@ -664,6 +853,12 @@ new class extends Component {
                             $msgId = is_array($message) ? $message['id'] : $message->id;
                         @endphp
 
+                        @php
+                            $isForwarded = is_array($message) ? ($message['is_forwarded'] ?? false) : $message->is_forwarded;
+                            $replyTo = is_array($message) ? ($message['reply_to'] ?? null) : $message->replyTo;
+                            $reactions = is_array($message) ? ($message['reactions'] ?? []) : ($message->reactions ?? []);
+                        @endphp
+
                         @if ($deletedAt)
                             <div class="p-3 rounded-premium"
                                 style="background: var(--bg-input); border: 1px dashed var(--border-subtle); color: var(--text-low); font-style: italic; font-size: 0.85rem;">
@@ -671,61 +866,136 @@ new class extends Component {
                             </div>
                         @else
                             <div class="position-relative message-hover-container">
-                                <div class="px-3 py-2 rounded-premium"
+                                <div class="px-3 py-2 rounded-premium position-relative"
                                     style="{{ $isMe ? 'background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);' : 'background: var(--bg-surface); border: 1px solid var(--border-main); color: var(--text-high);' }}">
+
+                                    <!-- WhatsApp Style Message Context Dropdown Arrow -->
+                                    <div class="dropdown position-absolute top-0 end-0 m-1 msg-chevron-dropdown">
+                                        <button class="btn btn-sm p-0 text-white border-0 opacity-75 hover-opacity-100"
+                                            type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                            style="width: 20px; height: 20px; background: rgba(0,0,0,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-premium border-main p-1" style="background: var(--bg-surface); min-width: 150px; z-index: 1050;">
+                                            <li>
+                                                <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-high" type="button" wire:click="setReplyTo({{ $msgId }})">
+                                                    <i class="fas fa-reply text-success" style="font-size: 0.85rem;"></i>
+                                                    <span>Reply</span>
+                                                </button>
+                                            </li>
+                                            @if (count($msgAttachments) > 0)
+                                                @foreach ($msgAttachments as $attItem)
+                                                    @continue(!is_array($attItem) && !is_object($attItem))
+                                                    @php
+                                                        $attPath = is_array($attItem) ? $attItem['file_path'] ?? '' : $attItem->file_path;
+                                                        $attName = is_array($attItem) ? $attItem['file_name'] ?? '' : $attItem->file_name;
+                                                    @endphp
+                                                    <li>
+                                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-high" href="{{ asset('storage/' . $attPath) }}" download="{{ $attName }}">
+                                                            <i class="fas fa-download text-info" style="font-size: 0.85rem;"></i>
+                                                            <span>Download</span>
+                                                        </a>
+                                                    </li>
+                                                @endforeach
+                                            @endif
+                                            <li>
+                                                <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-high" type="button" wire:click="openForwardModal({{ $msgId }})">
+                                                    <i class="fas fa-share text-primary" style="font-size: 0.85rem;"></i>
+                                                    <span>Forward</span>
+                                                </button>
+                                            </li>
+                                            @if ($isMe)
+                                                <li><hr class="dropdown-divider border-main my-1"></li>
+                                                <li>
+                                                    <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" type="button" wire:click="deleteMessage({{ $msgId }})" wire:confirm="Are you sure you want to delete this message?">
+                                                        <i class="fas fa-trash-alt" style="font-size: 0.85rem;"></i>
+                                                        <span>Delete</span>
+                                                    </button>
+                                                </li>
+                                            @endif
+                                        </ul>
+                                    </div>
+
+                                    @if ($isForwarded)
+                                        <div class="fst-italic mb-1 d-flex align-items-center gap-1" style="font-size: 0.72rem; opacity: 0.8;">
+                                            <i class="fas fa-share" style="font-size: 0.65rem;"></i> Forwarded
+                                        </div>
+                                    @endif
+
+                                    @if ($replyTo)
+                                        @php
+                                            $replySender = is_array($replyTo) 
+                                                ? ($replyTo['user']['name'] ?? $replyTo['client']['name'] ?? 'User') 
+                                                : ($replyTo->user->name ?? $replyTo->client->name ?? 'User');
+                                            $replyBody = is_array($replyTo) ? $replyTo['body'] : $replyTo->body;
+                                        @endphp
+                                        <div class="p-2 mb-2 rounded border-start border-3 border-light opacity-85"
+                                            style="background: rgba(0,0,0,0.15); font-size: 0.78rem;">
+                                            <div class="fw-bold mb-1" style="color: {{ $isMe ? '#e2e8f0' : 'var(--primary)' }};">
+                                                <i class="fas fa-reply me-1"></i> {{ $replySender }}
+                                            </div>
+                                            <div class="text-truncate">
+                                                {!! strip_tags($replyBody) !!}
+                                            </div>
+                                        </div>
+                                    @endif
+
                                     @if (count($msgAttachments) > 0)
                                         @foreach ($msgAttachments as $att)
                                             @continue(!is_array($att) && !is_object($att))
                                             @php
-                                                // Handle both array (when hydrated) and object (when model) cases
                                                 $filePath = is_array($att) ? $att['file_path'] ?? '' : $att->file_path;
                                                 $fileName = is_array($att) ? $att['file_name'] ?? '' : $att->file_name;
                                                 $fileType = is_array($att) ? $att['file_type'] ?? '' : $att->file_type;
                                             @endphp
                                             @if (str_starts_with($fileType, 'image/'))
-                                                <div
-                                                    class="position-relative d-inline-block group-hover-show-download mb-2">
+                                                <div class="position-relative d-inline-block group-hover-show-download mb-2">
                                                     <img alt="team-tasker" src="{{ asset('storage/' . $filePath) }}"
                                                         class="img-fluid rounded" style="max-height: 200px;">
-                                                    <a href="{{ asset('storage/' . $filePath) }}"
-                                                        download="{{ $fileName }}"
-                                                        class="btn btn-dark btn-sm rounded-circle position-absolute top-0 end-0 m-1 opacity-75 hover-opacity-100 d-flex align-items-center justify-content-center"
-                                                        style="width: 25px; height: 25px;" title="Download">
-                                                        <i class="fas fa-download" style="font-size: 12px;"></i>
-                                                    </a>
+                                                    
                                                 </div>
                                             @else
-                                                <div class="d-flex align-items-center mb-2">
+                                                <div class="d-flex align-items-center mb-2 pe-4">
                                                     <a href="{{ asset('storage/' . $filePath) }}" target="_blank" rel="noopener noreferrer"
                                                         class="text-decoration-none"
                                                         style="color: {{ $isMe ? 'white' : 'var(--text-main)' }};">
                                                         <i class="fas fa-file me-1"></i> {{ $fileName }}
-                                                    </a>
-                                                    <a href="{{ asset('storage/' . $filePath) }}"
-                                                        download="{{ $fileName }}"
-                                                        class="ms-2 text-decoration-none"
-                                                        style="color: {{ $isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }};"
-                                                        title="Download">
-                                                        <i class="fas fa-download"></i>
                                                     </a>
                                                 </div>
                                             @endif
                                         @endforeach
                                     @endif
 
-                                    <div class="message-body" style="font-size: 0.9rem; line-height: 1.5;">
+                                    <div class="message-body pe-3" style="font-size: 0.9rem; line-height: 1.5;">
                                         {!! $msgBody !!}
                                     </div>
                                 </div>
-                                @if ($isMe)
-                                    <button wire:click="deleteMessage({{ $msgId }})"
-                                        wire:confirm="Are you sure you want to delete this message?"
-                                        class="btn btn-sm p-0 rounded-circle delete-btn d-flex align-items-center justify-content-center shadow-premium"
-                                        style="width: 22px; height: 22px; background: var(--bg-surface); border: 1px solid var(--border-main); color: #ef4444; position: absolute; top: -11px; right: -11px; z-index: 5; opacity: 0; transition: opacity 0.2s;"
-                                        title="Delete Message">
-                                        <i class="fas fa-trash" style="font-size: 10px;"></i>
-                                    </button>
-                                @endif
+
+                                <!-- WhatsApp Style Hover Emoji Quick Reaction Bar -->
+                                <div class="msg-reaction-bar position-absolute d-flex align-items-center gap-1 shadow-premium rounded-pill px-2 py-1 {{ $isMe ? 'end-0' : 'start-0' }}"
+                                    style="top: -35px; background: var(--bg-surface); border: 1px solid var(--border-main); z-index: 10; opacity: 0; transition: opacity 0.2s ease;">
+                                    @foreach(['👍', '❤️', '😂', '😮', '😢', '🔥'] as $emojiItem)
+                                        <button type="button" class="btn btn-sm p-1 border-0 hover-scale"
+                                            wire:click="toggleReaction({{ $msgId }}, '{{ $emojiItem }}')"
+                                            style="font-size: 1.1rem; line-height: 1; transition: transform 0.15s ease;">
+                                            {{ $emojiItem }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Display Reaction Badges -->
+                        @if (!empty($reactions) && is_array($reactions))
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                @php
+                                    $groupedReactions = array_count_values(array_values($reactions));
+                                @endphp
+                                @foreach ($groupedReactions as $emojiVal => $countVal)
+                                    <span class="badge rounded-pill bg-dark border border-secondary px-2 py-1" style="font-size: 0.7rem; color: #fff;">
+                                        {{ $emojiVal }} {{ $countVal > 1 ? $countVal : '' }}
+                                    </span>
+                                @endforeach
                             </div>
                         @endif
                         <div class="d-flex align-items-center gap-2 mt-1"
@@ -819,6 +1089,23 @@ new class extends Component {
                     <i class="fas fa-lock me-2"></i> Chat is disabled.
                 </div>
             @else
+                @if ($replyingToMessage)
+                    <div class="d-flex align-items-center justify-content-between p-2 mb-2 rounded-premium border-start border-4 border-success"
+                        style="background: var(--bg-input); font-size: 0.85rem;">
+                        <div class="overflow-hidden me-2">
+                            <div class="fw-bold text-success" style="font-size: 0.75rem;">
+                                <i class="fas fa-reply me-1"></i> Replying to {{ $replyingToMessage['sender_name'] }}
+                            </div>
+                            <div class="text-truncate text-low" style="font-size: 0.8rem;">
+                                {!! strip_tags($replyingToMessage['body']) !!}
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-link text-low p-0 hover-text-high" wire:click="cancelReply">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                @endif
+
                 @if ($attachment)
                     <div class="chat-media-preview d-flex flex-wrap gap-2 mb-3 p-2 border-main rounded-premium"
                         style="background: var(--bg-input);">
@@ -1001,6 +1288,61 @@ new class extends Component {
 
     <livewire:edit-group-modal />
 
+    <!-- Forward Message Modal -->
+    @if ($showForwardModal)
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.6); z-index: 1055;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content shadow-premium border-main" style="background: var(--bg-surface);">
+                    <div class="modal-header border-bottom border-main">
+                        <h6 class="modal-title fw-bold text-high">
+                            <i class="fas fa-share me-2 text-primary"></i> Forward Message To...
+                        </h6>
+                        <button type="button" class="btn-close btn-close-white" wire:click="closeForwardModal"></button>
+                    </div>
+                    <div class="modal-body p-3">
+                        <!-- User Search Input -->
+                        <div class="search-container-premium mb-3" style="width: 100%;">
+                            <i class="fas fa-search search-icon-premium" style="font-size: 0.85rem;"></i>
+                            <input type="text" wire:model.live="forwardSearchQuery" class="form-premium-control ps-5 py-2 w-100"
+                                placeholder="Search users or groups..." style="font-size: 0.85rem;">
+                        </div>
+
+                        @php
+                            $filteredConversations = array_filter($userConversationsList, function($item) {
+                                if (empty($this->forwardSearchQuery)) return true;
+                                return stripos($item['name'], $this->forwardSearchQuery) !== false;
+                            });
+                        @endphp
+
+                        <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto;">
+                            @if (empty($filteredConversations))
+                                <div class="text-center text-low py-4">
+                                    <i class="fas fa-user-slash fa-2x mb-2 opacity-50"></i>
+                                    <div>No users or groups found</div>
+                                </div>
+                            @else
+                                @foreach ($filteredConversations as $convItem)
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded-premium border-main hover-bg-input">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-premium" style="width: 34px; height: 34px;">
+                                                <i class="fas {{ $convItem['type'] === 'private' ? 'fa-user' : 'fa-users' }} text-primary"></i>
+                                            </div>
+                                            <span class="fw-semibold text-high" style="font-size: 0.88rem;">{{ $convItem['name'] }}</span>
+                                        </div>
+                                        <button type="button" class="btn btn-primary btn-sm px-3 rounded-pill"
+                                            wire:click="forwardMessageTo({{ $convItem['id'] }})">
+                                            Send
+                                        </button>
+                                    </div>
+                                @endforeach
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <style>
         @keyframes slideInRight {
             from {
@@ -1025,7 +1367,21 @@ new class extends Component {
             transition: all var(--transition-base);
         }
 
-        .message-hover-container:hover .delete-btn {
+        .msg-reaction-bar {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .message-hover-container:hover .msg-reaction-bar {
+            opacity: 1 !important;
+        }
+
+        .msg-chevron-dropdown {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .message-hover-container:hover .msg-chevron-dropdown {
             opacity: 1 !important;
         }
 

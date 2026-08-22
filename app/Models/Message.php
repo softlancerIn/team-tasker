@@ -6,10 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Message extends Model
 {
-    protected $fillable = ['conversation_id', 'user_id',
-        'client_id', 'body', 'attachment_path', 'attachment_type', 'attachment_original_name', 'delivered_at', 'read_at', 'deleted_at'];
+    protected $fillable = [
+        'conversation_id', 'reply_to_id', 'user_id', 'client_id', 'body', 
+        'is_forwarded', 'reactions', 'attachment_path', 'attachment_type', 
+        'attachment_original_name', 'delivered_at', 'read_at', 'deleted_at'
+    ];
 
     protected $casts = [
+        'is_forwarded' => 'boolean',
+        'reactions' => 'array',
         'delivered_at' => 'datetime',
         'read_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -25,6 +30,11 @@ class Message extends Model
     public function conversation()
     {
         return $this->belongsTo(Conversation::class);
+    }
+
+    public function replyTo()
+    {
+        return $this->belongsTo(Message::class, 'reply_to_id')->with(['user', 'client']);
     }
 
     public function user()

@@ -60,6 +60,11 @@ class LiveKitMeetingProvider implements MeetingProviderInterface
         $now = time();
         $ttl = 3600 * 6; // 6 hours expiration
 
+        $isHost = ($meeting->created_by == $user->id) || (method_exists($user, 'hasRole') && $user->hasRole('super-admin'));
+        $canPublish = $isHost || (method_exists($user, 'hasPermission') ? $user->hasPermission('meetings.create') || $user->hasPermission('meetings.join') : true);
+        $canSubscribe = true;
+        $canPublishData = true;
+
         $payload = [
             'iss' => $apiKey,
             'sub' => $identity,
@@ -69,9 +74,10 @@ class LiveKitMeetingProvider implements MeetingProviderInterface
             'video' => [
                 'room' => $roomName,
                 'roomJoin' => true,
-                'canPublish' => true,
-                'canSubscribe' => true,
-                'canPublishData' => true,
+                'canPublish' => $canPublish,
+                'canSubscribe' => $canSubscribe,
+                'canPublishData' => $canPublishData,
+                'roomAdmin' => $isHost,
             ]
         ];
 
