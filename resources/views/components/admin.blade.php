@@ -969,10 +969,12 @@
                 </a>
             @endif
 
-            <a href="{{ route('admin.meetings.index') }}"
-                class="nav-link-premium {{ request()->routeIs('admin.meetings.*') ? 'active' : '' }}">
-                <i class="fas fa-video"></i> <span>Meetings & Calls</span>
-            </a>
+            @if (Auth::user()->hasPermission('meetings.view'))
+                <a href="{{ route('admin.meetings.index') }}"
+                    class="nav-link-premium {{ request()->routeIs('admin.meetings.*') ? 'active' : '' }}">
+                    <i class="fas fa-video"></i> <span>Meetings & Calls</span>
+                </a>
+            @endif
 
             @if (Auth::user()->hasPermission('tickets.view'))
                 <a href="{{ route('admin.tickets.index') }}"

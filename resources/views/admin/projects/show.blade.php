@@ -20,7 +20,7 @@
         <div class="col-md-8">
             <div class="glass-card mb-4" style="border: 1px solid var(--border-main);">
                 <h5 class="fw-bold mb-3" style="color: var(--text-high);">Description</h5>
-                <p class="text-medium mb-0" style="white-space: pre-wrap;">{!! $project->description ?: 'No description provided.' !!}</p>
+                <p class="text-medium mb-0">{!! $project->description ?: 'No description provided.' !!}</p>
             </div>
             
             <div class="glass-card" style="border: 1px solid var(--border-main);">
