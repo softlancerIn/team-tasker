@@ -28,6 +28,6 @@ new class extends Component {
         </div>
         <div
             class="col-12 col-md-8 col-lg-9 h-100 d-flex flex-column {{ $selectedConversationId ? '' : 'd-none d-md-flex' }}">
-            <livewire:chat-box :selectedConversationId="$selectedConversationId" wire:key="chat-box-details-{{ $selectedConversationId }}" />
+            <livewire:chat-box :selectedConversationId="$selectedConversationId" wire:key="chat-box-details" />
         </div>
     </div>

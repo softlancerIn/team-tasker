@@ -25,6 +25,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+  // Cache API only supports http and https requests (ignore chrome-extension, extension, etc.)
+  if (!url.protocol.startsWith('http')) return;
+
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

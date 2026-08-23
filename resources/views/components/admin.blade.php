@@ -1095,8 +1095,8 @@
                             </a>
                         @endif
                         @if (Auth::user()->hasPermission('settings.view'))
-                            <a href="{{ route('admin.chat-permissions') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.chat-permissions') ? 'active' : '' }}">
+                            <a href="{{ route('admin.settings.chat-permissions') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.chat-permissions') ? 'active' : '' }}">
                                 <i class="fas fa-comments"></i> Chat Permissions
                             </a>
                         @endif
@@ -1310,19 +1310,25 @@
 
             window.socket.on('connect', () => {
                 console.log('Connected to Socket.IO server:', window.socket.id);
-                @if (auth()->check())
-                    window.socket.emit('user_connected', {{ auth()->id() }});
+                @php
+                    $isClientG = Auth::guard('client')->check();
+                    $currentAuthUser = $isClientG ? Auth::guard('client')->user() : Auth::user();
+                    $currentAuthId = $currentAuthUser ? $currentAuthUser->id : null;
+                @endphp
+                @if ($currentAuthUser)
+                    window.socket.emit('user_connected', {{ $currentAuthId }});
                     window.socket.emit('get_user_statuses');
 
-                    const savedStatus = localStorage.getItem('user_presence_status_' + {{ auth()->id() }});
+                    const savedStatus = localStorage.getItem('user_presence_status_' + {{ $currentAuthId }});
                     if (savedStatus) {
-                        window.socket.emit('update_status', { userId: {{ auth()->id() }}, status: savedStatus });
+                        window.socket.emit('update_status', { userId: {{ $currentAuthId }}, status: savedStatus });
+                    } else {
+                        window.socket.emit('update_status', { userId: {{ $currentAuthId }}, status: 'online' });
                     }
 
-                    // Auto-join all user's conversation rooms so we receive
-                    // typing indicators, messages, and read receipts for ALL conversations
+                    // Auto-join all user's conversation rooms
                     @php
-                        $userConversationIds = auth()->user()->conversations()->pluck('conversations.id')->toArray();
+                        $userConversationIds = $currentAuthUser->conversations()->pluck('conversations.id')->toArray();
                     @endphp
                     const myRooms = @json($userConversationIds);
                     myRooms.forEach(roomId => {
@@ -1677,10 +1683,20 @@
                     <h5 class="modal-title fw-bold text-high">Punch In</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('admin.attendance.clockIn') }}" method="POST">
+                <form id="punchInForm" action="{{ route('admin.attendance.clockIn') }}" method="POST">
                     @csrf
+                    <input type="hidden" name="latitude" id="punch_latitude">
+                    <input type="hidden" name="longitude" id="punch_longitude">
+                    <input type="hidden" name="location" id="punch_location">
+                    
                     <div class="modal-body">
-                        <p class="text-medium mb-3">You haven't punched in for today yet. Please record your attendance.</p>
+                        <p class="text-medium mb-2">You haven't punched in for today yet. Please record your attendance.</p>
+                        
+                        <div class="mb-3 p-2 rounded border border-subtle bg-subtle d-flex align-items-center gap-2" id="locationStatusContainer" style="font-size: 0.8rem;">
+                            <i class="fas fa-map-marker-alt text-primary" id="locIcon"></i>
+                            <span id="locationStatusText" class="text-low">Detecting your location...</span>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label text-high fw-semibold">Note (Optional)</label>
                             <textarea name="notes" class="form-premium-control w-100" rows="3" placeholder="Working remotely, running late, etc."></textarea>
@@ -1688,7 +1704,7 @@
                     </div>
                     <div class="modal-footer border-subtle">
                         <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn-premium btn-premium-primary">
+                        <button type="submit" id="punchInSubmitBtn" class="btn-premium btn-premium-primary">
                             <i class="fas fa-sign-in-alt me-2"></i> Punch In Now
                         </button>
                     </div>
@@ -1696,6 +1712,46 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalEl = document.getElementById('globalClockInModal');
+            if (!modalEl) return;
+            
+            modalEl.addEventListener('show.bs.modal', function () {
+                const statusText = document.getElementById('locationStatusText');
+                const latInput = document.getElementById('punch_latitude');
+                const lngInput = document.getElementById('punch_longitude');
+                const locInput = document.getElementById('punch_location');
+                
+                if (navigator.geolocation) {
+                    statusText.innerText = "Fetching your location (lat, long)...";
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        latInput.value = lat;
+                        lngInput.value = lng;
+                        
+                        // Reverse geocode via OpenStreetMap Nominatim API
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                const address = data.display_name || `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                locInput.value = address;
+                                statusText.innerText = "📍 Location: " + address;
+                            })
+                            .catch(err => {
+                                locInput.value = `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                statusText.innerText = `📍 Location: Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                            });
+                    }, function(error) {
+                        statusText.innerText = "Location permission denied or unavailable.";
+                    }, { enableHighAccuracy: true, timeout: 10000 });
+                } else {
+                    statusText.innerText = "Geolocation is not supported by your browser.";
+                }
+            });
+        });
+    </script>
 
     <!-- Global Clock Out Modal -->
     <div class="modal fade" id="globalClockOutModal" tabindex="-1">

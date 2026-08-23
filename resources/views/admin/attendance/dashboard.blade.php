@@ -18,12 +18,9 @@
             @endif
 
             @if(!$myAttendance)
-                <form action="{{ route('admin.attendance.clockIn') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
-                        <i class="fas fa-sign-in-alt"></i> Clock In
-                    </button>
-                </form>
+                <button type="button" class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#globalClockInModal">
+                    <i class="fas fa-sign-in-alt"></i> Clock In
+                </button>
             @elseif(!$myAttendance->clock_out)
                 <button type="button" class="btn btn-danger d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#globalClockOutModal">
                     <i class="fas fa-sign-out-alt"></i> Clock Out
@@ -39,17 +36,23 @@
     @if($myAttendance)
     <div class="glass-card p-4 mb-4" style="border: 1px solid var(--border-main);">
         <div class="row align-items-center">
-            <div class="col-md-4 border-end border-secondary border-opacity-25">
+            <div class="col-md-3 border-end border-secondary border-opacity-25">
                 <p class="text-low mb-1" style="font-size: 0.85rem;">Clock In Time</p>
                 <h4 class="mb-0 text-high fw-bold">{{ \Carbon\Carbon::parse($myAttendance->clock_in)->format('h:i A') }}</h4>
             </div>
-            <div class="col-md-4 border-end border-secondary border-opacity-25 px-4">
+            <div class="col-md-3 border-end border-secondary border-opacity-25 px-4">
                 <p class="text-low mb-1" style="font-size: 0.85rem;">Clock Out Time</p>
                 <h4 class="mb-0 text-high fw-bold">{{ $myAttendance->clock_out ? \Carbon\Carbon::parse($myAttendance->clock_out)->format('h:i A') : '--:--' }}</h4>
             </div>
-            <div class="col-md-4 px-4">
+            <div class="col-md-3 border-end border-secondary border-opacity-25 px-4">
                 <p class="text-low mb-1" style="font-size: 0.85rem;">Work Hours</p>
                 <h4 class="mb-0 text-high fw-bold">{{ $myAttendance->work_hours ? $myAttendance->work_hours . ' hrs' : 'Running...' }}</h4>
+            </div>
+            <div class="col-md-3 px-4">
+                <p class="text-low mb-1" style="font-size: 0.85rem;">Punch In Location</p>
+                <h6 class="mb-0 text-high fw-bold text-truncate" title="{{ $myAttendance->location ?? 'Not Recorded' }}">
+                    <i class="fas fa-map-marker-alt text-primary me-1"></i>{{ $myAttendance->location ?? 'Not Recorded' }}
+                </h6>
             </div>
         </div>
     </div>

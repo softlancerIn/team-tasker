@@ -529,6 +529,14 @@ class AttendanceController extends Controller
             $status = 'Late';
         }
 
+        $locationString = $request->input('location');
+        $latitude = $request->input('latitude');
+        $longitude = $request->input('longitude');
+
+        if (!$locationString && $latitude && $longitude) {
+            $locationString = "Lat: {$latitude}, Long: {$longitude}";
+        }
+
         Attendance::create([
             'user_id' => Auth::id(),
             'date' => $today,
@@ -536,6 +544,7 @@ class AttendanceController extends Controller
             'status' => $status,
             'notes' => $request->input('notes'),
             'ip_address' => $currentIp,
+            'location' => $locationString,
         ]);
 
         return redirect()->back()->with('success', 'Clocked in successfully at ' . $now->format('h:i A'));

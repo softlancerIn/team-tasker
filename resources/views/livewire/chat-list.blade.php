@@ -170,14 +170,16 @@ new class extends Component {
             // Staff looking at Staff
             $usersQuery = User::where('id', '!=', $userId);
 
-            $allowedIds = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
+            $staffPermissions = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
                 ->where('user_id', $userId)
+                ->whereNotNull('allowed_user_id')
                 ->pluck('allowed_user_id')
                 ->toArray();
 
-            $allowedIds = array_unique(array_merge($allowedIds, $existingStaffIds));
+            $hasStaffAllPermission = empty($staffPermissions) || in_array('ALL', $staffPermissions) || in_array('*', $staffPermissions);
 
-            if (!$isSuperAdmin) {
+            if (!$isSuperAdmin && !$hasStaffAllPermission) {
+                $allowedIds = array_unique(array_merge($staffPermissions, $existingStaffIds));
                 $usersQuery->where(function ($q) use ($allowedIds) {
                     $q->where('role_id', 1);
                     if (!empty($allowedIds)) {
@@ -196,22 +198,17 @@ new class extends Component {
             // Staff looking at Clients
             $clientsQuery = \App\Models\Client::query();
 
-            $allowedClientIds = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
+            $clientPermissions = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
                 ->where('user_id', $userId)
                 ->whereNotNull('allowed_client_id')
                 ->pluck('allowed_client_id')
                 ->toArray();
 
-            $allowedClientIds = array_unique(array_merge($allowedClientIds, $existingClientIds));
+            $hasClientAllPermission = empty($clientPermissions) || in_array('ALL', $clientPermissions) || in_array('*', $clientPermissions);
 
-            if (!$isSuperAdmin) {
-                $clientsQuery->where(function ($q) use ($allowedClientIds) {
-                    // Clients don't have role_id = 1, so if no permissions, they see NO clients, 
-                    // unless we want to show all clients by default?
-                    // The request says "after give the permission to user he chat direct message"
-                    // meaning they should only see clients they have permission for.
-                    $q->whereIn('id', $allowedClientIds);
-                });
+            if (!$isSuperAdmin && !$hasClientAllPermission) {
+                $allowedClientIds = array_unique(array_merge($clientPermissions, $existingClientIds));
+                $clientsQuery->whereIn('id', $allowedClientIds);
             }
 
             $clients = $clientsQuery
@@ -327,7 +324,7 @@ new class extends Component {
     {
         \Illuminate\Support\Facades\Log::info('selectConversation called', ['id' => $conversationId]);
         $this->selectedConversationId = $conversationId;
-        $this->dispatch('conversationSelected', $conversationId);
+        $this->dispatch('conversationSelected', conversationId: $conversationId);
 
         // Update last_read_at
         $isClientGuard = Auth::guard('client')->check();
@@ -348,66 +345,118 @@ new class extends Component {
     }
 }; ?>
 
+<?php
+$authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::id();
+?>
 <div class="d-flex flex-column h-100" style="background: var(--bg-surface);" x-data="{
+    openClientGroups: true,
+    openClientMessages: true,
+    openDirectMessages: true,
+    openStaffGroups: true,
     onlineUsers: window.onlineUsers ? window.onlineUsers.map(String) : [],
-    myStatus: localStorage.getItem('user_presence_status_' + {{ auth()->id() ?? 0 }}) || 'online',
-    userStatuses: window.userStatuses || {},
+    myStatus: localStorage.getItem('user_presence_status_' + {{ $authId ?? 0 }}) || 'online',
     init() {
+        const mySaved = localStorage.getItem('user_presence_status_' + {{ $authId ?? 0 }}) || 'online';
+        this.myStatus = mySaved;
+        this.userStatuses = { ...this.userStatuses, [{{ $authId ?? 0 }}]: mySaved, [String({{ $authId ?? 0 }})]: mySaved };
+
         if (window.userStatuses) {
-            this.userStatuses = window.userStatuses;
+            this.userStatuses = { ...window.userStatuses, ...this.userStatuses };
         }
         window.addEventListener('online-users-updated', (e) => {
             this.onlineUsers = e.detail.map(String);
         });
         window.addEventListener('all-user-statuses-updated', (e) => {
-            this.userStatuses = e.detail || {};
-            if (this.userStatuses[{{ auth()->id() ?? 0 }}]) {
-                this.myStatus = this.userStatuses[{{ auth()->id() ?? 0 }}];
-            }
+            const incoming = e.detail || {};
+            const saved = localStorage.getItem('user_presence_status_' + {{ $authId ?? 0 }}) || 'online';
+            this.myStatus = saved;
+            this.userStatuses = {
+                ...this.userStatuses,
+                ...incoming,
+                [{{ $authId ?? 0 }}]: saved,
+                [String({{ $authId ?? 0 }})]: saved
+            };
         });
         window.addEventListener('user-status-changed-event', (e) => {
             if (e.detail && e.detail.userId) {
-                this.userStatuses[e.detail.userId] = e.detail.status;
-                if (String(e.detail.userId) === String({{ auth()->id() ?? 0 }})) {
-                    this.myStatus = e.detail.status;
+                const targetId = Number(e.detail.userId);
+                const newStatus = e.detail.status;
+                
+                this.userStatuses = {
+                    ...this.userStatuses,
+                    [targetId]: newStatus,
+                    [String(targetId)]: newStatus
+                };
+                
+                if (targetId === Number({{ $authId ?? 0 }})) {
+                    this.myStatus = newStatus;
                 }
             }
         });
     },
     changeStatus(status) {
         this.myStatus = status;
-        localStorage.setItem('user_presence_status_' + {{ auth()->id() ?? 0 }}, status);
+        const myId = Number({{ $authId ?? 0 }});
+        
+        this.userStatuses = {
+            ...this.userStatuses,
+            [myId]: status,
+            [String(myId)]: status
+        };
+        if (window.userStatuses) {
+            window.userStatuses[myId] = status;
+            window.userStatuses[String(myId)] = status;
+        }
+        localStorage.setItem('user_presence_status_' + myId, status);
         if (window.socket) {
-            window.socket.emit('update_status', { userId: {{ auth()->id() ?? 0 }}, status: status });
+            window.socket.emit('update_status', { userId: myId, status: status });
         }
     },
     getStatusBadge(userId) {
         const uId = Number(userId);
-        const st = (this.userStatuses || {})[uId] || (this.userStatuses || {})[String(userId)];
+        const myId = Number({{ $authId ?? 0 }});
+        
+        let st = (this.userStatuses || {})[uId] || (this.userStatuses || {})[String(userId)];
+        if (uId === myId && this.myStatus) {
+            st = this.myStatus;
+        }
+
         if (st === 'away') return { color: '#f59e0b', label: 'Away', dot: '🟡' };
         if (st === 'busy') return { color: '#ea4335', label: 'Busy', dot: '🔴' };
         if (st === 'offline') return { color: '#6b7280', label: 'Offline', dot: '⚫' };
-        if (this.onlineUsers.includes(String(userId)) || this.onlineUsers.includes(uId) || st === 'online') {
+
+        const isUserOnlineInSocket = (this.onlineUsers || []).map(Number).includes(uId);
+        if (isUserOnlineInSocket || st === 'online' || uId === myId) {
             return { color: '#00a884', label: 'Online', dot: '🟢' };
         }
+
         return { color: '#6b7280', label: 'Offline', dot: '⚫' };
     }
 }">
     <div class="p-3 border-bottom border-main">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="d-flex align-items-center gap-2">
-                <h5 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $isClient ? 'My Groups' : 'Conversations' }}</h5>
+                <h5 class="mb-0 fw-bold" style="color: var(--text-high);">
+                    {{ $isClient ? 'My Groups' : 'Conversations' }}
+                </h5>
                 <!-- Status Picker Dropdown -->
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle py-0 px-2 rounded-pill d-flex align-items-center gap-1"
-                        type="button" data-bs-toggle="dropdown" style="font-size: 0.75rem; border-color: var(--border-main); color: var(--text-high);">
-                        <span x-text="myStatus === 'online' ? '🟢' : (myStatus === 'away' ? '🟡' : (myStatus === 'busy' ? '🔴' : '⚫'))"></span>
+                    <button
+                        class="btn btn-sm btn-outline-secondary dropdown-toggle py-0 px-2 rounded-pill d-flex align-items-center gap-1"
+                        type="button" data-bs-toggle="dropdown"
+                        style="font-size: 0.75rem; border-color: var(--border-main); color: var(--text-high);">
+                        <span
+                            x-text="myStatus === 'online' ? '🟢' : (myStatus === 'away' ? '🟡' : (myStatus === 'busy' ? '🔴' : '⚫'))"></span>
                         <span class="text-capitalize" x-text="myStatus"></span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-dark shadow-premium border-main" style="font-size: 0.8rem; min-width: 140px;">
-                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#" @click.prevent="changeStatus('online')">🟢 Online</a></li>
-                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#" @click.prevent="changeStatus('away')">🟡 Away</a></li>
-                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#" @click.prevent="changeStatus('busy')">🔴 Busy</a></li>
+                    <ul class="dropdown-menu dropdown-menu-dark shadow-premium border-main"
+                        style="font-size: 0.8rem; min-width: 140px;">
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#"
+                                @click.prevent="changeStatus('online')">🟢 Online</a></li>
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#"
+                                @click.prevent="changeStatus('away')">🟡 Away</a></li>
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="#"
+                                @click.prevent="changeStatus('busy')">🔴 Busy</a></li>
                     </ul>
                 </div>
             </div>
@@ -429,140 +478,30 @@ new class extends Component {
 
     <div class="overflow-auto flex-grow-1">
         <!-- Client Groups -->
-        <div class="d-flex justify-content-between align-items-center px-4 py-3">
-            <div class="heading-label mb-0" style="font-size: 0.7rem;">Client Groups</div>
+        <div class="d-flex justify-content-between align-items-center px-4 py-3 cursor-pointer"
+            @click="openClientGroups = !openClientGroups" style="cursor: pointer;">
+            <div class="heading-label mb-0 d-flex align-items-center gap-2" style="font-size: 0.7rem;">
+                <i class="fas" :class="openClientGroups ? 'fa-chevron-down' : 'fa-chevron-right'"
+                    style="font-size: 0.65rem;"></i>
+                <span>Client Groups</span>
+            </div>
             @if (!$isClient && ($isSuperAdmin || auth()->user()->hasPermission('chat.create_client_group')))
                 <button class="btn btn-sm px-1 py-0 border-0 opacity-50" data-bs-toggle="modal"
-                    data-bs-target="#createClientGroupModal" style="color: var(--text-high);" title="Create Client Group">
+                    data-bs-target="#createClientGroupModal" style="color: var(--text-high);" title="Create Client Group"
+                    @click.stop>
                     <i class="fas fa-plus-circle"></i>
                 </button>
             @endif
         </div>
 
-        @if ($clientGroups->isNotEmpty())
-            @foreach ($clientGroups as $group)
-                <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $selectedConversationId == $group->id ? 'active' : '' }}"
-                    wire:click="selectConversation({{ $group->id }})" wire:key="group-{{ $group->id }}">
-                    <div class="avatar-premium"
-                        style="width: 42px; height: 42px; background: linear-gradient(135deg, var(--primary), var(--accent));">
-                        <i class="fas fa-user-tie text-white" style="font-size: 1rem;"></i>
-                    </div>
-                    <div class="ms-3 flex-grow-1 overflow-hidden">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0 text-truncate fw-bold" style="color: var(--text-high); font-size: 0.9rem;">
-                                {{ $group->name }}
-                            </h6>
-                            @if ($group->unread_count > 0)
-                                <span class="badge-premium py-0 px-2 rounded-pill"
-                                    style="background: var(--accent); color: white; font-size: 0.65rem;">{{ $group->unread_count }}</span>
-                            @endif
-                        </div>
-                        <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
-                            {{ $group->users_count }} members
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        @else
-            <div class="px-4 py-2 text-low small fst-italic" style="font-size: 0.8rem;">No client groups.</div>
-        @endif
-
-        @if (!$isClient)
-            @if(isset($clients) && $clients->isNotEmpty())
-                <div class="heading-label px-4 py-3 mb-0"
-                    style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle);">Client Messages</div>
-
-                <!-- Client Messages -->
-                @foreach ($clients as $client)
-                    <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $client->conversation && $selectedConversationId == $client->conversation->id ? 'active' : '' }}"
-                        wire:click="selectUser({{ $client->id }}, true)" wire:key="user-client-{{ $client->id }}"
-                        data-user-id="{{ $client->id }}">
-                        <div class="position-relative">
-                            <div class="avatar-premium"
-                                style="width: 42px; height: 42px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
-                                @if ($client->profile_image)
-                                    <img alt="team-tasker" src="{{ asset('storage/' . $client->profile_image) }}" alt="Avatar">
-                                @else
-                                    {{ substr($client->name, 0, 1) }}
-                                @endif
-                            </div>
-                        </div>
-                        <div class="ms-3 flex-grow-1 overflow-hidden">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
-                                    {{ $client->name }}
-                                </h6>
-                                @if ($client->conversation && $client->conversation->unread_count > 0)
-                                    <span class="badge-premium py-0 px-2 rounded-pill"
-                                        style="background: var(--primary); color: white; font-size: 0.65rem;">{{ $client->conversation->unread_count }}</span>
-                                @endif
-                            </div>
-                            <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
-                                {{ $client->company ?? 'Client' }}
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            @endif
-        @endif
-
-        <div class="heading-label px-4 py-3 mb-0"
-            style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle);">Direct Messages</div>
-
-        <!-- Direct Messages -->
-        @foreach ($users as $user)
-            <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'active' : '' }}"
-                wire:click="selectUser({{ $user->id }}, {{ isset($user->is_client) && $user->is_client ? 'true' : 'false' }})"
-                wire:key="user-{{ isset($user->is_client) && $user->is_client ? 'client' : 'user' }}-{{ $user->id }}"
-                data-user-id="{{ $user->id }}">
-                <div class="position-relative">
-                    <div class="avatar-premium" style="width: 42px; height: 42px;">
-                        @if ($user->profile_image)
-                            <img alt="team-tasker" src="{{ asset('storage/' . $user->profile_image) }}" alt="Avatar">
-                        @else
-                            {{ substr($user->name, 0, 1) }}
-                        @endif
-                    </div>
-                    <!-- Online Status Dot -->
-                    <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
-                        :style="'width: 12px; height: 12px; background-color: ' + getStatusBadge('{{ $user->id }}').color"></span>
-                </div>
-                <div class="ms-3 flex-grow-1 overflow-hidden">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
-                            {{ $user->name }}
-                        </h6>
-                        @if ($user->conversation && $user->conversation->unread_count > 0)
-                            <span class="badge-premium py-0 px-2 rounded-pill"
-                                style="background: var(--primary); color: white; font-size: 0.65rem;">{{ $user->conversation->unread_count }}</span>
-                        @endif
-                    </div>
-                    <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
-                        {{ $user->email }}
-                    </div>
-                </div>
-            </div>
-        @endforeach
-
-        @if ($users->count() >= $userLimit)
-            <div class="text-center py-2">
-                <button wire:click="loadMoreUsers" class="btn btn-sm btn-link text-decoration-none"
-                    style="font-size: 0.75rem;">
-                    Load More Users
-                </button>
-            </div>
-        @endif
-
-        @if (!$isClient)
-            <!-- Groups -->
-            @if ($conversations->isNotEmpty())
-                <div class="heading-label px-4 py-3 mb-0"
-                    style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle);">Staff Groups</div>
-                @foreach ($conversations as $group)
+        <div x-show="openClientGroups" x-collapse>
+            @if ($clientGroups->isNotEmpty())
+                @foreach ($clientGroups as $group)
                     <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $selectedConversationId == $group->id ? 'active' : '' }}"
-                        wire:click="selectConversation({{ $group->id }})" wire:key="staff-group-{{ $group->id }}">
-                        <div class="avatar-premium" style="width: 42px; height: 42px; background: var(--bg-input);">
-                            <i class="fas fa-users" style="color: var(--primary);"></i>
+                        wire:click="selectConversation({{ $group->id }})" wire:key="group-{{ $group->id }}">
+                        <div class="avatar-premium"
+                            style="width: 42px; height: 42px; background: linear-gradient(135deg, var(--primary), var(--accent));">
+                            <i class="fas fa-user-tie text-white" style="font-size: 1rem;"></i>
                         </div>
                         <div class="ms-3 flex-grow-1 overflow-hidden">
                             <div class="d-flex justify-content-between align-items-center mb-1">
@@ -580,6 +519,149 @@ new class extends Component {
                         </div>
                     </div>
                 @endforeach
+            @else
+                <div class="px-4 py-2 text-low small fst-italic" style="font-size: 0.8rem;">No client groups.</div>
+            @endif
+        </div>
+
+        @if (!$isClient)
+            @if(isset($clients) && $clients->isNotEmpty())
+                <div class="heading-label px-4 py-3 mb-0 d-flex align-items-center gap-2 cursor-pointer"
+                    @click="openClientMessages = !openClientMessages"
+                    style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle); cursor: pointer;">
+                    <i class="fas" :class="openClientMessages ? 'fa-chevron-down' : 'fa-chevron-right'"
+                        style="font-size: 0.65rem;"></i>
+                    <span>Client Messages</span>
+                </div>
+
+                <!-- Client Messages List -->
+                <div x-show="openClientMessages" x-collapse>
+                    @foreach ($clients as $client)
+                        <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $client->conversation && $selectedConversationId == $client->conversation->id ? 'active' : '' }}"
+                            wire:click="selectUser({{ $client->id }}, true)" wire:key="user-client-{{ $client->id }}"
+                            data-user-id="{{ $client->id }}">
+                            <div class="position-relative">
+                                <div class="avatar-premium"
+                                    style="width: 42px; height: 42px; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
+                                    @if ($client->profile_image)
+                                        <img alt="team-tasker" src="{{ asset('storage/' . $client->profile_image) }}" alt="Avatar">
+                                    @else
+                                        {{ substr($client->name, 0, 1) }}
+                                    @endif
+                                </div>
+                                <!-- Online Status Dot -->
+                                <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
+                                    :style="'width: 12px; height: 12px; background-color: ' + getStatusBadge('{{ $client->id }}').color"></span>
+                            </div>
+                            <div class="ms-3 flex-grow-1 overflow-hidden">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
+                                        {{ $client->name }}
+                                    </h6>
+                                    @if ($client->conversation && $client->conversation->unread_count > 0)
+                                        <span class="badge-premium py-0 px-2 rounded-pill"
+                                            style="background: var(--primary); color: white; font-size: 0.65rem;">{{ $client->conversation->unread_count }}</span>
+                                    @endif
+                                </div>
+                                <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
+                                    {{ $client->company ?? 'Client' }}
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        @endif
+
+        <div class="heading-label px-4 py-3 mb-0 d-flex align-items-center gap-2 cursor-pointer"
+            @click="openDirectMessages = !openDirectMessages"
+            style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle); cursor: pointer;">
+            <i class="fas" :class="openDirectMessages ? 'fa-chevron-down' : 'fa-chevron-right'"
+                style="font-size: 0.65rem;"></i>
+            <span>Direct Messages</span>
+        </div>
+
+        <!-- Direct Messages List -->
+        <div x-show="openDirectMessages" x-collapse>
+            @foreach ($users as $user)
+                <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $user->conversation && $selectedConversationId == $user->conversation->id ? 'active' : '' }}"
+                    wire:click="selectUser({{ $user->id }}, {{ isset($user->is_client) && $user->is_client ? 'true' : 'false' }})"
+                    wire:key="user-{{ isset($user->is_client) && $user->is_client ? 'client' : 'user' }}-{{ $user->id }}"
+                    data-user-id="{{ $user->id }}">
+                    <div class="position-relative">
+                        <div class="avatar-premium" style="width: 42px; height: 42px;">
+                            @if ($user->profile_image)
+                                <img alt="team-tasker" src="{{ asset('storage/' . $user->profile_image) }}" alt="Avatar">
+                            @else
+                                {{ substr($user->name, 0, 1) }}
+                            @endif
+                        </div>
+                        <!-- Online Status Dot -->
+                        <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
+                            :style="'width: 12px; height: 12px; background-color: ' + getStatusBadge('{{ $user->id }}').color"></span>
+                    </div>
+                    <div class="ms-3 flex-grow-1 overflow-hidden">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
+                                {{ $user->name }}
+                            </h6>
+                            @if ($user->conversation && $user->conversation->unread_count > 0)
+                                <span class="badge-premium py-0 px-2 rounded-pill"
+                                    style="background: var(--primary); color: white; font-size: 0.65rem;">{{ $user->conversation->unread_count }}</span>
+                            @endif
+                        </div>
+                        <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
+                            {{ $user->email }}
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+
+            @if ($users->count() >= $userLimit)
+                <div class="text-center py-2">
+                    <button wire:click="loadMoreUsers" class="btn btn-sm btn-link text-decoration-none"
+                        style="font-size: 0.75rem;">
+                        Load More Users
+                    </button>
+                </div>
+            @endif
+        </div>
+
+        @if (!$isClient)
+            <!-- Staff Groups -->
+            @if ($conversations->isNotEmpty())
+                <div class="heading-label px-4 py-3 mb-0 d-flex align-items-center gap-2 cursor-pointer"
+                    @click="openStaffGroups = !openStaffGroups"
+                    style="font-size: 0.7rem; border-top: 1px solid var(--border-subtle); cursor: pointer;">
+                    <i class="fas" :class="openStaffGroups ? 'fa-chevron-down' : 'fa-chevron-right'"
+                        style="font-size: 0.65rem;"></i>
+                    <span>Staff Groups</span>
+                </div>
+
+                <div x-show="openStaffGroups" x-collapse>
+                    @foreach ($conversations as $group)
+                        <div class="d-flex align-items-center px-4 py-3 user-item-premium {{ $selectedConversationId == $group->id ? 'active' : '' }}"
+                            wire:click="selectConversation({{ $group->id }})" wire:key="staff-group-{{ $group->id }}">
+                            <div class="avatar-premium" style="width: 42px; height: 42px; background: var(--bg-input);">
+                                <i class="fas fa-users" style="color: var(--primary);"></i>
+                            </div>
+                            <div class="ms-3 flex-grow-1 overflow-hidden">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="mb-0 text-truncate fw-bold" style="color: var(--text-high); font-size: 0.9rem;">
+                                        {{ $group->name }}
+                                    </h6>
+                                    @if ($group->unread_count > 0)
+                                        <span class="badge-premium py-0 px-2 rounded-pill"
+                                            style="background: var(--accent); color: white; font-size: 0.65rem;">{{ $group->unread_count }}</span>
+                                    @endif
+                                </div>
+                                <div class="text-truncate d-block" style="color: var(--text-low); font-size: 0.75rem;">
+                                    {{ $group->users_count }} members
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             @endif
         @endif
     </div>

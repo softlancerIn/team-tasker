@@ -13,9 +13,11 @@
     <div class="data-grid-wrapper mb-5">
         <div class="data-grid-top">
             <div class="data-grid-search">
-                <form action="{{ route('admin.attendance.daily') }}" method="GET" class="d-flex align-items-center m-0 w-100">
+                <form action="{{ route('admin.attendance.daily') }}" method="GET"
+                    class="d-flex align-items-center m-0 w-100">
                     <i class="fas fa-search me-2 text-low"></i>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search employees..." class="border-1 bg-transparent text-high w-100" style="outline: none;">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search employees..."
+                        class="border-1 bg-transparent text-high w-100" style="outline: none;">
                     @if(request('date'))
                         <input type="hidden" name="date" value="{{ request('date') }}">
                     @endif
@@ -48,6 +50,7 @@
                         <th>Clock In</th>
                         <th>Clock Out</th>
                         <th>Work Hours</th>
+                        <th>Location</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -72,7 +75,7 @@
                             <td>
                                 @if($attendance)
                                     @php
-                                        $badgeColor = match($attendance->status) {
+                                        $badgeColor = match ($attendance->status) {
                                             'Present' => 'success',
                                             'Late' => 'warning',
                                             'Half-Day' => 'info',
@@ -82,11 +85,13 @@
                                             default => 'secondary'
                                         };
                                     @endphp
-                                    <span class="badge-premium bg-{{ $badgeColor }}-subtle text-{{ $badgeColor }} border border-{{ $badgeColor }} border-opacity-25 px-3 py-1">
+                                    <span
+                                        class="badge-premium bg-{{ $badgeColor }}-subtle text-{{ $badgeColor }} border border-{{ $badgeColor }} border-opacity-25 px-3 py-1">
                                         {{ $attendance->status }}
                                     </span>
                                 @else
-                                    <span class="badge-premium bg-danger-subtle text-danger border border-danger border-opacity-25 px-3 py-1">
+                                    <span
+                                        class="badge-premium bg-danger-subtle text-danger border border-danger border-opacity-25 px-3 py-1">
                                         Absent
                                     </span>
                                 @endif
@@ -100,6 +105,15 @@
                             <td class="text-low">
                                 {{ $attendance && $attendance->work_hours ? $attendance->work_hours . ' hrs' : '-' }}
                             </td>
+                            <td class="text-low" style="max-width: 200px;" title="{{ $attendance->location ?? '-' }}">
+                                @if($attendance && $attendance->location)
+                                    <span class="d-inline-block text-truncate" style="max-width: 180px;">
+                                        <i class="fas fa-map-marker-alt text-primary me-1"></i>{{ $attendance->location }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td>
                                 @php
                                     $clockInTime = $attendance && $attendance->clock_in ? \Carbon\Carbon::parse($attendance->clock_in)->format('H:i') : '';
@@ -108,8 +122,8 @@
                                     $currentNotes = $attendance ? $attendance->notes : '';
                                     $attId = $attendance ? $attendance->id : '';
                                 @endphp
-                                <button class="btn btn-sm btn-premium-secondary" title="Edit" 
-                                    onclick="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ request('date', $date) }}', '{{ $attId }}', '{{ $currentStatus }}', '{{ $clockInTime }}', '{{ $clockOutTime }}', '{{ addslashes($currentNotes) }}')">
+                                <button class="btn btn-sm btn-premium-secondary" title="Edit"
+                                    onclick="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ request('date', $date) }}', '{{ $attId }}', '{{ $currentStatus }}', '{{ $clockInTime }}', '{{ $clockOutTime }}', '{{ addslashes($currentNotes) }}', '{{ addslashes($attendance->location ?? 'N/A') }}')">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </td>
@@ -125,14 +139,16 @@
     <form action="{{ route('admin.attendance.daily') }}" method="GET" class="h-100 d-flex flex-column">
         <div class="filter-slideover-header">
             <h4><i class="fas fa-sliders-h text-low me-2"></i> Advanced Filters</h4>
-            <div class="filter-slideover-close" onclick="document.querySelector('.filter-slideover').classList.remove('show')">
+            <div class="filter-slideover-close"
+                onclick="document.querySelector('.filter-slideover').classList.remove('show')">
                 <i class="fas fa-times"></i>
             </div>
         </div>
         <div class="filter-slideover-body">
             <div class="mb-4">
                 <label class="heading-label d-block mb-2 text-low">DATE</label>
-                <input type="date" name="date" value="{{ request('date', $date) }}" class="form-premium-control bg-white text-dark border-main">
+                <input type="date" name="date" value="{{ request('date', $date) }}"
+                    class="form-premium-control bg-white text-dark border-main">
             </div>
             <div class="mb-4">
                 <label class="heading-label d-block mb-2 text-low">STATUS</label>
@@ -146,20 +162,25 @@
             </div>
             <div class="mb-4">
                 <label class="heading-label d-block mb-2 text-low">CLOCK IN (AFTER)</label>
-                <input type="time" name="clock_in" value="{{ request('clock_in') }}" class="form-premium-control bg-white text-dark border-main">
+                <input type="time" name="clock_in" value="{{ request('clock_in') }}"
+                    class="form-premium-control bg-white text-dark border-main">
             </div>
             <div class="mb-4">
                 <label class="heading-label d-block mb-2 text-low">CLOCK OUT (BEFORE)</label>
-                <input type="time" name="clock_out" value="{{ request('clock_out') }}" class="form-premium-control bg-white text-dark border-main">
+                <input type="time" name="clock_out" value="{{ request('clock_out') }}"
+                    class="form-premium-control bg-white text-dark border-main">
             </div>
             <div class="mb-4">
                 <label class="heading-label d-block mb-2 text-low">WORK HOURS (MINIMUM)</label>
-                <input type="number" step="0.1" name="work_hours" value="{{ request('work_hours') }}" placeholder="e.g. 8" class="form-premium-control bg-white text-dark border-main">
+                <input type="number" step="0.1" name="work_hours" value="{{ request('work_hours') }}"
+                    placeholder="e.g. 8" class="form-premium-control bg-white text-dark border-main">
             </div>
         </div>
         <div class="filter-slideover-footer">
-            <a href="{{ route('admin.attendance.daily') }}" class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</a>
-            <button type="submit" class="btn-premium btn-premium-primary w-50 justify-content-center" style="background: #0ea5e9;">Apply Filters</button>
+            <a href="{{ route('admin.attendance.daily') }}"
+                class="btn-premium btn-premium-secondary w-50 justify-content-center bg-white text-dark border-main">Reset</a>
+            <button type="submit" class="btn-premium btn-premium-primary w-50 justify-content-center"
+                style="background: #0ea5e9;">Apply Filters</button>
         </div>
     </form>
 </div>
@@ -176,13 +197,18 @@
                 @csrf
                 <input type="hidden" name="user_id" id="edit_user_id">
                 <input type="hidden" name="date" id="edit_date">
-                
+
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label text-high fw-semibold">Employee</label>
                         <input type="text" id="edit_user_name" class="form-premium-control bg-subtle" disabled>
                     </div>
-                    
+
+                    <div class="mb-3">
+                        <label class="form-label text-high fw-semibold">Location</label>
+                        <input type="text" id="edit_user_location" class="form-premium-control bg-subtle" disabled>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label text-high fw-semibold">Status</label>
                         <select name="status" id="edit_status" class="form-premium-control w-100" required>
@@ -194,7 +220,7 @@
                             <option value="Holiday">Holiday</option>
                         </select>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-high fw-semibold">Clock In</label>
@@ -205,14 +231,16 @@
                             <input type="time" name="clock_out" id="edit_clock_out" class="form-premium-control w-100">
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label text-high fw-semibold">Notes</label>
-                        <textarea name="notes" id="edit_notes" class="form-premium-control w-100" rows="3" placeholder="Add any admin notes here..."></textarea>
+                        <textarea name="notes" id="edit_notes" class="form-premium-control w-100" rows="3"
+                            placeholder="Add any admin notes here..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-subtle">
-                    <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn-premium btn-premium-secondary"
+                        data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn-premium btn-premium-primary">Save Changes</button>
                 </div>
             </form>
@@ -221,17 +249,18 @@
 </div>
 
 <script>
-function openEditModal(userId, userName, date, attId, status, clockIn, clockOut, notes) {
-    document.getElementById('edit_user_id').value = userId;
-    document.getElementById('edit_user_name').value = userName + ' (' + date + ')';
-    document.getElementById('edit_date').value = date;
-    
-    document.getElementById('edit_status').value = status || 'Absent';
-    document.getElementById('edit_clock_in').value = clockIn;
-    document.getElementById('edit_clock_out').value = clockOut;
-    document.getElementById('edit_notes').value = notes;
-    
-    var editModal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
-    editModal.show();
-}
+    function openEditModal(userId, userName, date, attId, status, clockIn, clockOut, notes, location) {
+        document.getElementById('edit_user_id').value = userId;
+        document.getElementById('edit_user_name').value = userName + ' (' + date + ')';
+        document.getElementById('edit_user_location').value = location;
+        document.getElementById('edit_date').value = date;
+
+        document.getElementById('edit_status').value = status || 'Absent';
+        document.getElementById('edit_clock_in').value = clockIn;
+        document.getElementById('edit_clock_out').value = clockOut;
+        document.getElementById('edit_notes').value = notes;
+
+        var editModal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
+        editModal.show();
+    }
 </script>

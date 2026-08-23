@@ -128,7 +128,7 @@
                 </div>
 
                 <h6 class="text-muted uppercase extra-small mb-3">Description</h6>
-                <div class="text-main-50 lh-lg mb-5 ck-content">{!! $task->description !!}
+                <div class="text-main-50 mb-5 ck-content">{!! $task->description !!}
                 </div>
 
                 <div class="row mb-5 g-4">

@@ -34,6 +34,7 @@ new class extends Component {
     public $forwardMessageId = null;
     public $forwardSearchQuery = '';
     public $userConversationsList = [];
+    public $forwardLimit = 20;
 
     public function mount($selectedConversationId = null)
     {
@@ -61,33 +62,182 @@ new class extends Component {
         $this->replyingToMessage = null;
     }
 
+    public function updatedForwardSearchQuery()
+    {
+        $this->forwardLimit = 20;
+        $this->loadForwardConversationsList();
+    }
+
+    public function loadMoreForwardList()
+    {
+        $this->forwardLimit += 20;
+        $this->loadForwardConversationsList();
+    }
+
     public function openForwardModal($messageId)
     {
         $this->forwardMessageId = $messageId;
         $this->forwardSearchQuery = '';
+        $this->forwardLimit = 20;
+        $this->loadForwardConversationsList();
+        $this->showForwardModal = true;
+    }
+
+    public function loadForwardConversationsList()
+    {
         $isClientGuard = Auth::guard('client')->check();
         $user = $isClientGuard ? Auth::guard('client')->user() : Auth::user();
-        
-        $this->userConversationsList = $user->conversations()
-            ->with(['participants', 'clientParticipants'])
-            ->get()
-            ->map(function($conv) use ($user, $isClientGuard) {
-                $name = $conv->name;
-                if ($conv->type === 'private') {
-                    $other = $conv->participants->first(fn($p) => $p->id != $user->id);
-                    if (!$other) {
-                        $other = $conv->clientParticipants->first(fn($p) => $p->id != $user->id);
-                    }
-                    $name = $other->name ?? 'Direct Chat';
-                }
-                return [
-                    'id' => $conv->id,
-                    'name' => $name,
-                    'type' => $conv->type,
-                ];
-            })->toArray();
+        $userId = $user->id;
+        $isSuperAdmin = !$isClientGuard && $user->role_id == 1;
+        $search = trim($this->forwardSearchQuery);
 
-        $this->showForwardModal = true;
+        $conversationsList = [];
+
+        // 1. Existing conversations matching search
+        $existingConversations = $user->conversations()
+            ->when($search, function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%');
+            })
+            ->with(['participants', 'clientParticipants'])
+            ->limit($this->forwardLimit)
+            ->get();
+
+        foreach ($existingConversations as $conv) {
+            $name = $conv->name;
+            if ($conv->type === 'private') {
+                if ($isClientGuard) {
+                    $other = $conv->participants->first();
+                } else {
+                    $other = $conv->participants->first(fn($p) => $p->id != $userId);
+                    if (!$other) {
+                        $other = $conv->clientParticipants->first();
+                    }
+                }
+                $name = $other->name ?? 'Direct Chat';
+                if ($search && stripos($name, $search) === false) {
+                    continue;
+                }
+            }
+            $conversationsList[] = [
+                'id' => $conv->id,
+                'name' => $name,
+                'type' => $conv->type,
+                'target_type' => 'conversation',
+                'target_id' => $conv->id,
+            ];
+        }
+
+        // Remaining slot limit
+        $remainingLimit = max(0, $this->forwardLimit - count($conversationsList));
+
+        if ($remainingLimit > 0) {
+            $existingConvUserIds = [];
+            $existingConvClientIds = [];
+            foreach ($user->conversations()->where('type', 'private')->with(['participants', 'clientParticipants'])->get() as $c) {
+                foreach ($c->participants as $p) {
+                    if ($p->id != $userId) $existingConvUserIds[] = $p->id;
+                }
+                foreach ($c->clientParticipants as $p) {
+                    $existingConvClientIds[] = $p->id;
+                }
+            }
+
+            if ($isClientGuard) {
+                $staffPermissions = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
+                    ->where('client_id', $userId)
+                    ->pluck('allowed_user_id')
+                    ->toArray();
+
+                $staffWhoAllowed = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
+                    ->where('allowed_client_id', $userId)
+                    ->pluck('user_id')
+                    ->toArray();
+
+                $allowedStaffIds = array_unique(array_merge($staffPermissions, $staffWhoAllowed));
+
+                $staffQuery = \App\Models\User::whereNotIn('id', $existingConvUserIds)
+                    ->when($search, fn($q) => $q->where('name', 'like', '%' . $search . '%'))
+                    ->where(function($q) use ($allowedStaffIds) {
+                        $q->where('role_id', 1);
+                        if (!empty($allowedStaffIds)) {
+                            $q->orWhereIn('id', $allowedStaffIds);
+                        }
+                    });
+
+                foreach ($staffQuery->limit($remainingLimit)->get() as $staff) {
+                    $conversationsList[] = [
+                        'id' => 'user_' . $staff->id,
+                        'name' => $staff->name,
+                        'type' => 'private',
+                        'target_type' => 'user',
+                        'target_id' => $staff->id,
+                    ];
+                }
+            } else {
+                $staffPermissions = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
+                    ->where('user_id', $userId)
+                    ->whereNotNull('allowed_user_id')
+                    ->pluck('allowed_user_id')
+                    ->toArray();
+
+                $hasStaffAll = empty($staffPermissions) || in_array('ALL', $staffPermissions) || in_array('*', $staffPermissions);
+
+                $staffQuery = \App\Models\User::where('id', '!=', $userId)
+                    ->whereNotIn('id', $existingConvUserIds)
+                    ->when($search, fn($q) => $q->where('name', 'like', '%' . $search . '%'));
+
+                if (!$isSuperAdmin && !$hasStaffAll) {
+                    $staffQuery->where(function ($q) use ($staffPermissions) {
+                        $q->where('role_id', 1);
+                        if (!empty($staffPermissions)) {
+                            $q->orWhereIn('id', $staffPermissions);
+                        }
+                    });
+                }
+
+                $staffResults = $staffQuery->limit($remainingLimit)->get();
+                foreach ($staffResults as $staff) {
+                    $conversationsList[] = [
+                        'id' => 'user_' . $staff->id,
+                        'name' => $staff->name,
+                        'type' => 'private',
+                        'target_type' => 'user',
+                        'target_id' => $staff->id,
+                    ];
+                }
+
+                $remainingLimit = max(0, $this->forwardLimit - count($conversationsList));
+
+                if ($remainingLimit > 0) {
+                    $clientPermissions = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
+                        ->where('user_id', $userId)
+                        ->whereNotNull('allowed_client_id')
+                        ->pluck('allowed_client_id')
+                        ->toArray();
+
+                    $hasClientAll = empty($clientPermissions) || in_array('ALL', $clientPermissions) || in_array('*', $clientPermissions);
+
+                    $clientsQuery = \App\Models\Client::whereNotIn('id', $existingConvClientIds)
+                        ->when($search, fn($q) => $q->where('name', 'like', '%' . $search . '%'));
+
+                    if (!$isSuperAdmin && !$hasClientAll) {
+                        $clientsQuery->whereIn('id', $clientPermissions);
+                    }
+
+                    foreach ($clientsQuery->limit($remainingLimit)->get() as $client) {
+                        $conversationsList[] = [
+                            'id' => 'client_' . $client->id,
+                            'name' => $client->name,
+                            'type' => 'private',
+                            'target_type' => 'client',
+                            'target_id' => $client->id,
+                        ];
+                    }
+                }
+            }
+        }
+
+        $this->userConversationsList = $conversationsList;
     }
 
     public function closeForwardModal()
@@ -95,9 +245,10 @@ new class extends Component {
         $this->showForwardModal = false;
         $this->forwardMessageId = null;
         $this->forwardSearchQuery = '';
+        $this->forwardLimit = 20;
     }
 
-    public function forwardMessageTo($targetConversationId)
+    public function forwardMessageTo($targetKey)
     {
         if (!$this->forwardMessageId) return;
 
@@ -107,7 +258,56 @@ new class extends Component {
         $isClientGuard = Auth::guard('client')->check();
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
 
-        $targetConv = Conversation::find($targetConversationId);
+        // Find selected item from userConversationsList
+        $targetItem = collect($this->userConversationsList)->firstWhere('id', $targetKey);
+        if (!$targetItem) return;
+
+        $targetConv = null;
+
+        if ($targetItem['target_type'] === 'conversation') {
+            $targetConv = Conversation::find($targetItem['target_id']);
+        } elseif ($targetItem['target_type'] === 'user') {
+            $targetUserId = $targetItem['target_id'];
+            // Find or create private conversation with user
+            $targetConv = Conversation::where('type', 'private')
+                ->whereHas('participants', function($q) use ($targetUserId) {
+                    $q->where('conversation_participants.user_id', $targetUserId);
+                })
+                ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function($q) use ($myId, $isClientGuard) {
+                    if ($isClientGuard) {
+                        $q->where('conversation_participants.client_id', $myId);
+                    } else {
+                        $q->where('conversation_participants.user_id', $myId);
+                    }
+                })->first();
+
+            if (!$targetConv) {
+                $targetConv = Conversation::create(['type' => 'private']);
+                if ($isClientGuard) {
+                    $targetConv->clientParticipants()->attach($myId);
+                } else {
+                    $targetConv->participants()->attach($myId);
+                }
+                $targetConv->participants()->attach($targetUserId);
+            }
+        } elseif ($targetItem['target_type'] === 'client') {
+            $targetClientId = $targetItem['target_id'];
+            // Find or create private conversation with client
+            $targetConv = Conversation::where('type', 'private')
+                ->whereHas('clientParticipants', function($q) use ($targetClientId) {
+                    $q->where('conversation_participants.client_id', $targetClientId);
+                })
+                ->whereHas('participants', function($q) use ($myId) {
+                    $q->where('conversation_participants.user_id', $myId);
+                })->first();
+
+            if (!$targetConv) {
+                $targetConv = Conversation::create(['type' => 'private']);
+                $targetConv->participants()->attach($myId);
+                $targetConv->clientParticipants()->attach($targetClientId);
+            }
+        }
+
         if (!$targetConv) return;
 
         $newMsgData = [
@@ -222,11 +422,11 @@ new class extends Component {
 
         if ($this->conversation->type == 'private') {
             $this->receiver = $this->conversation->participants->first(function($p) use ($myId, $isClientGuard) {
-                return !($p->pivot->user_id == $myId);
+                return !(!$isClientGuard && $p->id == $myId);
             });
             if (!$this->receiver) {
-                $this->receiver = $this->conversation->clientParticipants->first(function($p) use ($myId, $isClientGuard) {
-                    return !($p->pivot->client_id == $myId);
+                $this->receiver = $this->conversation->clientParticipants->first(function($cp) use ($myId, $isClientGuard) {
+                    return !($isClientGuard && $cp->id == $myId);
                 });
                 if ($this->receiver) $this->receiver->is_client = true;
             }
@@ -571,6 +771,7 @@ new class extends Component {
                     const normStatuses = statuses || window.userStatuses || {};
                     const st = normStatuses[this.userId] || normStatuses[String(this.userId)];
                     const normUsers = (users || window.onlineUsers || []).map(Number);
+                    const targetId = Number(this.userId);
                     
                     if (st === 'away') { 
                         this.statusText = 'Away'; 
@@ -581,7 +782,7 @@ new class extends Component {
                     } else if (st === 'offline') { 
                         this.statusText = 'Offline'; 
                         this.statusColor = '#6b7280'; 
-                    } else if (st === 'online' || normUsers.includes(Number(this.userId))) {
+                    } else if (st === 'online' || normUsers.includes(targetId)) {
                         this.statusText = 'Online'; 
                         this.statusColor = '#00a884';
                     } else {
@@ -666,7 +867,20 @@ new class extends Component {
                     </div>
                 @else
                     @php
-                        $otherParticipant = $conversation->participants->where('id', '!=', auth()->id())->first();
+                        $isClientGuard = Auth::guard('client')->check();
+                        $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
+                        
+                        // Look for other staff participant
+                        $otherParticipant = $conversation->participants->first(function($p) use ($myId, $isClientGuard) {
+                            return !(!$isClientGuard && $p->id == $myId);
+                        });
+                        
+                        // If no staff participant found (or if looking for client), look for client participant
+                        if (!$otherParticipant) {
+                            $otherParticipant = $conversation->clientParticipants->first(function($cp) use ($myId, $isClientGuard) {
+                                return !($isClientGuard && $cp->id == $myId);
+                            });
+                        }
                     @endphp
                     @if ($otherParticipant)
                         <div class="d-flex align-items-center">
@@ -1308,33 +1522,45 @@ new class extends Component {
                         </div>
 
                         @php
-                            $filteredConversations = array_filter($userConversationsList, function($item) {
+                            $filteredConversations = array_values(array_filter($userConversationsList, function($item) {
                                 if (empty($this->forwardSearchQuery)) return true;
                                 return stripos($item['name'], $this->forwardSearchQuery) !== false;
-                            });
+                            }));
+                            $totalFiltered = count($filteredConversations);
+                            $paginatedConversations = array_slice($filteredConversations, 0, $this->forwardLimit);
                         @endphp
 
-                        <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto;">
-                            @if (empty($filteredConversations))
+                        <div class="d-flex flex-column gap-2 overflow-auto" 
+                             style="max-height: 320px;"
+                             x-on:scroll.debounce.150ms="if ($el.scrollTop + $el.clientHeight >= $el.scrollHeight - 20) { $wire.loadMoreForwardList(); }">
+                            @if (empty($paginatedConversations))
                                 <div class="text-center text-low py-4">
                                     <i class="fas fa-user-slash fa-2x mb-2 opacity-50"></i>
                                     <div>No users or groups found</div>
                                 </div>
                             @else
-                                @foreach ($filteredConversations as $convItem)
+                                @foreach ($paginatedConversations as $convItem)
                                     <div class="d-flex align-items-center justify-content-between p-2 rounded-premium border-main hover-bg-input">
                                         <div class="d-flex align-items-center gap-2">
-                                            <div class="avatar-premium" style="width: 34px; height: 34px;">
-                                                <i class="fas {{ $convItem['type'] === 'private' ? 'fa-user' : 'fa-users' }} text-primary"></i>
+                                            <div class="avatar-premium" style="width: 34px; height: 34px; font-size: 0.8rem; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
+                                                <i class="fas {{ $convItem['type'] === 'private' ? 'fa-user' : 'fa-users' }}"></i>
                                             </div>
                                             <span class="fw-semibold text-high" style="font-size: 0.88rem;">{{ $convItem['name'] }}</span>
                                         </div>
                                         <button type="button" class="btn btn-primary btn-sm px-3 rounded-pill"
-                                            wire:click="forwardMessageTo({{ $convItem['id'] }})">
+                                            wire:click="forwardMessageTo('{{ $convItem['id'] }}')">
                                             Send
                                         </button>
                                     </div>
                                 @endforeach
+
+                                @if (count($paginatedConversations) < $totalFiltered)
+                                    <div class="text-center py-2">
+                                        <button type="button" wire:click="loadMoreForwardList" class="btn btn-sm btn-link text-decoration-none" style="color: var(--primary);">
+                                            Load More ({{ $totalFiltered - count($paginatedConversations) }} remaining)
+                                        </button>
+                                    </div>
+                                @endif
                             @endif
                         </div>
                     </div>

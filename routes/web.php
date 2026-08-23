@@ -223,7 +223,7 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\At
     Route::post('/requests', 'storeRequest')->name('admin.attendance.requests.store');
     Route::put('/requests/{id}', 'updateRequest')->name('admin.attendance.requests.update');
     Route::get('/calendar', 'calendar')->name('admin.attendance.calendar');
-    
+
     // Admin Only Attendance Routes
     Route::get('/daily', 'daily')->name('admin.attendance.daily')->middleware('permission:attendance.daily');
     Route::post('/daily/update', 'updateDailyAttendance')->name('admin.attendance.daily.update')->middleware('permission:attendance.daily');
@@ -241,7 +241,7 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\Se
     Route::get('/email', 'email')->name('admin.settings.email')->middleware('permission:settings.view');
     Route::get('/autostop', 'autostop')->name('admin.settings.autostop')->middleware('permission:settings.view');
 
-    Route::view('/chat-permissions', 'admin.settings.chat-permissions')->name('admin.chat-permissions')->middleware('permission:settings.view');
+    Route::view('/chat-permissions', 'admin.settings.chat-permissions')->name('admin.settings.chat-permissions')->middleware('permission:settings.view');
 
     // General
     Route::post('/general', 'storeGeneral')->name('admin.settings.general.store')->middleware('permission:settings.edit');
