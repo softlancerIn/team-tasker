@@ -1704,7 +1704,7 @@
                     </div>
                     <div class="modal-footer border-subtle">
                         <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" id="punchInSubmitBtn" class="btn-premium btn-premium-primary">
+                        <button type="submit" id="punchInSubmitBtn" class="btn-premium btn-premium-primary" disabled style="opacity: 0.5; pointer-events: none;">
                             <i class="fas fa-sign-in-alt me-2"></i> Punch In Now
                         </button>
                     </div>
@@ -1712,46 +1712,6 @@
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const modalEl = document.getElementById('globalClockInModal');
-            if (!modalEl) return;
-            
-            modalEl.addEventListener('show.bs.modal', function () {
-                const statusText = document.getElementById('locationStatusText');
-                const latInput = document.getElementById('punch_latitude');
-                const lngInput = document.getElementById('punch_longitude');
-                const locInput = document.getElementById('punch_location');
-                
-                if (navigator.geolocation) {
-                    statusText.innerText = "Fetching your location (lat, long)...";
-                    navigator.geolocation.getCurrentPosition(function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        latInput.value = lat;
-                        lngInput.value = lng;
-                        
-                        // Reverse geocode via OpenStreetMap Nominatim API
-                        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                const address = data.display_name || `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                                locInput.value = address;
-                                statusText.innerText = "📍 Location: " + address;
-                            })
-                            .catch(err => {
-                                locInput.value = `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                                statusText.innerText = `📍 Location: Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                            });
-                    }, function(error) {
-                        statusText.innerText = "Location permission denied or unavailable.";
-                    }, { enableHighAccuracy: true, timeout: 10000 });
-                } else {
-                    statusText.innerText = "Geolocation is not supported by your browser.";
-                }
-            });
-        });
-    </script>
 
     <!-- Global Clock Out Modal -->
     <div class="modal fade" id="globalClockOutModal" tabindex="-1">
@@ -1761,10 +1721,20 @@
                     <h5 class="modal-title fw-bold text-high">Confirm Clock Out</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('admin.attendance.clockOut') }}" method="POST">
+                <form id="punchOutForm" action="{{ route('admin.attendance.clockOut') }}" method="POST">
                     @csrf
+                    <input type="hidden" name="latitude" id="punch_out_latitude">
+                    <input type="hidden" name="longitude" id="punch_out_longitude">
+                    <input type="hidden" name="location" id="punch_out_location">
+
                     <div class="modal-body">
-                        <p class="text-medium mb-3">Are you sure you want to clock out? This will end your shift for the day.</p>
+                        <p class="text-medium mb-2">Are you sure you want to clock out? This will end your shift for the day.</p>
+                        
+                        <div class="mb-3 p-2 rounded border border-subtle bg-subtle d-flex align-items-center gap-2" id="outLocationStatusContainer" style="font-size: 0.8rem;">
+                            <i class="fas fa-map-marker-alt text-danger" id="outLocIcon"></i>
+                            <span id="outLocationStatusText" class="text-low">Detecting your location...</span>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label text-high fw-semibold">Closing Note (Optional)</label>
                             <textarea name="notes" class="form-premium-control w-100" rows="3" placeholder="Completed tasks, handing over, etc."></textarea>
@@ -1772,7 +1742,7 @@
                     </div>
                     <div class="modal-footer border-subtle">
                         <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn-premium btn btn-danger">
+                        <button type="submit" id="punchOutSubmitBtn" class="btn-premium btn btn-danger" disabled style="opacity: 0.5; pointer-events: none;">
                             <i class="fas fa-sign-out-alt me-2"></i> Confirm Clock Out
                         </button>
                     </div>
@@ -1780,6 +1750,145 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function disableBtn(btn) {
+                if (!btn) return;
+                btn.disabled = true;
+                btn.setAttribute('disabled', 'disabled');
+                btn.style.opacity = '0.5';
+                btn.style.pointerEvents = 'none';
+            }
+
+            function enableBtn(btn) {
+                if (!btn) return;
+                btn.disabled = false;
+                btn.removeAttribute('disabled');
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
+
+            const punchInForm = document.getElementById('punchInForm');
+            if (punchInForm) {
+                punchInForm.addEventListener('submit', function(e) {
+                    const loc = document.getElementById('punch_location').value;
+                    const lat = document.getElementById('punch_latitude').value;
+                    if (!loc && !lat) {
+                        e.preventDefault();
+                        alert('Location has not been fetched yet. Please allow location permissions.');
+                        return false;
+                    }
+                });
+            }
+
+            const modalEl = document.getElementById('globalClockInModal');
+            if (modalEl) {
+                modalEl.addEventListener('show.bs.modal', function () {
+                    const statusText = document.getElementById('locationStatusText');
+                    const latInput = document.getElementById('punch_latitude');
+                    const lngInput = document.getElementById('punch_longitude');
+                    const locInput = document.getElementById('punch_location');
+                    const submitBtn = document.getElementById('punchInSubmitBtn');
+                    
+                    latInput.value = '';
+                    lngInput.value = '';
+                    locInput.value = '';
+                    disableBtn(submitBtn);
+                    statusText.innerText = "Detecting your location...";
+                    
+                    if (navigator.geolocation) {
+                        statusText.innerText = "Fetching your location (lat, long)...";
+                        navigator.geolocation.getCurrentPosition(function(position) {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            latInput.value = lat;
+                            lngInput.value = lng;
+                            
+                            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    const address = data.display_name || `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                    locInput.value = address;
+                                    statusText.innerText = "📍 Location: " + address;
+                                    enableBtn(submitBtn);
+                                })
+                                .catch(err => {
+                                    locInput.value = `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                    statusText.innerText = `📍 Location: Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                    enableBtn(submitBtn);
+                                });
+                        }, function(error) {
+                            statusText.innerText = "⚠️ Location access denied/failed. You cannot punch in without enabling location permission.";
+                            disableBtn(submitBtn);
+                        }, { enableHighAccuracy: true, timeout: 10000 });
+                    } else {
+                        statusText.innerText = "⚠️ Geolocation is not supported by your browser. Punch in disabled.";
+                        disableBtn(submitBtn);
+                    }
+                });
+            }
+
+            const punchOutForm = document.getElementById('punchOutForm');
+            if (punchOutForm) {
+                punchOutForm.addEventListener('submit', function(e) {
+                    const loc = document.getElementById('punch_out_location').value;
+                    const lat = document.getElementById('punch_out_latitude').value;
+                    if (!loc && !lat) {
+                        e.preventDefault();
+                        alert('Location has not been fetched yet. Please allow location permissions.');
+                        return false;
+                    }
+                });
+            }
+
+            const outModalEl = document.getElementById('globalClockOutModal');
+            if (outModalEl) {
+                outModalEl.addEventListener('show.bs.modal', function () {
+                    const statusText = document.getElementById('outLocationStatusText');
+                    const latInput = document.getElementById('punch_out_latitude');
+                    const lngInput = document.getElementById('punch_out_longitude');
+                    const locInput = document.getElementById('punch_out_location');
+                    const submitBtn = document.getElementById('punchOutSubmitBtn');
+                    
+                    latInput.value = '';
+                    lngInput.value = '';
+                    locInput.value = '';
+                    disableBtn(submitBtn);
+                    statusText.innerText = "Detecting your location...";
+
+                    if (navigator.geolocation) {
+                        statusText.innerText = "Fetching your location (lat, long)...";
+                        navigator.geolocation.getCurrentPosition(function(position) {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            latInput.value = lat;
+                            lngInput.value = lng;
+                            
+                            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    const address = data.display_name || `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                    locInput.value = address;
+                                    statusText.innerText = "📍 Location: " + address;
+                                    enableBtn(submitBtn);
+                                })
+                                .catch(err => {
+                                    locInput.value = `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                    statusText.innerText = `📍 Location: Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                    enableBtn(submitBtn);
+                                });
+                        }, function(error) {
+                            statusText.innerText = "⚠️ Location access denied/failed. You cannot punch out without enabling location permission.";
+                            disableBtn(submitBtn);
+                        }, { enableHighAccuracy: true, timeout: 10000 });
+                    } else {
+                        statusText.innerText = "⚠️ Geolocation is not supported by your browser. Punch out disabled.";
+                        disableBtn(submitBtn);
+                    }
+                });
+            }
+        });
+    </script>
     <!-- Incoming Call Modal -->
     <div class="modal fade" id="incomingCallModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-dialog-centered">

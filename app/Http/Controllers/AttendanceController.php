@@ -29,7 +29,7 @@ class AttendanceController extends Controller
         $chartAbsent = [];
         $chartLate = [];
         $chartLeave = [];
-        
+
         // Personal 7-Day Trend Graph Data
         $personalWorkHours = [];
 
@@ -37,13 +37,13 @@ class AttendanceController extends Controller
             $d = Carbon::today()->subDays($i);
             $dateStr = $d->format('Y-m-d');
             $chartLabels[] = $d->format('D');
-            
+
             // Team
             $p = Attendance::where('date', $dateStr)->whereIn('status', ['Present', 'Late', 'Half-Day'])->count();
             $l = Attendance::where('date', $dateStr)->where('status', 'Late')->count();
             $lv = Attendance::where('date', $dateStr)->where('status', 'Leave')->count();
             $ab = max(0, $totalUsers - $p - $lv);
-            
+
             $chartPresent[] = $p;
             $chartLate[] = $l;
             $chartLeave[] = $lv;
@@ -51,7 +51,7 @@ class AttendanceController extends Controller
 
             // Personal
             $myAtt = Attendance::where('user_id', Auth::id())->where('date', $dateStr)->first();
-            $personalWorkHours[] = $myAtt ? (float)$myAtt->work_hours : 0;
+            $personalWorkHours[] = $myAtt ? (float) $myAtt->work_hours : 0;
         }
 
         return view('admin.attendance.dashboard', compact('presentToday', 'lateToday', 'onLeaveToday', 'absentToday', 'myAttendance', 'today', 'chartLabels', 'chartPresent', 'chartAbsent', 'chartLate', 'chartLeave', 'personalWorkHours'));
@@ -65,42 +65,42 @@ class AttendanceController extends Controller
         $clockIn = $request->input('clock_in');
         $clockOut = $request->input('clock_out');
         $workHours = $request->input('work_hours');
-        
+
         $users = User::when($search, function ($query) use ($search) {
-                return $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
-                });
-            })
+            return $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        })
             ->when($status, function ($query) use ($status, $date) {
                 if ($status == 'Absent') {
-                    return $query->whereDoesntHave('attendances', function($q) use ($date) {
+                    return $query->whereDoesntHave('attendances', function ($q) use ($date) {
                         $q->where('date', $date)->where('status', '!=', 'Absent');
                     });
                 } else {
-                    return $query->whereHas('attendances', function($q) use ($date, $status) {
+                    return $query->whereHas('attendances', function ($q) use ($date, $status) {
                         $q->where('date', $date)->where('status', $status);
                     });
                 }
             })
             ->when($clockIn, function ($query) use ($clockIn, $date) {
-                return $query->whereHas('attendances', function($q) use ($date, $clockIn) {
+                return $query->whereHas('attendances', function ($q) use ($date, $clockIn) {
                     $q->where('date', $date)->whereTime('clock_in', '>=', $clockIn);
                 });
             })
             ->when($clockOut, function ($query) use ($clockOut, $date) {
-                return $query->whereHas('attendances', function($q) use ($date, $clockOut) {
+                return $query->whereHas('attendances', function ($q) use ($date, $clockOut) {
                     $q->where('date', $date)->whereTime('clock_out', '<=', $clockOut);
                 });
             })
             ->when($workHours, function ($query) use ($workHours, $date) {
-                return $query->whereHas('attendances', function($q) use ($date, $workHours) {
-                    $q->where('date', $date)->where('work_hours', '>=', (float)$workHours);
+                return $query->whereHas('attendances', function ($q) use ($date, $workHours) {
+                    $q->where('date', $date)->where('work_hours', '>=', (float) $workHours);
                 });
             })
             ->paginate(15)
             ->withQueryString();
-        
+
         $attendances = Attendance::with('user')
             ->where('date', $date)
             ->whereIn('user_id', $users->pluck('id'))
@@ -136,7 +136,7 @@ class AttendanceController extends Controller
                     $workHours = round(abs($clockIn->diffInMinutes($clockOut, false)) / 60, 2);
                 }
             }
-            
+
             Attendance::updateOrCreate(
                 [
                     'user_id' => $request->user_id,
@@ -164,16 +164,16 @@ class AttendanceController extends Controller
         $minLeave = $request->input('total_leave');
         $minHours = $request->input('total_hours');
         $minAbsent = $request->input('total_absent');
-        
+
         $startDate = Carbon::parse($month . '-01');
         $endDate = $startDate->copy()->endOfMonth();
-        
+
         $workingDaysSetting = Setting::where('key', 'working_days')->value('value') ?? '5';
         $totalWorkingDays = 0;
-        
+
         $currentDate = $startDate->copy();
         $today = Carbon::today();
-        
+
         while ($currentDate->lte($endDate) && $currentDate->lte($today)) {
             if ($workingDaysSetting == '5') {
                 if (!$currentDate->isWeekend()) {
@@ -186,49 +186,49 @@ class AttendanceController extends Controller
             }
             $currentDate->addDay();
         }
-        
+
         $users = User::when($search, function ($query) use ($search) {
-                return $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
-                });
-            })
+            return $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        })
             ->when($minPresent, function ($q) use ($minPresent, $startDate, $endDate) {
                 return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
                     $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                         ->whereIn('status', ['Present', 'Late', 'Half-Day']);
-                }, '>=', (int)$minPresent);
+                }, '>=', (int) $minPresent);
             })
             ->when($minLate, function ($q) use ($minLate, $startDate, $endDate) {
                 return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
                     $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                         ->where('status', 'Late');
-                }, '>=', (int)$minLate);
+                }, '>=', (int) $minLate);
             })
             ->when($minLeave, function ($q) use ($minLeave, $startDate, $endDate) {
                 return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
                     $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                         ->where('status', 'Leave');
-                }, '>=', (int)$minLeave);
+                }, '>=', (int) $minLeave);
             })
             ->when($minAbsent, function ($q) use ($minAbsent, $totalWorkingDays, $startDate, $endDate) {
-                $maxPresentAndLeave = max(0, $totalWorkingDays - (int)$minAbsent);
+                $maxPresentAndLeave = max(0, $totalWorkingDays - (int) $minAbsent);
                 return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
                     $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                         ->whereIn('status', ['Present', 'Late', 'Half-Day', 'Leave']);
                 }, '<=', $maxPresentAndLeave);
             })
             ->when($minHours, function ($q) use ($minHours, $startDate, $endDate) {
-                return $q->whereRaw("(SELECT COALESCE(SUM(work_hours), 0) FROM attendances WHERE attendances.user_id = users.id AND date BETWEEN ? AND ?) >= ?", [$startDate->format('Y-m-d'), $endDate->format('Y-m-d'), (float)$minHours]);
+                return $q->whereRaw("(SELECT COALESCE(SUM(work_hours), 0) FROM attendances WHERE attendances.user_id = users.id AND date BETWEEN ? AND ?) >= ?", [$startDate->format('Y-m-d'), $endDate->format('Y-m-d'), (float) $minHours]);
             })
             ->paginate(15)
             ->withQueryString();
-        
+
         $attendances = Attendance::whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                        ->whereIn('user_id', $users->pluck('id'))
-                        ->get()
-                        ->groupBy('user_id');
-                        
+            ->whereIn('user_id', $users->pluck('id'))
+            ->get()
+            ->groupBy('user_id');
+
         return view('admin.attendance.monthly', compact('users', 'attendances', 'month', 'startDate', 'endDate', 'totalWorkingDays'));
     }
 
@@ -238,14 +238,14 @@ class AttendanceController extends Controller
         if (Auth::user()->hasPermission('attendance.calendar_all')) {
             $userId = $request->input('user_id', Auth::id());
         }
-        
+
         $attendances = Attendance::where('user_id', $userId)->get();
         $leaves = AttendanceRequest::where('user_id', $userId)->get();
 
         $events = [];
 
         foreach ($attendances as $att) {
-            $color = match($att->status) {
+            $color = match ($att->status) {
                 'Present' => '#10b981', // success
                 'Late' => '#f59e0b', // warning
                 'Half-Day' => '#0ea5e9', // info
@@ -263,13 +263,13 @@ class AttendanceController extends Controller
         }
 
         foreach ($leaves as $leave) {
-            $leaveColor = match($leave->status) {
+            $leaveColor = match ($leave->status) {
                 'Approved' => '#10b981', // success
                 'Pending' => '#f59e0b', // warning
                 'Rejected' => '#ef4444', // danger
                 default => '#6b7280', // secondary
             };
-            
+
             $events[] = [
                 'title' => 'Leave (' . $leave->status . '): ' . $leave->type . ' - ' . \Illuminate\Support\Str::limit($leave->reason, 20),
                 'start' => $leave->start_date,
@@ -293,7 +293,7 @@ class AttendanceController extends Controller
     {
         $status = $request->input('status');
         $search = $request->input('search');
-        
+
         $requests = AttendanceRequest::with(['user', 'actionBy'])
             ->when(!Auth::user()->hasPermission('attendance.requests_manage'), function ($query) {
                 return $query->where('user_id', Auth::id());
@@ -304,13 +304,13 @@ class AttendanceController extends Controller
             ->when($search, function ($query) use ($search) {
                 return $query->whereHas('user', function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%");
                 });
             })
             ->latest()
             ->paginate(15)
             ->withQueryString();
-            
+
         return view('admin.attendance.requests', compact('requests'));
     }
 
@@ -335,7 +335,7 @@ class AttendanceController extends Controller
         $superAdmins = \App\Models\User::whereHas('role', function ($query) {
             $query->where('slug', 'super-admin');
         })->get();
-        
+
         foreach ($superAdmins as $admin) {
             $admin->notify(new \App\Notifications\LeaveRequestNotification($attendanceReq, 'applied'));
         }
@@ -346,7 +346,7 @@ class AttendanceController extends Controller
     public function updateRequest(Request $request, $id)
     {
         $attendanceReq = AttendanceRequest::findOrFail($id);
-        
+
         if ($attendanceReq->user_id !== Auth::id() && !Auth::user()->hasPermission('attendance.requests_manage')) {
             return redirect()->back()->with('error', 'Unauthorized to edit this request.');
         }
@@ -354,7 +354,7 @@ class AttendanceController extends Controller
         if ($attendanceReq->status !== 'Pending') {
             return redirect()->back()->with('error', 'Cannot edit a request that has already been processed.');
         }
-        
+
         $validated = $request->validate([
             'type' => 'required|in:Leave,Regularization,Overtime',
             'start_date' => 'required|date',
@@ -370,7 +370,7 @@ class AttendanceController extends Controller
     public function updateRequestStatus(Request $request, $id)
     {
         $attendanceReq = AttendanceRequest::findOrFail($id);
-        
+
         $validated = $request->validate([
             'status' => 'required|in:Approved,Rejected',
             'action_notes' => 'nullable|string'
@@ -390,7 +390,7 @@ class AttendanceController extends Controller
     public function reports(Request $request)
     {
         $users = User::all();
-        
+
         if ($request->has('export')) {
             $month = $request->input('month', Carbon::today()->format('Y-m'));
             $startDate = Carbon::parse($month . '-01')->format('Y-m-d');
@@ -400,7 +400,7 @@ class AttendanceController extends Controller
             if ($exportType === 'single') {
                 $userId = $request->input('user_id');
                 $query = Attendance::with('user')->whereBetween('date', [$startDate, $endDate]);
-                
+
                 if ($userId && $userId != 'all') {
                     $query->where('user_id', $userId);
                 }
@@ -408,7 +408,7 @@ class AttendanceController extends Controller
                 $attendances = $query->orderBy('date', 'asc')->get();
 
                 $csvData = "Employee,Date,Status,Clock In,Clock Out,Work Hours\n";
-                
+
                 foreach ($attendances as $att) {
                     $csvData .= sprintf(
                         "%s,%s,%s,%s,%s,%s\n",
@@ -423,23 +423,27 @@ class AttendanceController extends Controller
 
                 return response($csvData)
                     ->header('Content-Type', 'text/csv')
-                    ->header('Content-Disposition', 'attachment; filename="attendance_report_'.$month.'.csv"');
+                    ->header('Content-Disposition', 'attachment; filename="attendance_report_' . $month . '.csv"');
             } elseif ($exportType === 'all') {
                 $attendances = Attendance::whereBetween('date', [$startDate, $endDate])
-                            ->get()
-                            ->groupBy('user_id');
-                            
+                    ->get()
+                    ->groupBy('user_id');
+
                 $workingDaysSetting = Setting::where('key', 'working_days')->value('value') ?? '5';
                 $totalWorkingDays = 0;
                 $currentDate = Carbon::parse($startDate);
                 $end = Carbon::parse($endDate);
                 $today = Carbon::today();
-                
+
                 while ($currentDate->lte($end) && $currentDate->lte($today)) {
                     if ($workingDaysSetting == '5') {
-                        if (!$currentDate->isWeekend()) { $totalWorkingDays++; }
+                        if (!$currentDate->isWeekend()) {
+                            $totalWorkingDays++;
+                        }
                     } else {
-                        if (!$currentDate->isSunday()) { $totalWorkingDays++; }
+                        if (!$currentDate->isSunday()) {
+                            $totalWorkingDays++;
+                        }
                     }
                     $currentDate->addDay();
                 }
@@ -451,7 +455,7 @@ class AttendanceController extends Controller
                     $present = $userAtts->whereIn('status', ['Present', 'Late', 'Half-Day'])->count();
                     $late = $userAtts->where('status', 'Late')->count();
                     $leave = $userAtts->where('status', 'Leave')->count();
-                    $absent = max(0, $totalWorkingDays - $present - $leave); 
+                    $absent = max(0, $totalWorkingDays - $present - $leave);
                     $totalHours = $userAtts->sum('work_hours');
 
                     $csvData .= sprintf(
@@ -467,7 +471,7 @@ class AttendanceController extends Controller
 
                 return response($csvData)
                     ->header('Content-Type', 'text/csv')
-                    ->header('Content-Disposition', 'attachment; filename="monthly_summary_'.$month.'.csv"');
+                    ->header('Content-Disposition', 'attachment; filename="monthly_summary_' . $month . '.csv"');
             }
         }
 
@@ -480,7 +484,7 @@ class AttendanceController extends Controller
         $officeEndTime = Setting::where('key', 'office_end_time')->value('value') ?? '18:00';
         $workingDays = Setting::where('key', 'working_days')->value('value') ?? '5';
         $allowedIps = Setting::where('key', 'allowed_ips')->value('value') ?? '';
-        
+
         return view('admin.attendance.settings', compact('officeStartTime', 'officeEndTime', 'workingDays', 'allowedIps'));
     }
 
@@ -492,12 +496,12 @@ class AttendanceController extends Controller
             'working_days' => 'required|in:5,6',
             'allowed_ips' => 'nullable|string',
         ]);
-        
+
         Setting::updateOrCreate(['key' => 'office_start_time'], ['value' => $request->office_start_time]);
         Setting::updateOrCreate(['key' => 'office_end_time'], ['value' => $request->office_end_time]);
         Setting::updateOrCreate(['key' => 'working_days'], ['value' => $request->working_days]);
         Setting::updateOrCreate(['key' => 'allowed_ips'], ['value' => $request->allowed_ips]);
-        
+
         return redirect()->back()->with('success', 'Settings updated successfully.');
     }
 
@@ -505,9 +509,9 @@ class AttendanceController extends Controller
     {
         $today = Carbon::today();
         $now = Carbon::now();
-        
+
         $attendance = Attendance::where('user_id', Auth::id())->where('date', $today)->first();
-        
+
         if ($attendance) {
             return redirect()->back()->with('error', 'You are already clocked in for today.');
         }
@@ -515,15 +519,15 @@ class AttendanceController extends Controller
         $allowedIpsStr = Setting::where('key', 'allowed_ips')->value('value') ?? '';
         $allowedIps = array_filter(array_map('trim', explode(',', $allowedIpsStr)));
         $currentIp = $request->ip();
-        
+
         if (count($allowedIps) > 0 && !in_array($currentIp, $allowedIps)) {
             return redirect()->back()->with('error', 'Punch in is restricted to the office WiFi network only. Your IP: ' . $currentIp);
         }
 
         $officeStartTimeStr = Setting::where('key', 'office_start_time')->value('value') ?? '09:15';
         $timeParts = explode(':', $officeStartTimeStr);
-        $officeStartTime = Carbon::today()->setTime((int)$timeParts[0], (int)$timeParts[1], 0); 
-        
+        $officeStartTime = Carbon::today()->setTime((int) $timeParts[0], (int) $timeParts[1], 0);
+
         $status = 'Present';
         if ($now->greaterThan($officeStartTime)) {
             $status = 'Late';
@@ -537,6 +541,10 @@ class AttendanceController extends Controller
             $locationString = "Lat: {$latitude}, Long: {$longitude}";
         }
 
+        if (empty($locationString)) {
+            return redirect()->back()->with('error', 'Punch In failed: Location permission is required. Please enable location/GPS in your browser.');
+        }
+
         Attendance::create([
             'user_id' => Auth::id(),
             'date' => $today,
@@ -544,7 +552,7 @@ class AttendanceController extends Controller
             'status' => $status,
             'notes' => $request->input('notes'),
             'ip_address' => $currentIp,
-            'location' => $locationString,
+            'clock_in_location' => $locationString,
         ]);
 
         return redirect()->back()->with('success', 'Clocked in successfully at ' . $now->format('h:i A'));
@@ -554,15 +562,27 @@ class AttendanceController extends Controller
     {
         $today = Carbon::today();
         $now = Carbon::now();
-        
+
         $attendance = Attendance::where('user_id', Auth::id())->where('date', $today)->first();
-        
+
         if (!$attendance) {
             return redirect()->back()->with('error', 'You have not clocked in today.');
         }
-        
+
         if ($attendance->clock_out) {
             return redirect()->back()->with('error', 'You are already clocked out for today.');
+        }
+
+        $locationString = $request->input('location');
+        $latitude = $request->input('latitude');
+        $longitude = $request->input('longitude');
+
+        if (!$locationString && $latitude && $longitude) {
+            $locationString = "Lat: {$latitude}, Long: {$longitude}";
+        }
+
+        if (empty($locationString)) {
+            return redirect()->back()->with('error', 'Punch Out failed: Location permission is required. Please enable location/GPS in your browser.');
         }
 
         $clockInTime = Carbon::parse($attendance->date . ' ' . $attendance->clock_in);
@@ -571,6 +591,7 @@ class AttendanceController extends Controller
         $attendance->update([
             'clock_out' => $now->format('H:i:s'),
             'work_hours' => round($workHours, 2),
+            'clock_out_location' => $locationString,
         ]);
 
         return redirect()->back()->with('success', 'Clocked out successfully at ' . $now->format('h:i A'));

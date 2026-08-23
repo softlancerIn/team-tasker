@@ -17,6 +17,8 @@ class Attendance extends Model
         'status',
         'work_hours',
         'ip_address',
+        'clock_in_location',
+        'clock_out_location',
         'location',
         'notes'
     ];

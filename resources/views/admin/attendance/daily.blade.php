@@ -105,11 +105,22 @@
                             <td class="text-low">
                                 {{ $attendance && $attendance->work_hours ? $attendance->work_hours . ' hrs' : '-' }}
                             </td>
-                            <td class="text-low" style="max-width: 200px;" title="{{ $attendance->location ?? '-' }}">
-                                @if($attendance && $attendance->location)
-                                    <span class="d-inline-block text-truncate" style="max-width: 180px;">
-                                        <i class="fas fa-map-marker-alt text-primary me-1"></i>{{ $attendance->location }}
-                                    </span>
+                            <td class="text-low" style="max-width: 250px;">
+                                @if($attendance && ($attendance->clock_in_location || $attendance->clock_out_location))
+                                    @if($attendance->clock_in_location)
+                                        <div class="text-truncate" style="max-width: 230px;"
+                                            title="In: {{ $attendance->clock_in_location }}">
+                                            <small class="text-success fw-bold me-1">In:</small><i
+                                                class="fas fa-map-marker-alt text-primary me-1"></i>{{ $attendance->clock_in_location }}
+                                        </div>
+                                    @endif
+                                    @if($attendance->clock_out_location)
+                                        <div class="text-truncate" style="max-width: 230px;"
+                                            title="Out: {{ $attendance->clock_out_location }}">
+                                            <small class="text-danger fw-bold me-1">Out:</small><i
+                                                class="fas fa-map-marker-alt text-danger me-1"></i>{{ $attendance->clock_out_location }}
+                                        </div>
+                                    @endif
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -123,7 +134,7 @@
                                     $attId = $attendance ? $attendance->id : '';
                                 @endphp
                                 <button class="btn btn-sm btn-premium-secondary" title="Edit"
-                                    onclick="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ request('date', $date) }}', '{{ $attId }}', '{{ $currentStatus }}', '{{ $clockInTime }}', '{{ $clockOutTime }}', '{{ addslashes($currentNotes) }}', '{{ addslashes($attendance->location ?? 'N/A') }}')">
+                                    onclick="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ request('date', $date) }}', '{{ $attId }}', '{{ $currentStatus }}', '{{ $clockInTime }}', '{{ $clockOutTime }}', '{{ addslashes($currentNotes) }}', '{{ addslashes($attendance->clock_in_location ?? 'N/A') }}', '{{ addslashes($attendance->clock_out_location ?? 'N/A') }}')">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </td>
@@ -204,9 +215,15 @@
                         <input type="text" id="edit_user_name" class="form-premium-control bg-subtle" disabled>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label text-high fw-semibold">Location</label>
-                        <input type="text" id="edit_user_location" class="form-premium-control bg-subtle" disabled>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-high fw-semibold">Clock In Location</label>
+                            <input type="text" id="edit_clock_in_location" class="form-premium-control bg-subtle" disabled>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-high fw-semibold">Clock Out Location</label>
+                            <input type="text" id="edit_clock_out_location" class="form-premium-control bg-subtle" disabled>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -249,10 +266,11 @@
 </div>
 
 <script>
-    function openEditModal(userId, userName, date, attId, status, clockIn, clockOut, notes, location) {
+    function openEditModal(userId, userName, date, attId, status, clockIn, clockOut, notes, clockInLocation, clockOutLocation) {
         document.getElementById('edit_user_id').value = userId;
         document.getElementById('edit_user_name').value = userName + ' (' + date + ')';
-        document.getElementById('edit_user_location').value = location;
+        document.getElementById('edit_clock_in_location').value = clockInLocation || 'N/A';
+        document.getElementById('edit_clock_out_location').value = clockOutLocation || 'N/A';
         document.getElementById('edit_date').value = date;
 
         document.getElementById('edit_status').value = status || 'Absent';
