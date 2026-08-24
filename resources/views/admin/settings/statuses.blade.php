@@ -93,7 +93,7 @@
             </table>
         </div>
         <div class="p-3">
-            {{ $statuses->links('vendor.pagination.premium') }}
+            {{ $statuses->links('components.pagination.premium') }}
         </div>
     </div>
 </x-admin>

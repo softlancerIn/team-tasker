@@ -1,22 +1,22 @@
 {
-    "name": "Coxfuture ERP",
-    "short_name": "Coxfuture ERP",
+    "name": "Team Tasker",
+    "short_name": "Team Tasker",
     "description": "WhatsApp-style Chat, Audio/Video Meetings & Task Management Platform",
-    "start_url": "/team-tasker/public/admin/chat",
-    "scope": "/team-tasker/public/",
+    "start_url": "/admin/chat",
+    "scope": "/",
     "display": "standalone",
     "background_color": "#0b141a",
     "theme_color": "#00a884",
     "orientation": "any",
     "icons": [
         {
-            "src": "/team-tasker/public/icons/pwa-192x192.png",
+            "src": "/icons/icon-192x192.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any maskable"
         },
         {
-            "src": "/team-tasker/public/icons/pwa-512x512.png",
+            "src": "/icons/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"

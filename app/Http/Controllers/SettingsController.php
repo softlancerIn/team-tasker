@@ -102,15 +102,15 @@ class SettingsController extends Controller
                 $hasCustomPwaIcon = $this->generatePwaIconsFromImage($fullLogoPath, $pwa192Path, $pwa512Path);
             }
 
-            $icon192Src = $hasCustomPwaIcon ? '/team-tasker/public/icons/pwa-192x192.png' : '/team-tasker/public/icons/icon-192x192.png';
-            $icon512Src = $hasCustomPwaIcon ? '/team-tasker/public/icons/pwa-512x512.png' : '/team-tasker/public/icons/icon-512x512.png';
+            $icon192Src = $hasCustomPwaIcon ? '/icons/pwa-192x192.png' : '/icons/icon-192x192.png';
+            $icon512Src = $hasCustomPwaIcon ? '/icons/pwa-512x512.png' : '/icons/icon-512x512.png';
 
             $manifestData = [
                 "name" => $appName,
                 "short_name" => $appName,
                 "description" => "WhatsApp-style Chat, Audio/Video Meetings & Task Management Platform",
-                "start_url" => "/team-tasker/public/admin/chat",
-                "scope" => "/team-tasker/public/",
+                "start_url" => "/admin/chat",
+                "scope" => "/",
                 "display" => "standalone",
                 "background_color" => "#0b141a",
                 "theme_color" => "#00a884",

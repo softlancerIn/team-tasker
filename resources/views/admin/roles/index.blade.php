@@ -67,7 +67,7 @@
             </div>
             <div class="data-grid-results">{{ $roles->count() }} Results</div>
             <div class="data-grid-actions">
-                {{ $roles->links('vendor.pagination.premium') }}
+                {{ $roles->links('components.pagination.premium') }}
             </div>
         </div>
 
