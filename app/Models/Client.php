@@ -10,13 +10,13 @@ class Client extends Authenticatable
     use Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'phone', 'company', 
-        'profile_image', 'fcm_token', 'is_approved', 'status', 
-        'otp', 'otp_expires_at', 'email_verified_at'
+        'name', 'email', 'password', 'phone', 'company',
+        'profile_image', 'fcm_token', 'is_approved', 'status',
+        'otp', 'otp_expires_at', 'email_verified_at',
     ];
 
     protected $hidden = [
-        'password', 'remember_token', 'otp'
+        'password', 'remember_token', 'otp',
     ];
 
     protected $casts = [
@@ -30,7 +30,7 @@ class Client extends Authenticatable
     {
         return $this->hasMany(Ticket::class);
     }
-    
+
     public function conversations()
     {
         return $this->belongsToMany(Conversation::class, 'conversation_participants', 'client_id', 'conversation_id')
@@ -49,7 +49,7 @@ class Client extends Authenticatable
             })
             ->where(function ($query) use ($clientId) {
                 $query->where('messages.client_id', '!=', $clientId)
-                      ->orWhereNull('messages.client_id');
+                    ->orWhereNull('messages.client_id');
             })
             ->where(function ($query) {
                 $query->whereNull('conversation_participants.last_read_at')

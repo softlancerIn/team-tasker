@@ -23,19 +23,23 @@ class ClientController extends Controller
     public function dashboard(Request $request)
     {
         $clientId = $this->getClientId();
-        $userId   = $this->getUserId();
+        $userId = $this->getUserId();
 
         // ── Ticket query ──────────────────────────────────────────────────────
         $ticketQuery = Ticket::where(function ($q) use ($clientId, $userId) {
-            if ($clientId)     { $q->where('client_id', $clientId); }
-            elseif ($userId)   { $q->where('user_id', $userId); }
-            else               { $q->where('id', -1); }
+            if ($clientId) {
+                $q->where('client_id', $clientId);
+            } elseif ($userId) {
+                $q->where('user_id', $userId);
+            } else {
+                $q->where('id', -1);
+            }
         });
 
         if ($request->filled('ticket_search')) {
             $ticketQuery->where(function ($q) use ($request) {
-                $q->where('subject', 'like', '%' . $request->ticket_search . '%')
-                  ->orWhere('body', 'like', '%' . $request->ticket_search . '%');
+                $q->where('subject', 'like', '%'.$request->ticket_search.'%')
+                    ->orWhere('body', 'like', '%'.$request->ticket_search.'%');
             });
         }
         if ($request->filled('ticket_status')) {
@@ -52,9 +56,13 @@ class ClientController extends Controller
 
         // ── Task query ────────────────────────────────────────────────────────
         $ticketIds = Ticket::where(function ($q) use ($clientId, $userId) {
-            if ($clientId)   { $q->where('client_id', $clientId); }
-            elseif ($userId) { $q->where('user_id', $userId); }
-            else             { $q->where('id', -1); }
+            if ($clientId) {
+                $q->where('client_id', $clientId);
+            } elseif ($userId) {
+                $q->where('user_id', $userId);
+            } else {
+                $q->where('id', -1);
+            }
         })->pluck('id');
 
         $taskQuery = \App\Models\Task::whereIn('ticket_id', $ticketIds)
@@ -62,8 +70,8 @@ class ClientController extends Controller
 
         if ($request->filled('task_search')) {
             $taskQuery->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->task_search . '%')
-                  ->orWhere('description', 'like', '%' . $request->task_search . '%');
+                $q->where('title', 'like', '%'.$request->task_search.'%')
+                    ->orWhere('description', 'like', '%'.$request->task_search.'%');
             });
         }
 
@@ -102,7 +110,7 @@ class ClientController extends Controller
         $clientId = $this->getClientId();
         $userId = $this->getUserId();
 
-        $ticket = Ticket::with(['replies.user', 'replies.client'])->where(function($q) use ($clientId, $userId) {
+        $ticket = Ticket::with(['replies.user', 'replies.client'])->where(function ($q) use ($clientId, $userId) {
             if ($clientId) {
                 $q->where('client_id', $clientId);
             } elseif ($userId) {
@@ -166,7 +174,7 @@ class ClientController extends Controller
         $clientId = $this->getClientId();
         $userId = $this->getUserId();
 
-        $ticket = Ticket::where('id', $id)->where(function($q) use ($clientId, $userId) {
+        $ticket = Ticket::where('id', $id)->where(function ($q) use ($clientId, $userId) {
             if ($clientId) {
                 $q->where('client_id', $clientId);
             } elseif ($userId) {
@@ -193,14 +201,14 @@ class ClientController extends Controller
         $client = Auth::guard('client')->user();
 
         $request->validate([
-            'name'          => 'required|string|max:255',
-            'email'         => 'required|email|unique:clients,email,' . $client->id . '|unique:users,email',
-            'password'      => 'nullable|string|min:8',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:clients,email,'.$client->id.'|unique:users,email',
+            'password' => 'nullable|string|min:8',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $data = [
-            'name'  => $request->name,
+            'name' => $request->name,
             'email' => $request->email,
         ];
 
@@ -226,6 +234,7 @@ class ClientController extends Controller
         if ($client) {
             $client->unreadNotifications->markAsRead();
         }
+
         return back()->with('success', 'Notifications marked as read.');
     }
 }

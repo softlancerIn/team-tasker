@@ -42,10 +42,10 @@ Route::middleware(['web', 'auth:web,admin,client'])->group(function () {
         $user = auth('client')->user() ?? auth('web')->user() ?? auth('admin')->user();
         if ($user) {
             $tokens = json_decode($user->fcm_token, true);
-            if (!is_array($tokens)) {
+            if (! is_array($tokens)) {
                 $tokens = $user->fcm_token ? [$user->fcm_token] : [];
             }
-            if (!in_array($request->token, $tokens)) {
+            if (! in_array($request->token, $tokens)) {
                 $tokens[] = $request->token;
                 if (count($tokens) > 5) {
                     $tokens = array_slice($tokens, -5);
@@ -55,7 +55,7 @@ Route::middleware(['web', 'auth:web,admin,client'])->group(function () {
             }
 
             // Sync with counterpart
-            if (!$user instanceof \App\Models\Client) {
+            if (! $user instanceof \App\Models\Client) {
                 $syncTokens = json_encode($tokens);
                 if ($user instanceof \App\Models\Admin) {
                     \App\Models\User::where('email', $user->email)->update(['fcm_token' => $syncTokens]);
@@ -287,33 +287,33 @@ Route::get('/manifest.json', function () {
     $appLogo = $settings['app_logo'] ?? null;
 
     $iconUrl = ($appLogo && \Illuminate\Support\Facades\Storage::disk('public')->exists($appLogo))
-        ? asset('storage/' . $appLogo)
+        ? asset('storage/'.$appLogo)
         : asset('icons/icon-192x192.png');
 
     $manifest = [
-        "name" => $appName . " - Modern Collaboration Hub",
-        "short_name" => $appName,
-        "description" => "WhatsApp-style Chat, Audio/Video Meetings & Task Management Platform",
-        "start_url" => url('/admin/chat'),
-        "scope" => url('/'),
-        "display" => "standalone",
-        "background_color" => "#0b141a",
-        "theme_color" => "#00a884",
-        "orientation" => "any",
-        "icons" => [
+        'name' => $appName.' - Modern Collaboration Hub',
+        'short_name' => $appName,
+        'description' => 'WhatsApp-style Chat, Audio/Video Meetings & Task Management Platform',
+        'start_url' => url('/admin/chat'),
+        'scope' => url('/'),
+        'display' => 'standalone',
+        'background_color' => '#0b141a',
+        'theme_color' => '#00a884',
+        'orientation' => 'any',
+        'icons' => [
             [
-                "src" => $iconUrl,
-                "sizes" => "192x192",
-                "type" => "image/png",
-                "purpose" => "any maskable"
+                'src' => $iconUrl,
+                'sizes' => '192x192',
+                'type' => 'image/png',
+                'purpose' => 'any maskable',
             ],
             [
-                "src" => $iconUrl,
-                "sizes" => "512x512",
-                "type" => "image/png",
-                "purpose" => "any maskable"
-            ]
-        ]
+                'src' => $iconUrl,
+                'sizes' => '512x512',
+                'type' => 'image/png',
+                'purpose' => 'any maskable',
+            ],
+        ],
     ];
 
     return response()->json($manifest, 200, [], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);

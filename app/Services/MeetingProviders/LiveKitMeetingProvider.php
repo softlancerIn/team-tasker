@@ -12,7 +12,8 @@ class LiveKitMeetingProvider implements MeetingProviderInterface
     {
         $prefix = config('app.name', 'TeamTasker');
         $cleanPrefix = Str::slug($prefix);
-        return $cleanPrefix . '-' . $meeting->type . '-' . $meeting->uuid;
+
+        return $cleanPrefix.'-'.$meeting->type.'-'.$meeting->uuid;
     }
 
     public function getJoinUrl(Meeting $meeting): string
@@ -54,7 +55,7 @@ class LiveKitMeetingProvider implements MeetingProviderInterface
 
         $header = [
             'alg' => 'HS256',
-            'typ' => 'JWT'
+            'typ' => 'JWT',
         ];
 
         $now = time();
@@ -78,16 +79,16 @@ class LiveKitMeetingProvider implements MeetingProviderInterface
                 'canSubscribe' => $canSubscribe,
                 'canPublishData' => $canPublishData,
                 'roomAdmin' => $isHost,
-            ]
+            ],
         ];
 
         $base64UrlHeader = $this->base64UrlEncode(json_encode($header));
         $base64UrlPayload = $this->base64UrlEncode(json_encode($payload));
 
-        $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $apiSecret, true);
+        $signature = hash_hmac('sha256', $base64UrlHeader.'.'.$base64UrlPayload, $apiSecret, true);
         $base64UrlSignature = $this->base64UrlEncode($signature);
 
-        return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
+        return $base64UrlHeader.'.'.$base64UrlPayload.'.'.$base64UrlSignature;
     }
 
     private function base64UrlEncode(string $data): string

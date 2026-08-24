@@ -59,12 +59,14 @@ class SetupCallingSystemCommand extends Command
 
                 File::put($envPath, $envContent);
             }
+
             return true;
         });
 
         // 2. Execute Database Migrations
         $this->components->task('Running Database Migrations', function () {
             $this->callSilently('migrate', ['--force' => true]);
+
             return true;
         });
 
@@ -73,6 +75,7 @@ class SetupCallingSystemCommand extends Command
             $this->callSilently('config:clear');
             $this->callSilently('cache:clear');
             $this->callSilently('view:clear');
+
             return true;
         });
 
@@ -80,14 +83,14 @@ class SetupCallingSystemCommand extends Command
         $this->info("\n📡 Verifying WebSocket Server Connection...");
         $socketPort = 3000;
         $connection = @fsockopen('localhost', $socketPort, $errno, $errstr, 2);
-        
+
         if (is_resource($connection)) {
             fclose($connection);
             $this->info("✅ Socket.IO Server is running on port {$socketPort}");
         } else {
             $this->warn("⚠️  Socket.IO Server is NOT running on port {$socketPort}.");
-            $this->line("👉 To start the Node.js signaling server, run:");
-            $this->comment("   node socket-server/server.js");
+            $this->line('👉 To start the Node.js signaling server, run:');
+            $this->comment('   node socket-server/server.js');
         }
 
         $this->info("\n🎉 Calling System Setup Complete!");
@@ -96,7 +99,7 @@ class SetupCallingSystemCommand extends Command
             [
                 ['LiveKit URL', config('livekit.url', $livekitUrl)],
                 ['LiveKit API Key', config('livekit.api_key', $apiKey)],
-                ['Ring Timeout', config('livekit.call_ring_timeout', 30) . ' seconds'],
+                ['Ring Timeout', config('livekit.call_ring_timeout', 30).' seconds'],
                 ['WebSockets Enabled', env('ENABLE_WEBSOCKETS', true) ? 'Yes' : 'No'],
                 ['Socket Server Port', '3000'],
             ]

@@ -17,9 +17,9 @@ class TeamController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%'.$request->search.'%')
-                  ->orWhere('email', 'like', '%'.$request->search.'%');
+                    ->orWhere('email', 'like', '%'.$request->search.'%');
             });
         }
 

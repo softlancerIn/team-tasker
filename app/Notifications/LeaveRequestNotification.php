@@ -2,17 +2,18 @@
 
 namespace App\Notifications;
 
+use App\Models\AttendanceRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use App\Models\AttendanceRequest;
 
 class LeaveRequestNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public $leaveRequest;
+
     public $action;
 
     /**
@@ -39,16 +40,16 @@ class LeaveRequestNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $message = new MailMessage();
-        
+        $message = new MailMessage;
+
         if ($this->action === 'applied') {
             $message->subject('New Leave Request')
-                    ->line('A new leave request has been submitted by ' . $this->leaveRequest->user->name)
-                    ->action('View Requests', url('/admin/attendance/requests'));
+                ->line('A new leave request has been submitted by '.$this->leaveRequest->user->name)
+                ->action('View Requests', url('/admin/attendance/requests'));
         } else {
-            $message->subject('Leave Request ' . ucfirst($this->action))
-                    ->line('Your leave request for ' . $this->leaveRequest->start_date . ' has been ' . $this->action . '.')
-                    ->action('View Status', url('/admin/attendance/requests'));
+            $message->subject('Leave Request '.ucfirst($this->action))
+                ->line('Your leave request for '.$this->leaveRequest->start_date.' has been '.$this->action.'.')
+                ->action('View Status', url('/admin/attendance/requests'));
         }
 
         return $message;
@@ -59,10 +60,10 @@ class LeaveRequestNotification extends Notification implements ShouldQueue
      */
     public function toFirebase(object $notifiable): array
     {
-        $title = $this->action === 'applied' ? 'New Leave Request' : 'Leave Request ' . ucfirst($this->action);
-        $body = $this->action === 'applied' 
-            ? 'New leave request from ' . $this->leaveRequest->user->name 
-            : 'Your leave request has been ' . $this->action . '.';
+        $title = $this->action === 'applied' ? 'New Leave Request' : 'Leave Request '.ucfirst($this->action);
+        $body = $this->action === 'applied'
+            ? 'New leave request from '.$this->leaveRequest->user->name
+            : 'Your leave request has been '.$this->action.'.';
 
         return [
             'title' => $title,
@@ -81,9 +82,9 @@ class LeaveRequestNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-        $message = $this->action === 'applied' 
-            ? 'New leave request from ' . $this->leaveRequest->user->name 
-            : 'Your leave request was ' . $this->action;
+        $message = $this->action === 'applied'
+            ? 'New leave request from '.$this->leaveRequest->user->name
+            : 'Your leave request was '.$this->action;
 
         return [
             'request_id' => $this->leaveRequest->id,

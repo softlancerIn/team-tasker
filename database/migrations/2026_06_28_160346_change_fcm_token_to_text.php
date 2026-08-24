@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->text('fcm_token')->nullable()->change();
         });
-        
+
         if (Schema::hasTable('clients')) {
             Schema::table('clients', function (Blueprint $table) {
                 $table->text('fcm_token')->nullable()->change();
             });
         }
-        
+
         if (Schema::hasTable('admins')) {
             Schema::table('admins', function (Blueprint $table) {
                 $table->text('fcm_token')->nullable()->change();
@@ -36,13 +36,13 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->string('fcm_token')->nullable()->change();
         });
-        
+
         if (Schema::hasTable('clients')) {
             Schema::table('clients', function (Blueprint $table) {
                 $table->string('fcm_token')->nullable()->change();
             });
         }
-        
+
         if (Schema::hasTable('admins')) {
             Schema::table('admins', function (Blueprint $table) {
                 $table->string('fcm_token')->nullable()->change();

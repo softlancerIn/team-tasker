@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\AttendanceRequest;
 use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AttendanceController extends Controller
@@ -118,7 +118,7 @@ class AttendanceController extends Controller
             'status' => 'required|in:Present,Late,Half-Day,Absent,Leave,Holiday',
             'clock_in' => 'nullable|date_format:H:i',
             'clock_out' => 'nullable|date_format:H:i',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
         ]);
 
         if ($request->status == 'Absent') {
@@ -140,14 +140,14 @@ class AttendanceController extends Controller
             Attendance::updateOrCreate(
                 [
                     'user_id' => $request->user_id,
-                    'date' => $request->date
+                    'date' => $request->date,
                 ],
                 [
                     'status' => $request->status,
                     'clock_in' => $request->clock_in,
                     'clock_out' => $request->clock_out,
                     'work_hours' => $workHours,
-                    'notes' => $request->notes
+                    'notes' => $request->notes,
                 ]
             );
         }
@@ -165,7 +165,7 @@ class AttendanceController extends Controller
         $minHours = $request->input('total_hours');
         $minAbsent = $request->input('total_absent');
 
-        $startDate = Carbon::parse($month . '-01');
+        $startDate = Carbon::parse($month.'-01');
         $endDate = $startDate->copy()->endOfMonth();
 
         $workingDaysSetting = Setting::where('key', 'working_days')->value('value') ?? '5';
@@ -176,11 +176,11 @@ class AttendanceController extends Controller
 
         while ($currentDate->lte($endDate) && $currentDate->lte($today)) {
             if ($workingDaysSetting == '5') {
-                if (!$currentDate->isWeekend()) {
+                if (! $currentDate->isWeekend()) {
                     $totalWorkingDays++;
                 }
             } else {
-                if (!$currentDate->isSunday()) {
+                if (! $currentDate->isSunday()) {
                     $totalWorkingDays++;
                 }
             }
@@ -213,13 +213,14 @@ class AttendanceController extends Controller
             })
             ->when($minAbsent, function ($q) use ($minAbsent, $totalWorkingDays, $startDate, $endDate) {
                 $maxPresentAndLeave = max(0, $totalWorkingDays - (int) $minAbsent);
+
                 return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
                     $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                         ->whereIn('status', ['Present', 'Late', 'Half-Day', 'Leave']);
                 }, '<=', $maxPresentAndLeave);
             })
             ->when($minHours, function ($q) use ($minHours, $startDate, $endDate) {
-                return $q->whereRaw("(SELECT COALESCE(SUM(work_hours), 0) FROM attendances WHERE attendances.user_id = users.id AND date BETWEEN ? AND ?) >= ?", [$startDate->format('Y-m-d'), $endDate->format('Y-m-d'), (float) $minHours]);
+                return $q->whereRaw('(SELECT COALESCE(SUM(work_hours), 0) FROM attendances WHERE attendances.user_id = users.id AND date BETWEEN ? AND ?) >= ?', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d'), (float) $minHours]);
             })
             ->paginate(15)
             ->withQueryString();
@@ -254,7 +255,7 @@ class AttendanceController extends Controller
             };
 
             $events[] = [
-                'title' => $att->status . ($att->clock_in ? ' (' . \Carbon\Carbon::parse($att->clock_in)->format('H:i') . ')' : ''),
+                'title' => $att->status.($att->clock_in ? ' ('.\Carbon\Carbon::parse($att->clock_in)->format('H:i').')' : ''),
                 'start' => $att->date,
                 'backgroundColor' => $color,
                 'borderColor' => $color,
@@ -271,7 +272,7 @@ class AttendanceController extends Controller
             };
 
             $events[] = [
-                'title' => 'Leave (' . $leave->status . '): ' . $leave->type . ' - ' . \Illuminate\Support\Str::limit($leave->reason, 20),
+                'title' => 'Leave ('.$leave->status.'): '.$leave->type.' - '.\Illuminate\Support\Str::limit($leave->reason, 20),
                 'start' => $leave->start_date,
                 'end' => $leave->end_date ? \Carbon\Carbon::parse($leave->end_date)->addDay()->format('Y-m-d') : \Carbon\Carbon::parse($leave->start_date)->addDay()->format('Y-m-d'),
                 'backgroundColor' => $leaveColor,
@@ -279,8 +280,8 @@ class AttendanceController extends Controller
                 'allDay' => true,
                 'extendedProps' => [
                     'reason' => $leave->reason,
-                    'action_notes' => $leave->action_notes
-                ]
+                    'action_notes' => $leave->action_notes,
+                ],
             ];
         }
 
@@ -295,7 +296,7 @@ class AttendanceController extends Controller
         $search = $request->input('search');
 
         $requests = AttendanceRequest::with(['user', 'actionBy'])
-            ->when(!Auth::user()->hasPermission('attendance.requests_manage'), function ($query) {
+            ->when(! Auth::user()->hasPermission('attendance.requests_manage'), function ($query) {
                 return $query->where('user_id', Auth::id());
             })
             ->when($status, function ($query) use ($status) {
@@ -347,7 +348,7 @@ class AttendanceController extends Controller
     {
         $attendanceReq = AttendanceRequest::findOrFail($id);
 
-        if ($attendanceReq->user_id !== Auth::id() && !Auth::user()->hasPermission('attendance.requests_manage')) {
+        if ($attendanceReq->user_id !== Auth::id() && ! Auth::user()->hasPermission('attendance.requests_manage')) {
             return redirect()->back()->with('error', 'Unauthorized to edit this request.');
         }
 
@@ -373,13 +374,13 @@ class AttendanceController extends Controller
 
         $validated = $request->validate([
             'status' => 'required|in:Approved,Rejected',
-            'action_notes' => 'nullable|string'
+            'action_notes' => 'nullable|string',
         ]);
 
         $attendanceReq->update([
             'status' => $validated['status'],
             'action_by' => Auth::id(),
-            'action_notes' => $validated['action_notes'] ?? null
+            'action_notes' => $validated['action_notes'] ?? null,
         ]);
 
         $attendanceReq->user->notify(new \App\Notifications\LeaveRequestNotification($attendanceReq, strtolower($validated['status'])));
@@ -393,8 +394,8 @@ class AttendanceController extends Controller
 
         if ($request->has('export')) {
             $month = $request->input('month', Carbon::today()->format('Y-m'));
-            $startDate = Carbon::parse($month . '-01')->format('Y-m-d');
-            $endDate = Carbon::parse($month . '-01')->endOfMonth()->format('Y-m-d');
+            $startDate = Carbon::parse($month.'-01')->format('Y-m-d');
+            $endDate = Carbon::parse($month.'-01')->endOfMonth()->format('Y-m-d');
             $exportType = $request->input('export');
 
             if ($exportType === 'single') {
@@ -412,7 +413,7 @@ class AttendanceController extends Controller
                 foreach ($attendances as $att) {
                     $csvData .= sprintf(
                         "%s,%s,%s,%s,%s,%s\n",
-                        '"' . ($att->user->name ?? 'Unknown') . '"',
+                        '"'.($att->user->name ?? 'Unknown').'"',
                         \Carbon\Carbon::parse($att->date)->format('d/m/Y'),
                         $att->status,
                         $att->clock_in ?? '-',
@@ -423,7 +424,7 @@ class AttendanceController extends Controller
 
                 return response($csvData)
                     ->header('Content-Type', 'text/csv')
-                    ->header('Content-Disposition', 'attachment; filename="attendance_report_' . $month . '.csv"');
+                    ->header('Content-Disposition', 'attachment; filename="attendance_report_'.$month.'.csv"');
             } elseif ($exportType === 'all') {
                 $attendances = Attendance::whereBetween('date', [$startDate, $endDate])
                     ->get()
@@ -437,11 +438,11 @@ class AttendanceController extends Controller
 
                 while ($currentDate->lte($end) && $currentDate->lte($today)) {
                     if ($workingDaysSetting == '5') {
-                        if (!$currentDate->isWeekend()) {
+                        if (! $currentDate->isWeekend()) {
                             $totalWorkingDays++;
                         }
                     } else {
-                        if (!$currentDate->isSunday()) {
+                        if (! $currentDate->isSunday()) {
                             $totalWorkingDays++;
                         }
                     }
@@ -460,7 +461,7 @@ class AttendanceController extends Controller
 
                     $csvData .= sprintf(
                         "%s,%s,%s,%s,%s,%s\n",
-                        '"' . $user->name . '"',
+                        '"'.$user->name.'"',
                         $present,
                         $late,
                         $absent,
@@ -471,7 +472,7 @@ class AttendanceController extends Controller
 
                 return response($csvData)
                     ->header('Content-Type', 'text/csv')
-                    ->header('Content-Disposition', 'attachment; filename="monthly_summary_' . $month . '.csv"');
+                    ->header('Content-Disposition', 'attachment; filename="monthly_summary_'.$month.'.csv"');
             }
         }
 
@@ -520,8 +521,8 @@ class AttendanceController extends Controller
         $allowedIps = array_filter(array_map('trim', explode(',', $allowedIpsStr)));
         $currentIp = $request->ip();
 
-        if (count($allowedIps) > 0 && !in_array($currentIp, $allowedIps)) {
-            return redirect()->back()->with('error', 'Punch in is restricted to the office WiFi network only. Your IP: ' . $currentIp);
+        if (count($allowedIps) > 0 && ! in_array($currentIp, $allowedIps)) {
+            return redirect()->back()->with('error', 'Punch in is restricted to the office WiFi network only. Your IP: '.$currentIp);
         }
 
         $officeStartTimeStr = Setting::where('key', 'office_start_time')->value('value') ?? '09:15';
@@ -537,7 +538,7 @@ class AttendanceController extends Controller
         $latitude = $request->input('latitude');
         $longitude = $request->input('longitude');
 
-        if (!$locationString && $latitude && $longitude) {
+        if (! $locationString && $latitude && $longitude) {
             $locationString = "Lat: {$latitude}, Long: {$longitude}";
         }
 
@@ -555,7 +556,7 @@ class AttendanceController extends Controller
             'clock_in_location' => $locationString,
         ]);
 
-        return redirect()->back()->with('success', 'Clocked in successfully at ' . $now->format('h:i A'));
+        return redirect()->back()->with('success', 'Clocked in successfully at '.$now->format('h:i A'));
     }
 
     public function clockOut(Request $request)
@@ -565,7 +566,7 @@ class AttendanceController extends Controller
 
         $attendance = Attendance::where('user_id', Auth::id())->where('date', $today)->first();
 
-        if (!$attendance) {
+        if (! $attendance) {
             return redirect()->back()->with('error', 'You have not clocked in today.');
         }
 
@@ -577,7 +578,7 @@ class AttendanceController extends Controller
         $latitude = $request->input('latitude');
         $longitude = $request->input('longitude');
 
-        if (!$locationString && $latitude && $longitude) {
+        if (! $locationString && $latitude && $longitude) {
             $locationString = "Lat: {$latitude}, Long: {$longitude}";
         }
 
@@ -585,7 +586,7 @@ class AttendanceController extends Controller
             return redirect()->back()->with('error', 'Punch Out failed: Location permission is required. Please enable location/GPS in your browser.');
         }
 
-        $clockInTime = Carbon::parse($attendance->date . ' ' . $attendance->clock_in);
+        $clockInTime = Carbon::parse($attendance->date.' '.$attendance->clock_in);
         $workHours = abs($clockInTime->diffInMinutes($now, false)) / 60;
 
         $attendance->update([
@@ -594,6 +595,6 @@ class AttendanceController extends Controller
             'clock_out_location' => $locationString,
         ]);
 
-        return redirect()->back()->with('success', 'Clocked out successfully at ' . $now->format('h:i A'));
+        return redirect()->back()->with('success', 'Clocked out successfully at '.$now->format('h:i A'));
     }
 }

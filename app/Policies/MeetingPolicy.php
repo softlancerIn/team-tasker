@@ -3,8 +3,8 @@
 namespace App\Policies;
 
 use App\Models\Meeting;
-use Illuminate\Contracts\Auth\Authenticatable;
 use App\Services\MeetingService;
+use Illuminate\Contracts\Auth\Authenticatable;
 
 class MeetingPolicy
 {
@@ -22,17 +22,19 @@ class MeetingPolicy
 
     public function view(Authenticatable $user, Meeting $meeting): bool
     {
-        if (!$user->hasPermission('meetings.view') && !$user->hasRole('super-admin')) {
+        if (! $user->hasPermission('meetings.view') && ! $user->hasRole('super-admin')) {
             return false;
         }
+
         return $this->meetingService->canUserJoin($meeting, $user);
     }
 
     public function join(Authenticatable $user, Meeting $meeting): bool
     {
-        if (!$user->hasPermission('meetings.join') && !$user->hasRole('super-admin')) {
+        if (! $user->hasPermission('meetings.join') && ! $user->hasRole('super-admin')) {
             return false;
         }
+
         return $this->meetingService->canUserJoin($meeting, $user);
     }
 

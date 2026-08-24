@@ -84,7 +84,7 @@ class MeetingController extends Controller
         }
 
         $perPage = (int) $request->get('per_page', 10);
-        if (!in_array($perPage, [10, 25, 50, 100])) {
+        if (! in_array($perPage, [10, 25, 50, 100])) {
             $perPage = 10;
         }
 
@@ -130,7 +130,7 @@ class MeetingController extends Controller
             return response()->json([
                 'success' => true,
                 'meeting' => $meeting,
-                'join_url' => route('admin.meetings.join', $meeting->uuid)
+                'join_url' => route('admin.meetings.join', $meeting->uuid),
             ]);
         }
 
@@ -160,7 +160,7 @@ class MeetingController extends Controller
         $user = Auth::user();
         $this->meetingService->joinMeeting($meeting, $user);
 
-        $livekitProvider = new \App\Services\MeetingProviders\LiveKitMeetingProvider();
+        $livekitProvider = new \App\Services\MeetingProviders\LiveKitMeetingProvider;
         $livekitUrl = config('livekit.url', 'wss://demo.livekit.cloud');
         $livekitToken = $livekitProvider->generateToken($meeting, $user);
 
@@ -174,7 +174,7 @@ class MeetingController extends Controller
     {
         $success = $this->meetingService->acceptCall($meeting, Auth::user());
 
-        if (!$success) {
+        if (! $success) {
             return response()->json(['success' => false, 'message' => 'Unable to accept meeting.'], 400);
         }
 

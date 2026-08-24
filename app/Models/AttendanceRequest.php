@@ -17,7 +17,7 @@ class AttendanceRequest extends Model
         'reason',
         'status',
         'action_by',
-        'action_notes'
+        'action_notes',
     ];
 
     public function user()

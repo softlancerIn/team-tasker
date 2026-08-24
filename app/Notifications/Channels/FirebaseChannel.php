@@ -38,7 +38,7 @@ class FirebaseChannel
 
         if ($fcmTokens) {
             $tokens = json_decode($fcmTokens, true);
-            if (!is_array($tokens)) {
+            if (! is_array($tokens)) {
                 $tokens = [$fcmTokens];
             }
 

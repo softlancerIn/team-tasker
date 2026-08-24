@@ -20,7 +20,7 @@ class Attendance extends Model
         'clock_in_location',
         'clock_out_location',
         'location',
-        'notes'
+        'notes',
     ];
 
     public function user()

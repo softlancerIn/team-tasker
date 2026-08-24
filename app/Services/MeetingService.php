@@ -7,9 +7,8 @@ use App\Models\Conversation;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\User;
-use Illuminate\Contracts\Auth\Authenticatable;
 use App\Services\MeetingProviders\LiveKitMeetingProvider;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -19,7 +18,7 @@ class MeetingService
 
     public function __construct(?MeetingProviderInterface $provider = null)
     {
-        $this->provider = $provider ?? new LiveKitMeetingProvider();
+        $this->provider = $provider ?? new LiveKitMeetingProvider;
     }
 
     /**
@@ -44,7 +43,7 @@ class MeetingService
 
         return DB::transaction(function () use ($caller, $receiver, $mode) {
             $meeting = new Meeting([
-                'title' => ucfirst($mode) . ' Call with ' . $receiver->name,
+                'title' => ucfirst($mode).' Call with '.$receiver->name,
                 'type' => Meeting::TYPE_DIRECT_CALL,
                 'mode' => $mode,
                 'provider' => 'livekit',
@@ -85,7 +84,7 @@ class MeetingService
     {
         return DB::transaction(function () use ($data, $creator) {
             $type = $data['type'] ?? Meeting::TYPE_SCHEDULED_MEETING;
-            $status = !empty($data['scheduled_at']) ? Meeting::STATUS_SCHEDULED : Meeting::STATUS_ACTIVE;
+            $status = ! empty($data['scheduled_at']) ? Meeting::STATUS_SCHEDULED : Meeting::STATUS_ACTIVE;
 
             $meeting = new Meeting([
                 'title' => $data['title'],
@@ -116,7 +115,7 @@ class MeetingService
             ]);
 
             // Add extra participants if specified
-            if (!empty($data['participant_ids']) && is_array($data['participant_ids'])) {
+            if (! empty($data['participant_ids']) && is_array($data['participant_ids'])) {
                 foreach ($data['participant_ids'] as $pId) {
                     if ($pId != $creator->id) {
                         MeetingParticipant::create([
@@ -139,7 +138,7 @@ class MeetingService
      */
     public function acceptCall(Meeting $meeting, Authenticatable $user): bool
     {
-        if (!in_array($meeting->status, [Meeting::STATUS_RINGING, Meeting::STATUS_SCHEDULED, Meeting::STATUS_ACTIVE])) {
+        if (! in_array($meeting->status, [Meeting::STATUS_RINGING, Meeting::STATUS_SCHEDULED, Meeting::STATUS_ACTIVE])) {
             return false;
         }
 
@@ -148,7 +147,7 @@ class MeetingService
             ->first();
 
         DB::transaction(function () use ($meeting, &$participant, $user) {
-            if (!$participant) {
+            if (! $participant) {
                 $participant = MeetingParticipant::create([
                     'meeting_id' => $meeting->id,
                     'user_id' => $user->id,
@@ -183,7 +182,7 @@ class MeetingService
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$participant) {
+        if (! $participant) {
             return false;
         }
 
@@ -210,7 +209,7 @@ class MeetingService
      */
     public function cancelMeeting(Meeting $meeting, Authenticatable $user): bool
     {
-        if ($meeting->created_by != $user->id && !$user->hasPermission('projects.edit')) {
+        if ($meeting->created_by != $user->id && ! $user->hasPermission('projects.edit')) {
             return false;
         }
 
@@ -237,7 +236,7 @@ class MeetingService
      */
     public function endMeeting(Meeting $meeting, Authenticatable $user): bool
     {
-        if (!in_array($meeting->status, [Meeting::STATUS_RINGING, Meeting::STATUS_ACTIVE])) {
+        if (! in_array($meeting->status, [Meeting::STATUS_RINGING, Meeting::STATUS_ACTIVE])) {
             return false;
         }
 
@@ -275,7 +274,7 @@ class MeetingService
             ->first();
 
         // If user is allowed to join project/task meeting, auto-create participant record if missing
-        if (!$participant && $this->canUserJoin($meeting, $user)) {
+        if (! $participant && $this->canUserJoin($meeting, $user)) {
             $participant = MeetingParticipant::create([
                 'meeting_id' => $meeting->id,
                 'user_id' => $user->id,
@@ -411,7 +410,9 @@ class MeetingService
     {
         try {
             $participants = $meeting->participants->pluck('user_id')->toArray();
-            if (count($participants) < 2) return;
+            if (count($participants) < 2) {
+                return;
+            }
 
             // Find private conversation between caller and receiver
             $conversation = Conversation::where('type', 'private')
@@ -423,10 +424,12 @@ class MeetingService
                 })
                 ->first();
 
-            if (!$conversation) return;
+            if (! $conversation) {
+                return;
+            }
 
             $icon = $meeting->mode === Meeting::MODE_AUDIO ? '📞' : '📹';
-            $modeLabel = ucfirst($meeting->mode) . ' Call';
+            $modeLabel = ucfirst($meeting->mode).' Call';
 
             if ($eventState === 'completed') {
                 $startedAt = $meeting->started_at;

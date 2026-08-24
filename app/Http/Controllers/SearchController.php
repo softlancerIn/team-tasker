@@ -13,7 +13,6 @@ class SearchController extends Controller
         $users = collect();
         $isClient = \Auth::guard('client')->check();
         $user = $isClient ? \Auth::guard('client')->user() : \Auth::user();
-        
 
         if ($query) {
             // Search Tasks

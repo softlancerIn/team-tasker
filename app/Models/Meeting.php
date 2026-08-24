@@ -11,20 +11,31 @@ class Meeting extends Model
     use HasFactory;
 
     const TYPE_DIRECT_CALL = 'direct_call';
+
     const TYPE_GROUP_CALL = 'group_call';
+
     const TYPE_PROJECT_MEETING = 'project_meeting';
+
     const TYPE_TASK_MEETING = 'task_meeting';
+
     const TYPE_SCHEDULED_MEETING = 'scheduled_meeting';
 
     const MODE_AUDIO = 'audio';
+
     const MODE_VIDEO = 'video';
 
     const STATUS_SCHEDULED = 'scheduled';
+
     const STATUS_RINGING = 'ringing';
+
     const STATUS_ACTIVE = 'active';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_MISSED = 'missed';
 
     protected $fillable = [

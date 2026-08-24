@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Role;
 use App\Models\Client;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -53,7 +53,7 @@ class AdminClientController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-             // Client Role
+            // Client Role
             'phone' => $request->phone,
             'company' => $request->company,
             'status' => $request->status ?? 'active', // Assuming detail says authorized/approved?
@@ -67,7 +67,6 @@ class AdminClientController extends Controller
     public function edit($id)
     {
         $client = Client::findOrFail($id);
-        
 
         return view('admin.clients.edit', compact('client'));
     }
@@ -75,11 +74,10 @@ class AdminClientController extends Controller
     public function update(Request $request, $id)
     {
         $client = Client::findOrFail($id);
-        
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:clients,email,' . $id . '|unique:users',
+            'email' => 'required|string|email|max:255|unique:clients,email,'.$id.'|unique:users',
             'password' => 'nullable|string|min:8',
             'phone' => 'nullable|string|max:20',
             'company' => 'nullable|string|max:255',
@@ -106,7 +104,6 @@ class AdminClientController extends Controller
     public function destroy($id)
     {
         $client = Client::findOrFail($id);
-        
 
         // Check for tickets
         if ($client->tickets()->exists()) {

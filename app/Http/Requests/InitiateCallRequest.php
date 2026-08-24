@@ -14,7 +14,7 @@ class InitiateCallRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'receiver_id' => 'required|exists:users,id|different:' . auth()->id(),
+            'receiver_id' => 'required|exists:users,id|different:'.auth()->id(),
             'mode' => 'required|string|in:audio,video',
         ];
     }

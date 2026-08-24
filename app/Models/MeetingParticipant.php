@@ -10,13 +10,19 @@ class MeetingParticipant extends Model
     use HasFactory;
 
     const ROLE_HOST = 'host';
+
     const ROLE_PARTICIPANT = 'participant';
 
     const STATUS_INVITED = 'invited';
+
     const STATUS_RINGING = 'ringing';
+
     const STATUS_ACCEPTED = 'accepted';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_JOINED = 'joined';
+
     const STATUS_LEFT = 'left';
 
     protected $fillable = [

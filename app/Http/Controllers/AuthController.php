@@ -34,16 +34,19 @@ class AuthController extends Controller
         // First attempt as Super Admin using 'admin' guard
         if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password], $request->boolean('remember'))) {
             $request->session()->regenerate();
+
             return redirect()->route('dashboard');
         }
 
         // Attempt as Client using 'client' guard
         if (Auth::guard('client')->attempt(['email' => $request->email, 'password' => $request->password], $request->boolean('remember'))) {
-            if (!Auth::guard('client')->user()->is_approved) {
+            if (! Auth::guard('client')->user()->is_approved) {
                 Auth::guard('client')->logout();
+
                 return redirect()->back()->withInput()->with('error', 'Your account is pending admin approval.');
             }
             $request->session()->regenerate();
+
             return redirect()->route('client.dashboard');
         }
 
@@ -68,16 +71,18 @@ class AuthController extends Controller
         $otp = rand(100000, 999999);
         $user->update([
             'otp' => $otp,
-            'otp_expires_at' => now()->addMinutes(10)
+            'otp_expires_at' => now()->addMinutes(10),
         ]);
 
         try {
-            \Illuminate\Support\Facades\Mail::raw("Your OTP is: " . $otp, function ($message) use ($user) {
-                $message->to($user->email)->subject("Verify your Email OTP");
+            \Illuminate\Support\Facades\Mail::raw('Your OTP is: '.$otp, function ($message) use ($user) {
+                $message->to($user->email)->subject('Verify your Email OTP');
             });
+
             return true;
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to send OTP to: " . $user->email . " - " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Failed to send OTP to: '.$user->email.' - '.$e->getMessage());
+
             return false;
         }
     }
@@ -113,12 +118,13 @@ class AuthController extends Controller
 
         $mailSent = $this->sendOtp($user);
 
-        if (!$mailSent) {
+        if (! $mailSent) {
             $user->update([
                 'email_verified_at' => now(),
                 'otp' => null,
-                'otp_expires_at' => null
+                'otp_expires_at' => null,
             ]);
+
             return redirect()->route('loginPage')->with('success', 'Registration successful! Please wait for admin approval before logging in.');
         }
 
@@ -153,17 +159,18 @@ class AuthController extends Controller
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
             'is_approved' => false, // Requires admin approval
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         $mailSent = $this->sendOtp($user);
 
-        if (!$mailSent) {
+        if (! $mailSent) {
             $user->update([
                 'email_verified_at' => now(),
                 'otp' => null,
-                'otp_expires_at' => null
+                'otp_expires_at' => null,
             ]);
+
             return redirect()->route('loginPage')->with('success', 'Client registration successful! Please wait for admin approval before logging in.');
         }
 
@@ -179,22 +186,22 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'otp' => 'required|string'
+            'otp' => 'required|string',
         ]);
 
         $user = User::where('email', $request->email)->first();
         $isClient = false;
 
-        if (!$user) {
+        if (! $user) {
             $user = \App\Models\Client::where('email', $request->email)->first();
             $isClient = true;
         }
 
-        if (!$user) {
+        if (! $user) {
             return back()->with('error', 'User not found.');
         }
 
-        if (!$user->otp || (string)$user->otp !== (string)$request->otp) {
+        if (! $user->otp || (string) $user->otp !== (string) $request->otp) {
             return back()->with('error', 'Invalid OTP.');
         }
 
@@ -205,7 +212,7 @@ class AuthController extends Controller
         $user->update([
             'email_verified_at' => now(),
             'otp' => null,
-            'otp_expires_at' => null
+            'otp_expires_at' => null,
         ]);
 
         return redirect()->route('loginPage')->with('success', 'Email verified successfully! Please wait for admin approval before logging in.');
@@ -214,30 +221,31 @@ class AuthController extends Controller
     public function resendOtp(Request $request)
     {
         $request->validate([
-            'email' => 'required|email'
+            'email' => 'required|email',
         ]);
 
         $user = User::where('email', $request->email)->first();
-        if (!$user) {
+        if (! $user) {
             $user = \App\Models\Client::where('email', $request->email)->first();
         }
 
-        if (!$user) {
+        if (! $user) {
             return back()->with('error', 'User not found.');
         }
-        
+
         if ($user->email_verified_at) {
             return redirect()->route('loginPage')->with('success', 'Email is already verified.');
         }
 
         $mailSent = $this->sendOtp($user);
 
-        if (!$mailSent) {
+        if (! $mailSent) {
             $user->update([
                 'email_verified_at' => now(),
                 'otp' => null,
-                'otp_expires_at' => null
+                'otp_expires_at' => null,
             ]);
+
             return redirect()->route('loginPage')->with('success', 'Email verified automatically (SMTP not configured). Please wait for admin approval before logging in.');
         }
 

@@ -15,7 +15,7 @@ class TicketController extends Controller
     public function index(Request $request)
     {
         $query = Ticket::with('user', 'assignedTo')->latest();
-        
+
         $user = auth()->user();
         $isTicketAdmin = $user->hasRole('super-admin') || $user->hasRole('admin') || $user->hasPermission('tickets.view_all');
         if (! $isTicketAdmin) {

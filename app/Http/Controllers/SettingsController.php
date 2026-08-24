@@ -106,34 +106,34 @@ class SettingsController extends Controller
             $icon512Src = $hasCustomPwaIcon ? '/icons/pwa-512x512.png' : '/icons/icon-512x512.png';
 
             $manifestData = [
-                "name" => $appName,
-                "short_name" => $appName,
-                "description" => "WhatsApp-style Chat, Audio/Video Meetings & Task Management Platform",
-                "start_url" => "/admin/chat",
-                "scope" => "/",
-                "display" => "standalone",
-                "background_color" => "#0b141a",
-                "theme_color" => "#00a884",
-                "orientation" => "any",
-                "icons" => [
+                'name' => $appName,
+                'short_name' => $appName,
+                'description' => 'WhatsApp-style Chat, Audio/Video Meetings & Task Management Platform',
+                'start_url' => '/admin/chat',
+                'scope' => '/',
+                'display' => 'standalone',
+                'background_color' => '#0b141a',
+                'theme_color' => '#00a884',
+                'orientation' => 'any',
+                'icons' => [
                     [
-                        "src" => $icon192Src,
-                        "sizes" => "192x192",
-                        "type" => "image/png",
-                        "purpose" => "any maskable"
+                        'src' => $icon192Src,
+                        'sizes' => '192x192',
+                        'type' => 'image/png',
+                        'purpose' => 'any maskable',
                     ],
                     [
-                        "src" => $icon512Src,
-                        "sizes" => "512x512",
-                        "type" => "image/png",
-                        "purpose" => "any maskable"
-                    ]
-                ]
+                        'src' => $icon512Src,
+                        'sizes' => '512x512',
+                        'type' => 'image/png',
+                        'purpose' => 'any maskable',
+                    ],
+                ],
             ];
 
             file_put_contents(public_path('manifest.json'), json_encode($manifestData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to update manifest.json: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Failed to update manifest.json: '.$e->getMessage());
         }
     }
 
@@ -141,8 +141,9 @@ class SettingsController extends Controller
     {
         try {
             $info = @getimagesize($sourcePath);
-            if (!$info)
+            if (! $info) {
                 return false;
+            }
 
             $mime = $info['mime'];
             switch ($mime) {
@@ -159,8 +160,9 @@ class SettingsController extends Controller
                     return false;
             }
 
-            if (!$srcImg)
+            if (! $srcImg) {
                 return false;
+            }
 
             $origW = imagesx($srcImg);
             $origH = imagesy($srcImg);
@@ -168,7 +170,7 @@ class SettingsController extends Controller
             // Create 192x192 & 512x512 square icons with dark background (#0b141a) or transparency
             $sizes = [192 => $target192, 512 => $target512];
 
-            if (!file_exists(dirname($target192))) {
+            if (! file_exists(dirname($target192))) {
                 mkdir(dirname($target192), 0755, true);
             }
 
@@ -201,9 +203,11 @@ class SettingsController extends Controller
             }
 
             imagedestroy($srcImg);
+
             return true;
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Error generating PWA icons: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Error generating PWA icons: '.$e->getMessage());
+
             return false;
         }
     }
@@ -227,20 +231,20 @@ class SettingsController extends Controller
         ]);
 
         // Validate SMTP connectivity if host is provided
-        if (!empty($data['smtp_host'])) {
+        if (! empty($data['smtp_host'])) {
             try {
                 $this->testSmtpConnection($data);
             } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['smtp_host' => 'SMTP Connection failed: ' . $e->getMessage()]);
+                return back()->withInput()->withErrors(['smtp_host' => 'SMTP Connection failed: '.$e->getMessage()]);
             }
         }
 
         // Validate IMAP connectivity
-        if (!empty($data['imap_host'])) {
+        if (! empty($data['imap_host'])) {
             try {
                 $this->testImapConnection($data);
             } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['imap_host' => 'IMAP Connection failed: ' . $e->getMessage()]);
+                return back()->withInput()->withErrors(['imap_host' => 'IMAP Connection failed: '.$e->getMessage()]);
             }
         }
 
