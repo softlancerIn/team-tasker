@@ -757,7 +757,7 @@ new class extends Component {
     @if ($conversation)
 
         <!-- Header -->
-        <div class="position-relative" x-data="{ openMobileSearch: false }" @toggle-mobile-search.window="openMobileSearch = !openMobileSearch; if(openMobileSearch) $nextTick(() => $refs.mobileSearchInput?.focus())">
+        <div class="position-relative sticky-top" style="position: sticky; top: 0; z-index: 100;" x-data="{ openMobileSearch: false }" @toggle-mobile-search.window="openMobileSearch = !openMobileSearch; if(openMobileSearch) $nextTick(() => $refs.mobileSearchInput?.focus())">
             <div class="p-3 border-bottom border-main d-flex justify-content-between align-items-center"
                 wire:key="chat-header-{{ $conversation->id }}" style="min-height: 73px; background: var(--bg-surface);"
                 x-data="{
@@ -1238,7 +1238,7 @@ new class extends Component {
                             style="font-size: 0.65rem; color: var(--text-low);">
                             <span>{{ \Carbon\Carbon::parse($createdAt)->format('H:i') }}</span>
                             @if ($isMe)
-                                @if ($isRead)
+                                @if ($isRead || ($receiver && $receiver->id == $myGuardId))
                                     <i class="fas fa-check-double text-primary"></i>
                                 @elseif ($message['delivered_at'] ?? ($message->delivered_at ?? false))
                                     <i class="fas fa-check-double text-low"></i>
