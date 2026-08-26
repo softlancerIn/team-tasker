@@ -430,6 +430,9 @@ new class extends Component {
                 });
                 if ($this->receiver) $this->receiver->is_client = true;
             }
+            if (!$this->receiver) {
+                $this->receiver = $this->conversation->participants->first() ?? $this->conversation->clientParticipants->first();
+            }
         } else {
             $this->receiver = null;
         }
@@ -754,254 +757,273 @@ new class extends Component {
     @if ($conversation)
 
         <!-- Header -->
-        <div class="p-3 border-bottom border-main d-flex justify-content-between align-items-center"
-            wire:key="chat-header-{{ $conversation->id }}" style="min-height: 73px; background: var(--bg-surface);"
-            x-data="{
-                status: 'Offline',
-                statusText: 'Offline',
-                statusColor: '#6b7280',
-                isTyping: false,
-                typingUser: '',
-                typingTimeout: null,
-                userId: {{ $conversation->type == 'private' && $receiver ? $receiver->id : 'null' }},
-                conversationId: '{{ $conversation->id }}',
-                currentUserId: {{ auth()->id() }},
-                updatePresence(users, statuses) {
-                    if (!this.userId) return;
-                    const normStatuses = statuses || window.userStatuses || {};
-                    const st = normStatuses[this.userId] || normStatuses[String(this.userId)];
-                    const normUsers = (users || window.onlineUsers || []).map(Number);
-                    const targetId = Number(this.userId);
-                    
-                    if (st === 'away') { 
-                        this.statusText = 'Away'; 
-                        this.statusColor = '#f59e0b'; 
-                    } else if (st === 'busy') { 
-                        this.statusText = 'Busy'; 
-                        this.statusColor = '#ea4335'; 
-                    } else if (st === 'offline') { 
-                        this.statusText = 'Offline'; 
-                        this.statusColor = '#6b7280'; 
-                    } else if (st === 'online' || normUsers.includes(targetId)) {
-                        this.statusText = 'Online'; 
-                        this.statusColor = '#00a884';
-                    } else {
-                        this.statusText = 'Offline'; 
-                        this.statusColor = '#6b7280';
-                    }
-                },
-                init() {
-                    if (this.userId) {
-                        this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
-
-                        window.addEventListener('online-users-updated', (e) => {
-                            this.updatePresence(e.detail, window.userStatuses || {});
-                        });
-                        window.addEventListener('all-user-statuses-updated', (e) => {
-                            this.updatePresence(window.onlineUsers || [], e.detail || {});
-                        });
-                        window.addEventListener('user-status-changed-event', (e) => {
+        <div class="position-relative" x-data="{ openMobileSearch: false }" @toggle-mobile-search.window="openMobileSearch = !openMobileSearch; if(openMobileSearch) $nextTick(() => $refs.mobileSearchInput?.focus())">
+            <div class="p-3 border-bottom border-main d-flex justify-content-between align-items-center"
+                wire:key="chat-header-{{ $conversation->id }}" style="min-height: 73px; background: var(--bg-surface);"
+                x-data="{
+                    status: 'Offline',
+                    statusText: 'Offline',
+                    statusColor: '#6b7280',
+                    isTyping: false,
+                    typingUser: '',
+                    typingTimeout: null,
+                    userId: {{ $conversation->type == 'private' && $receiver ? $receiver->id : 'null' }},
+                    conversationId: '{{ $conversation->id }}',
+                    currentUserId: {{ auth()->id() }},
+                    updatePresence(users, statuses) {
+                        if (!this.userId) return;
+                        const normStatuses = statuses || window.userStatuses || {};
+                        const st = normStatuses[this.userId] || normStatuses[String(this.userId)];
+                        const normUsers = (users || window.onlineUsers || []).map(Number);
+                        const targetId = Number(this.userId);
+                        
+                        if (st === 'away') { 
+                            this.statusText = 'Away'; 
+                            this.statusColor = '#f59e0b'; 
+                        } else if (st === 'busy') { 
+                            this.statusText = 'Busy'; 
+                            this.statusColor = '#ea4335'; 
+                        } else if (st === 'offline') { 
+                            this.statusText = 'Offline'; 
+                            this.statusColor = '#6b7280'; 
+                        } else if (st === 'online') { 
+                            this.statusText = 'Online'; 
+                            this.statusColor = '#00a884';
+                        } else if (normUsers.includes(targetId)) {
+                            this.statusText = 'Online'; 
+                            this.statusColor = '#00a884';
+                        } else {
+                            this.statusText = 'Offline'; 
+                            this.statusColor = '#6b7280';
+                        }
+                    },
+                    init() {
+                        if (this.userId) {
                             this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
-                        });
-                    }
-            
-                    window.addEventListener('user-typing-indicator', (event) => {
-                        const roomMatch = String(event.detail.room) === String(this.conversationId);
-                        const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
-            
-                        console.log('Typing event in header:', {
-                            roomMatch,
-                            isNotMe,
-                            eventRoom: event.detail.room,
-                            myRoom: this.conversationId,
-                            eventUser: event.detail.userId,
-                            me: this.currentUserId
-                        });
-            
-                        if (roomMatch && isNotMe) {
-                            this.isTyping = true;
-                            this.typingUser = event.detail.userName;
-            
-                            if (this.typingTimeout) clearTimeout(this.typingTimeout);
-                            this.typingTimeout = setTimeout(() => {
-                                this.isTyping = false;
-                            }, 3000);
-                        }
-                    });
-            
-                    window.addEventListener('user-stop-typing-indicator', (event) => {
-                        const roomMatch = String(event.detail.room) === String(this.conversationId);
-                        const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
-            
-                        if (roomMatch && isNotMe) {
-                            this.isTyping = false;
-                        }
-                    });
 
-                    window.addEventListener('message-sent-successfully', (event) => {
-                        setTimeout(() => {
-                            let msgId = event.detail[0]?.messageId || event.detail?.messageId;
-                            @this.call('checkAndSendPushNotification', msgId);
-                        }, 3000);
-                    });
-                }
-            }">
-            <div class="d-flex align-items-center">
-                <!-- Mobile Back Button -->
-                <button class="btn btn-link p-0 me-3 d-md-none text-high" wire:click="$dispatch('backToUserList')"
-                    style="font-size: 1.2rem; border: none; background: none;">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                @if ($conversation->type == 'group' || $conversation->type == 'client_group')
-                    <div class="avatar-premium me-3" style="width: 45px; height: 45px; background: var(--bg-input);">
-                        <i class="fas fa-users" style="color: var(--primary);"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $conversation->name }}</h6>
-                        <small x-show="!isTyping"
-                            style="color: var(--text-low); font-size: 0.75rem;">{{ $conversation->participants->count() }}
-                            members</small>
-                        <small x-show="isTyping" class="text-primary fw-bold"
-                            style="font-size: 0.75rem; font-style: italic;" x-cloak
-                            x-text="typingUser + ' is typing...'"></small>
-                    </div>
-                @else
-                    @php
-                        $isClientGuard = Auth::guard('client')->check();
-                        $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
-                        
-                        // Look for other staff participant
-                        $otherParticipant = $conversation->participants->first(function($p) use ($myId, $isClientGuard) {
-                            return !(!$isClientGuard && $p->id == $myId);
-                        });
-                        
-                        // If no staff participant found (or if looking for client), look for client participant
-                        if (!$otherParticipant) {
-                            $otherParticipant = $conversation->clientParticipants->first(function($cp) use ($myId, $isClientGuard) {
-                                return !($isClientGuard && $cp->id == $myId);
+                            window.addEventListener('online-users-updated', (e) => {
+                                this.updatePresence(e.detail, window.userStatuses || {});
+                            });
+                            window.addEventListener('all-user-statuses-updated', (e) => {
+                                this.updatePresence(window.onlineUsers || [], e.detail || {});
+                            });
+                            window.addEventListener('user-status-changed-event', (e) => {
+                                this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
                             });
                         }
-                    @endphp
-                    @if ($otherParticipant)
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-premium" style="width: 45px; height: 45px;">
-                                @if ($otherParticipant->profile_image)
-                                    <img alt="team-tasker" src="{{ asset('storage/' . $otherParticipant->profile_image) }}"
-                                        alt="Avatar">
-                                @else
-                                    {{ substr($otherParticipant->name ?? 'U', 0, 1) }}
-                                @endif
-                            </div>
-                            <div class="ms-3">
-                                <h6 class="mb-0 fw-bold" style="color: var(--text-high);">
-                                    {{ $otherParticipant->name ?? 'User' }}</h6>
-                                <div class="d-flex align-items-center gap-1">
-                                    <span class="rounded-circle" x-show="!isTyping"
-                                        :style="'width: 8px; height: 8px; background-color: ' + statusColor"></span>
-                                    <small x-show="!isTyping" :style="'font-size: 0.7rem; color: ' + statusColor" x-text="statusText"></small>
+                
+                        window.addEventListener('user-typing-indicator', (event) => {
+                            const roomMatch = String(event.detail.room) === String(this.conversationId);
+                            const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
+                
+                            if (roomMatch && isNotMe) {
+                                this.isTyping = true;
+                                this.typingUser = event.detail.userName;
+                
+                                if (this.typingTimeout) clearTimeout(this.typingTimeout);
+                                this.typingTimeout = setTimeout(() => {
+                                    this.isTyping = false;
+                                }, 3000);
+                            }
+                        });
+                
+                        window.addEventListener('user-stop-typing-indicator', (event) => {
+                            const roomMatch = String(event.detail.room) === String(this.conversationId);
+                            const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
+                
+                            if (roomMatch && isNotMe) {
+                                this.isTyping = false;
+                            }
+                        });
 
-                                    <small x-show="isTyping" class="text-primary fw-bold"
-                                        style="font-size: 0.75rem; font-style: italic;"
-                                        x-text="typingUser + ' is typing...'"></small>
-                                </div>
-                            </div>
+                        window.addEventListener('message-sent-successfully', (event) => {
+                            setTimeout(() => {
+                                let msgId = event.detail[0]?.messageId || event.detail?.messageId;
+                                @this.call('checkAndSendPushNotification', msgId);
+                            }, 3000);
+                        });
+                    }
+                }">
+                <div class="d-flex align-items-center">
+                    <!-- Mobile Back Button -->
+                    <button class="btn btn-link p-0 me-3 d-md-none text-high" wire:click="$dispatch('backToUserList')"
+                        style="font-size: 1.2rem; border: none; background: none;">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    @if ($conversation->type == 'group' || $conversation->type == 'client_group')
+                        <div class="avatar-premium me-3" style="width: 45px; height: 45px; background: var(--bg-input);">
+                            <i class="fas fa-users" style="color: var(--primary);"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="color: var(--text-high);">{{ $conversation->name }}</h6>
+                            <small x-show="!isTyping"
+                                style="color: var(--text-low); font-size: 0.75rem;">{{ $conversation->participants->count() }}
+                                members</small>
+                            <small x-show="isTyping" class="text-primary fw-bold"
+                                style="font-size: 0.75rem; font-style: italic;" x-cloak
+                                x-text="typingUser + ' is typing...'"></small>
                         </div>
                     @else
-                        <h6 class="mb-0 fw-bold" style="color: var(--text-high);">Chat</h6>
+                        @php
+                            $isClientGuard = Auth::guard('client')->check();
+                            $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
+                            
+                            // Look for other staff participant
+                            $otherParticipant = $conversation->participants->first(function($p) use ($myId, $isClientGuard) {
+                                return !(!$isClientGuard && $p->id == $myId);
+                            });
+                            
+                            // If no other staff participant found, look for client participant
+                            if (!$otherParticipant) {
+                                $otherParticipant = $conversation->clientParticipants->first(function($cp) use ($myId, $isClientGuard) {
+                                    return !($isClientGuard && $cp->id == $myId);
+                                });
+                            }
+
+                            // If still null (self-message scenario), use the logged-in user themselves
+                            if (!$otherParticipant) {
+                                $otherParticipant = $conversation->participants->first() ?? $conversation->clientParticipants->first();
+                            }
+                        @endphp
+                        @if ($otherParticipant)
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-premium" style="width: 45px; height: 45px;">
+                                    @if ($otherParticipant->profile_image)
+                                        <img alt="team-tasker" src="{{ asset('storage/' . $otherParticipant->profile_image) }}"
+                                            alt="Avatar">
+                                    @else
+                                        {{ substr($otherParticipant->name ?? 'U', 0, 1) }}
+                                    @endif
+                                </div>
+                                <div class="ms-3">
+                                    <h6 class="mb-0 fw-bold" style="color: var(--text-high);">
+                                        {{ $otherParticipant->name ?? 'User' }} {{ $otherParticipant->id == $myId ? '(You)' : '' }}</h6>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="rounded-circle" x-show="!isTyping"
+                                            :style="'width: 8px; height: 8px; background-color: ' + statusColor"></span>
+                                        <small x-show="!isTyping" :style="'font-size: 0.7rem; color: ' + statusColor" x-text="statusText"></small>
+
+                                        <small x-show="isTyping" class="text-primary fw-bold"
+                                            style="font-size: 0.75rem; font-style: italic;"
+                                            x-text="typingUser + ' is typing...'"></small>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <h6 class="mb-0 fw-bold" style="color: var(--text-high);">Chat</h6>
+                        @endif
                     @endif
-                @endif
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    @if (Auth::user()->hasPermission('meetings.join'))
+                        @if ($conversation->type == 'private' && $receiver)
+                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
+                                type="button"
+                                title="Audio Call"
+                                onclick="initiateDirectCall({{ $receiver->id }}, 'audio', '{{ addslashes($receiver->name) }}', {{ $conversation->id }})"
+                                style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
+                                <i class="fas fa-phone-alt" style="font-size: 0.85rem;"></i>
+                            </button>
+
+                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" 
+                                type="button"
+                                title="Video Call"
+                                onclick="initiateDirectCall({{ $receiver->id }}, 'video', '{{ addslashes($receiver->name) }}', {{ $conversation->id }})"
+                                style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
+                                <i class="fas fa-video" style="font-size: 0.85rem;"></i>
+                            </button>
+                        @elseif ($conversation->type == 'group' || $conversation->type == 'client_group')
+                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
+                                type="button"
+                                title="Group Audio Call"
+                                onclick="initiateGroupCall({{ $conversation->id }}, 'audio', '{{ addslashes($conversation->name ?? 'Group') }}')"
+                                style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
+                                <i class="fas fa-phone-alt" style="font-size: 0.85rem;"></i>
+                            </button>
+
+                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" 
+                                type="button"
+                                title="Group Video Call"
+                                onclick="initiateGroupCall({{ $conversation->id }}, 'video', '{{ addslashes($conversation->name ?? 'Group') }}')"
+                                style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
+                                <i class="fas fa-video" style="font-size: 0.85rem;"></i>
+                            </button>
+                        @endif
+                    @endif
+
+                    <div class="search-container-premium d-none d-md-block" style="width: 200px;">
+                        <i class="fas fa-search search-icon-premium" style="font-size: 0.8rem;"></i>
+                        <input type="text" wire:model.live="searchQuery" class="form-premium-control ps-5 py-1"
+                            placeholder="Search message..." style="font-size: 0.8rem;">
+                    </div>
+                    
+                    <div class="dropdown">
+                        <button class="btn-premium btn-premium-secondary p-0 rounded-circle" type="button"
+                            data-bs-toggle="dropdown"
+                            style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--bg-input);">
+                            <i class="fas fa-ellipsis-v" style="font-size: 0.8rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-premium border-main"
+                            style="background: var(--bg-surface);">
+                            <li class="d-md-none">
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                    @click.prevent="$dispatch('toggle-mobile-search')" style="color: var(--text-high);">
+                                    <i class="fas fa-search" style="font-size: 0.8rem;"></i> <span>Search Messages</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger d-flex align-items-center gap-2 py-2" href="#"
+                                    wire:click.prevent="clearChatHistory"
+                                    wire:confirm="Are you sure? This will delete all messages for everyone in this chat.">
+                                    <i class="fas fa-trash-alt" style="font-size: 0.8rem;"></i> <span>Clear Chat
+                                        History</span>
+                                </a>
+                            </li>
+                            @if ($conversation->type != 'private')
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                        wire:click.prevent="$dispatch('openEditGroupModal', { conversationId: {{ $conversation->id }} })" style="color: var(--text-high);">
+                                        <i class="fas fa-edit" style="font-size: 0.8rem;"></i> <span>Edit Group</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                        wire:click.prevent="$set('showGroupInfo', true)" style="color: var(--text-high);">
+                                        <i class="fas fa-info-circle" style="font-size: 0.8rem;"></i> <span>Group
+                                            Info</span>
+                                    </a>
+                                </li>
+                            @endif
+                            <li>
+                                @if ($isBlocked)
+                                    <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                        wire:click.prevent="unblockUser" style="color: var(--text-high);">
+                                        <i class="fas fa-user-check" style="font-size: 0.8rem;"></i> <span>Unblock
+                                            User</span>
+                                    </a>
+                                @else
+                                    <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                        wire:click.prevent="blockUser"
+                                        wire:confirm="Are you sure you want to block this user?"
+                                        style="color: var(--text-high);">
+                                        <i class="fas fa-user-slash" style="font-size: 0.8rem;"></i> <span>Block User</span>
+                                    </a>
+                                @endif
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
-            <div class="d-flex align-items-center gap-2">
-                @if (Auth::user()->hasPermission('meetings.join'))
-                    @if ($conversation->type == 'private' && $receiver)
-                        <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
-                            type="button"
-                            title="Audio Call"
-                            onclick="initiateDirectCall({{ $receiver->id }}, 'audio', '{{ addslashes($receiver->name) }}', {{ $conversation->id }})"
-                            style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
-                            <i class="fas fa-phone-alt" style="font-size: 0.85rem;"></i>
-                        </button>
-
-                        <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" 
-                            type="button"
-                            title="Video Call"
-                            onclick="initiateDirectCall({{ $receiver->id }}, 'video', '{{ addslashes($receiver->name) }}', {{ $conversation->id }})"
-                            style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
-                            <i class="fas fa-video" style="font-size: 0.85rem;"></i>
-                        </button>
-                    @elseif ($conversation->type == 'group' || $conversation->type == 'client_group')
-                        <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
-                            type="button"
-                            title="Group Audio Call"
-                            onclick="initiateGroupCall({{ $conversation->id }}, 'audio', '{{ addslashes($conversation->name ?? 'Group') }}')"
-                            style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
-                            <i class="fas fa-phone-alt" style="font-size: 0.85rem;"></i>
-                        </button>
-
-                        <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" 
-                            type="button"
-                            title="Group Video Call"
-                            onclick="initiateGroupCall({{ $conversation->id }}, 'video', '{{ addslashes($conversation->name ?? 'Group') }}')"
-                            style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
-                            <i class="fas fa-video" style="font-size: 0.85rem;"></i>
-                        </button>
-                    @endif
-                @endif
-
-                <div class="search-container-premium" style="width: 200px;">
-                    <i class="fas fa-search search-icon-premium" style="font-size: 0.8rem;"></i>
-                    <input type="text" wire:model.live="searchQuery" class="form-premium-control ps-5 py-1"
-                        placeholder="Search message..." style="font-size: 0.8rem;">
-                </div>
-                <div class="dropdown">
-                    <button class="btn-premium btn-premium-secondary p-0 rounded-circle" type="button"
-                        data-bs-toggle="dropdown"
-                        style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--bg-input);">
-                        <i class="fas fa-ellipsis-v" style="font-size: 0.8rem;"></i>
+            <!-- Mobile Search Bar Sub-Header Row -->
+            <div x-show="openMobileSearch" x-cloak class="p-2 border-bottom border-main shadow-sm d-md-none" style="background: var(--bg-surface);">
+                <div class="search-container-premium w-100 position-relative">
+                    <i class="fas fa-search search-icon-premium" style="font-size: 0.8rem; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-low);"></i>
+                    <input type="text" x-ref="mobileSearchInput" wire:model.live="searchQuery" class="form-premium-control ps-5 py-1 pe-5" placeholder="Search message..." style="font-size: 0.85rem; width: 100%;">
+                    <button type="button" class="btn btn-sm text-low position-absolute end-0 top-50 translate-middle-y me-2 p-0 border-0 bg-transparent" @click="openMobileSearch = false; $wire.set('searchQuery', '')">
+                        <i class="fas fa-times"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-premium border-main"
-                        style="background: var(--bg-surface);">
-                        <li>
-                            <a class="dropdown-item text-danger d-flex align-items-center gap-2 py-2" href="#"
-                                wire:click.prevent="clearChatHistory"
-                                wire:confirm="Are you sure? This will delete all messages for everyone in this chat.">
-                                <i class="fas fa-trash-alt" style="font-size: 0.8rem;"></i> <span>Clear Chat
-                                    History</span>
-                            </a>
-                        </li>
-                        @if ($conversation->type != 'private')
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
-                                    wire:click.prevent="$dispatch('openEditGroupModal', { conversationId: {{ $conversation->id }} })" style="color: var(--text-high);">
-                                    <i class="fas fa-edit" style="font-size: 0.8rem;"></i> <span>Edit Group</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
-                                    wire:click.prevent="$set('showGroupInfo', true)" style="color: var(--text-high);">
-                                    <i class="fas fa-info-circle" style="font-size: 0.8rem;"></i> <span>Group
-                                        Info</span>
-                                </a>
-                            </li>
-                        @endif
-                        <li>
-                            @if ($isBlocked)
-                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
-                                    wire:click.prevent="unblockUser" style="color: var(--text-high);">
-                                    <i class="fas fa-user-check" style="font-size: 0.8rem;"></i> <span>Unblock
-                                        User</span>
-                                </a>
-                            @else
-                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
-                                    wire:click.prevent="blockUser"
-                                    wire:confirm="Are you sure you want to block this user?"
-                                    style="color: var(--text-high);">
-                                    <i class="fas fa-user-slash" style="font-size: 0.8rem;"></i> <span>Block User</span>
-                                </a>
-                            @endif
-                        </li>
-                    </ul>
                 </div>
             </div>
         </div>
@@ -1026,7 +1048,7 @@ new class extends Component {
                 </div>
             @endif
 
-            @foreach ($messages as $message)
+            @foreach ($this->filteredMessages as $message)
                 @php
                     // Handle both array (from toArray()) and object (from persistent collection) if mixed
                     $isClientGuard = \Illuminate\Support\Facades\Auth::guard('client')->check();

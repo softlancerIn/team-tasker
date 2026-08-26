@@ -167,8 +167,8 @@ new class extends Component {
 
             $clients = collect(); // empty for clients looking at staff
         } else {
-            // Staff looking at Staff
-            $usersQuery = User::where('id', '!=', $userId);
+            // Staff looking at Staff (including self message option)
+            $usersQuery = User::query();
 
             $staffPermissions = \Illuminate\Support\Facades\DB::table('chat_user_permissions')
                 ->where('user_id', $userId)
@@ -224,10 +224,22 @@ new class extends Component {
             // Determine if target is client
             $targetIsClient = false;
 
-            $conversation = $myPrivateConversations->first(function ($c) use ($targetUser, $targetIsClient) {
-                return $c->participants->contains(function ($p) use ($targetUser, $targetIsClient) {
-                    return !$targetIsClient && $p->pivot->user_id == $targetUser->id;
+            $conversation = $myPrivateConversations->first(function ($c) use ($targetUser, $targetIsClient, $userId, $isClientGuard) {
+                if ($targetUser->id == $userId && !$isClientGuard) {
+                    // Self-conversation: has only 1 participant (me) or only me as user participant
+                    $userParticipants = $c->participants->pluck('pivot.user_id')->filter()->toArray();
+                    $clientParticipants = $c->clientParticipants->pluck('pivot.client_id')->filter()->toArray();
+                    return empty($clientParticipants) && count($userParticipants) === 1 && $userParticipants[0] == $userId;
+                }
+
+                // Regular 2-person conversation: contains target user AND contains another user/client (not just me alone)
+                $hasTarget = $c->participants->contains(function ($p) use ($targetUser) {
+                    return $p->pivot->user_id == $targetUser->id;
                 });
+                
+                $userCount = $c->participants->count();
+                $clientCount = $c->clientParticipants->count();
+                return $hasTarget && ($userCount + $clientCount > 1);
             });
 
             if ($conversation) {
@@ -273,6 +285,7 @@ new class extends Component {
             'clients' => $clients,
             'isClient' => $isClient,
             'isSuperAdmin' => $isSuperAdmin,
+            'authId' => $userId,
         ];
     }
 
@@ -283,37 +296,67 @@ new class extends Component {
         $isClientGuard = Auth::guard('client')->check();
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
 
-        // Find or create private conversation
-        $conversation = Conversation::where('type', 'private')
-            ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function ($q) use ($myId, $isClientGuard) {
-                if ($isClientGuard) {
-                    $q->where('conversation_participants.client_id', $myId);
-                } else {
-                    $q->where('conversation_participants.user_id', $myId);
-                }
-            })
-            ->whereHas($isClientTarget ? 'clientParticipants' : 'participants', function ($q) use ($userId, $isClientTarget) {
-                if ($isClientTarget) {
-                    $q->where('conversation_participants.client_id', $userId);
-                } else {
-                    $q->where('conversation_participants.user_id', $userId);
-                }
-            })
-            ->first();
+        $isSelfChat = ($userId == $myId && $isClientGuard == $isClientTarget);
 
-        if (!$conversation) {
-            $conversation = Conversation::create(['type' => 'private']);
-            // Attach me
-            if ($isClientGuard) {
-                $conversation->participants()->attach([$myId], ['client_id' => $myId, 'user_id' => null]);
-            } else {
-                $conversation->participants()->attach([$myId], ['user_id' => $myId, 'client_id' => null]);
+        if ($isSelfChat) {
+            // Find existing self-conversation
+            $conversation = Conversation::where('type', 'private')
+                ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function ($q) use ($myId, $isClientGuard) {
+                    if ($isClientGuard) {
+                        $q->where('conversation_participants.client_id', $myId);
+                    } else {
+                        $q->where('conversation_participants.user_id', $myId);
+                    }
+                })
+                ->get()
+                ->first(function ($c) {
+                    return ($c->participants->count() + $c->clientParticipants->count()) === 1;
+                });
+
+            if (!$conversation) {
+                $conversation = Conversation::create(['type' => 'private']);
+                if ($isClientGuard) {
+                    $conversation->participants()->attach([$myId], ['client_id' => $myId, 'user_id' => null]);
+                } else {
+                    $conversation->participants()->attach([$myId], ['user_id' => $myId, 'client_id' => null]);
+                }
             }
-            // Attach target
-            if ($isClientTarget) {
-                $conversation->participants()->attach([$userId], ['client_id' => $userId, 'user_id' => null]);
-            } else {
-                $conversation->participants()->attach([$userId], ['user_id' => $userId, 'client_id' => null]);
+        } else {
+            // Find or create private conversation between two different users
+            $conversation = Conversation::where('type', 'private')
+                ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function ($q) use ($myId, $isClientGuard) {
+                    if ($isClientGuard) {
+                        $q->where('conversation_participants.client_id', $myId);
+                    } else {
+                        $q->where('conversation_participants.user_id', $myId);
+                    }
+                })
+                ->whereHas($isClientTarget ? 'clientParticipants' : 'participants', function ($q) use ($userId, $isClientTarget) {
+                    if ($isClientTarget) {
+                        $q->where('conversation_participants.client_id', $userId);
+                    } else {
+                        $q->where('conversation_participants.user_id', $userId);
+                    }
+                })
+                ->get()
+                ->first(function ($c) {
+                    return ($c->participants->count() + $c->clientParticipants->count()) > 1;
+                });
+
+            if (!$conversation) {
+                $conversation = Conversation::create(['type' => 'private']);
+                // Attach me
+                if ($isClientGuard) {
+                    $conversation->participants()->attach([$myId], ['client_id' => $myId, 'user_id' => null]);
+                } else {
+                    $conversation->participants()->attach([$myId], ['user_id' => $myId, 'client_id' => null]);
+                }
+                // Attach target
+                if ($isClientTarget) {
+                    $conversation->participants()->attach([$userId], ['client_id' => $userId, 'user_id' => null]);
+                } else {
+                    $conversation->participants()->attach([$userId], ['user_id' => $userId, 'client_id' => null]);
+                }
             }
         }
 
@@ -354,6 +397,7 @@ $authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::i
     openDirectMessages: true,
     openStaffGroups: true,
     onlineUsers: window.onlineUsers ? window.onlineUsers.map(String) : [],
+    userStatuses: window.userStatuses ? { ...window.userStatuses } : {},
     myStatus: localStorage.getItem('user_presence_status_' + {{ $authId ?? 0 }}) || 'online',
     init() {
         const mySaved = localStorage.getItem('user_presence_status_' + {{ $authId ?? 0 }}) || 'online';
@@ -369,13 +413,16 @@ $authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::i
         window.addEventListener('all-user-statuses-updated', (e) => {
             const incoming = e.detail || {};
             const saved = localStorage.getItem('user_presence_status_' + {{ $authId ?? 0 }}) || 'online';
-            this.myStatus = saved;
             this.userStatuses = {
                 ...this.userStatuses,
                 ...incoming,
                 [{{ $authId ?? 0 }}]: saved,
                 [String({{ $authId ?? 0 }})]: saved
             };
+            if (window.userStatuses) {
+                window.userStatuses[{{ $authId ?? 0 }}] = saved;
+                window.userStatuses[String({{ $authId ?? 0 }})] = saved;
+            }
         });
         window.addEventListener('user-status-changed-event', (e) => {
             if (e.detail && e.detail.userId) {
@@ -408,6 +455,14 @@ $authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::i
             window.userStatuses[String(myId)] = status;
         }
         localStorage.setItem('user_presence_status_' + myId, status);
+        
+        window.dispatchEvent(new CustomEvent('user-status-changed-event', {
+            detail: { userId: myId, status: status }
+        }));
+        window.dispatchEvent(new CustomEvent('all-user-statuses-updated', {
+            detail: window.userStatuses
+        }));
+
         if (window.socket) {
             window.socket.emit('update_status', { userId: myId, status: status });
         }
@@ -424,9 +479,10 @@ $authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::i
         if (st === 'away') return { color: '#f59e0b', label: 'Away', dot: '🟡' };
         if (st === 'busy') return { color: '#ea4335', label: 'Busy', dot: '🔴' };
         if (st === 'offline') return { color: '#6b7280', label: 'Offline', dot: '⚫' };
+        if (st === 'online') return { color: '#00a884', label: 'Online', dot: '🟢' };
 
         const isUserOnlineInSocket = (this.onlineUsers || []).map(Number).includes(uId);
-        if (isUserOnlineInSocket || st === 'online' || uId === myId) {
+        if (isUserOnlineInSocket || uId === myId) {
             return { color: '#00a884', label: 'Online', dot: '🟢' };
         }
 
@@ -556,7 +612,7 @@ $authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::i
                             <div class="ms-3 flex-grow-1 overflow-hidden">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                     <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
-                                        {{ $client->name }}
+                                        {{ $client->name }} {{ ($isClient && $client->id == ($authId ?? 0)) ? '(You)' : '' }}
                                     </h6>
                                     @if ($client->conversation && $client->conversation->unread_count > 0)
                                         <span class="badge-premium py-0 px-2 rounded-pill"
@@ -603,7 +659,7 @@ $authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::i
                     <div class="ms-3 flex-grow-1 overflow-hidden">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <h6 class="mb-0 fw-bold text-truncate" style="color: var(--text-high); font-size: 0.9rem;">
-                                {{ $user->name }}
+                                {{ $user->name }} {{ $user->id == ($authId ?? 0) ? '(You)' : '' }}
                             </h6>
                             @if ($user->conversation && $user->conversation->unread_count > 0)
                                 <span class="badge-premium py-0 px-2 rounded-pill"
@@ -708,4 +764,23 @@ $authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::i
             background-color: rgba(156, 163, 175, 0.5);
         }
     </style>
+
+    <script>
+        document.addEventListener('click', function (e) {
+            if (e.target && (e.target.id === 'chatMobileSidebarToggle' || e.target.closest('#chatMobileSidebarToggle'))) {
+                const sidebar = document.querySelector('.sidebar-premium');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar) {
+                    const isOpen = sidebar.classList.toggle('mobile-open');
+                    if (overlay) {
+                        if (isOpen) overlay.classList.add('show');
+                        else overlay.classList.remove('show');
+                    }
+                    if (typeof window.updateSidebarToggleIcons === 'function') {
+                        window.updateSidebarToggleIcons(isOpen);
+                    }
+                }
+            }
+        });
+    </script>
 </div>

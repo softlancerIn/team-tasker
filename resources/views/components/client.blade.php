@@ -584,17 +584,41 @@
                 </button>
 
                 <!-- User Profile -->
-                <div class="dropdown">
-                    <div class="user-profile-premium dropdown-toggle p-0 bg-transparent border-0" data-bs-toggle="dropdown"
+                <div class="dropdown" x-data="{
+                    myStatus: localStorage.getItem('user_presence_status_' + {{ Auth::guard('client')->id() }}) || 'online',
+                    getStatusColor() {
+                        if (this.myStatus === 'away') return '#f59e0b';
+                        if (this.myStatus === 'busy') return '#ea4335';
+                        if (this.myStatus === 'offline') return '#6b7280';
+                        return '#00a884';
+                    },
+                    init() {
+                        const updateStatus = (st) => {
+                            this.myStatus = st;
+                        };
+                        window.addEventListener('user-status-changed-event', (e) => {
+                            if (e.detail && Number(e.detail.userId) === Number({{ Auth::guard('client')->id() }})) {
+                                updateStatus(e.detail.status);
+                            }
+                        });
+                        window.addEventListener('all-user-statuses-updated', (e) => {
+                            const saved = localStorage.getItem('user_presence_status_' + {{ Auth::guard('client')->id() }});
+                            if (saved) updateStatus(saved);
+                        });
+                    }
+                }">
+                    <div class="user-profile-premium p-0 bg-transparent border-0 pe-1" data-bs-toggle="dropdown"
                         style="cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                        <div class="avatar-premium"
+                        <div class="avatar-premium position-relative"
                             style="width: 38px; height: 38px; border: 1px solid var(--border-main);">
                             @if (Auth::guard('client')->user()->profile_image)
-                                <img alt="team-tasker"
-                                    src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}" alt="Profile">
+                                <img alt="team-tasker" src="{{ asset('storage/' . Auth::guard('client')->user()->profile_image) }}"
+                                    alt="Profile">
                             @else
                                 {{ substr(Auth::guard('client')->user()->name ?? 'U', 0, 1) }}
                             @endif
+                            <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
+                                :style="'width: 10px; height: 10px; background-color: ' + getStatusColor()"></span>
                         </div>
                     </div>
                     <ul class="dropdown-menu dropdown-menu-end shadow-premium mt-3"
@@ -605,7 +629,8 @@
                                 {{ Auth::guard('client')->user()->name }}
                             </div>
                             <div style="font-size: 0.75rem; color: var(--text-low);">
-                                {{ Auth::guard('client')->user()->email }}</div>
+                                {{ Auth::guard('client')->user()->email }}
+                            </div>
                         </li>
                         <li><a class="dropdown-item py-2 mt-1" href="#" data-bs-toggle="modal"
                                 data-bs-target="#profileModal"><i class="fas fa-user-edit me-2 text-primary"></i> Edit
@@ -621,8 +646,8 @@
         </header>
     @endif
 
-    @if(!$fullscreen && !$hideSidebar)
-        <aside class="sidebar-premium">
+    @if(!$fullscreen)
+        <aside class="sidebar-premium {{ $hideSidebar ? 'd-lg-none' : '' }}">
 
             <nav>
                 <a href="{{ route('client.dashboard') }}"
@@ -837,6 +862,49 @@
             }, {
                 once: true
             });
+
+            // Sidebar Mobile Toggle & Icon Switcher
+            const sidebar = document.querySelector('.sidebar-premium');
+            const mobileToggle = document.getElementById('mobileSidebarToggle');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            function updateToggleIcon(isOpen) {
+                const toggles = document.querySelectorAll('#mobileSidebarToggle, #chatMobileSidebarToggle');
+                toggles.forEach(btn => {
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        if (isOpen) {
+                            icon.classList.remove('fa-bars');
+                            icon.classList.add('fa-times');
+                        } else {
+                            icon.classList.remove('fa-times');
+                            icon.classList.add('fa-bars');
+                        }
+                    }
+                });
+            }
+
+            if (mobileToggle) {
+                mobileToggle.addEventListener('click', function () {
+                    const isOpen = sidebar.classList.toggle('mobile-open');
+                    if (isOpen) {
+                        if (overlay) overlay.classList.add('show');
+                    } else {
+                        if (overlay) overlay.classList.remove('show');
+                    }
+                    updateToggleIcon(isOpen);
+                });
+            }
+
+            if (overlay) {
+                overlay.addEventListener('click', function () {
+                    if (sidebar) sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('show');
+                    updateToggleIcon(false);
+                });
+            }
+
+            window.updateSidebarToggleIcons = updateToggleIcon;
 
             // Socket.IO Connection
             if (typeof io !== 'undefined' && {{ env('ENABLE_WEBSOCKETS', false) ? 'true' : 'false' }}) {
