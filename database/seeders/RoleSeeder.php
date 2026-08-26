@@ -28,6 +28,7 @@ class RoleSeeder extends Seeder
             'projects.create',
             'projects.edit',
             'projects.delete',
+            'tasks.my_tasks',
             'tasks.view',
             'tasks.create',
             'tasks.edit',
@@ -52,6 +53,7 @@ class RoleSeeder extends Seeder
         $clientPermissions = [
             'dashboard.view',
             'projects.view',
+            'tasks.my_tasks',
             'tasks.view',
             'tasks.create',
             'tasks.edit',
