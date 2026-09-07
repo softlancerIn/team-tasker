@@ -308,11 +308,14 @@ new class extends Component {
             }
         }
 
-        if (!$targetConv) return;
+        $userAgent = request()->header('User-Agent', '');
+        $isMobile = preg_match('/(android|iphone|ipad|ipod|mobile|phone|blackberry|opera mini|iemobile)/i', $userAgent);
+        $deviceType = $isMobile ? 'mobile' : 'desktop';
 
         $newMsgData = [
             'body' => $originalMsg->body,
             'is_forwarded' => true,
+            'device_type' => $deviceType,
         ];
         if ($isClientGuard) {
             $newMsgData['client_id'] = $myId;
@@ -538,7 +541,7 @@ new class extends Component {
         }
     }
 
-    public function sendMessage($sentBody = null)
+    public function sendMessage($sentBody = null, $clientDevice = null)
     {
         if ($this->isBlocked || $this->isBlockedBy) {
             $this->dispatch('alert', ['type' => 'error', 'message' => 'You cannot send messages to this user.']);
@@ -548,9 +551,20 @@ new class extends Component {
         if ((empty(trim($messageBody)) && !$this->attachment) || !$this->conversation) {
             return;
         }
+
+        // Determine device type
+        if (!in_array($clientDevice, ['mobile', 'desktop'])) {
+            $userAgent = request()->header('User-Agent', '');
+            $isMobile = preg_match('/(android|iphone|ipad|ipod|mobile|phone|blackberry|opera mini|iemobile)/i', $userAgent);
+            $clientDevice = $isMobile ? 'mobile' : 'desktop';
+        }
+
         $isClientGuard = Auth::guard('client')->check();
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
-        $messageData = ['body' => $messageBody ?? ''];
+        $messageData = [
+            'body' => $messageBody ?? '',
+            'device_type' => $clientDevice,
+        ];
         if ($this->replyMessageId) {
             $messageData['reply_to_id'] = $this->replyMessageId;
         }
@@ -1069,6 +1083,7 @@ new class extends Component {
                     $msgAttachments = is_array($message) ? ($message['attachments'] ?? []) : $message->attachments;
                     $createdAt = is_array($message) ? $message['created_at'] : $message->created_at;
                     $isRead = is_array($message) ? ($message['is_read'] ?? false) : $message->is_read;
+                    $msgDeviceType = is_array($message) ? ($message['device_type'] ?? 'desktop') : ($message->device_type ?? 'desktop');
                 @endphp
                 <div class="d-flex mb-4 {{ $isMe ? 'justify-content-end' : '' }}"
                     wire:key="msg-{{ $message['id'] ?? $message->id }}">
@@ -1237,6 +1252,11 @@ new class extends Component {
                         <div class="d-flex align-items-center gap-2 mt-1"
                             style="font-size: 0.65rem; color: var(--text-low);">
                             <span>{{ \Carbon\Carbon::parse($createdAt)->format('H:i') }}</span>
+                            @if ($msgDeviceType === 'mobile')
+                                <i class="fas fa-mobile-alt" title="Sent from mobile" style="font-size: 0.72rem;"></i>
+                            @else
+                                <i class="fas fa-desktop" title="Sent from desktop" style="font-size: 0.68rem;"></i>
+                            @endif
                             @if ($isMe)
                                 @if ($isRead || ($receiver && $receiver->id == $myGuardId))
                                     <i class="fas fa-check-double text-primary"></i>
@@ -1447,7 +1467,8 @@ new class extends Component {
                                     let content = editor.getContent();
                                     const hasAttachment = document.querySelector('.chat-media-preview') !== null;
                                     if ((content && content.trim() !== '') || hasAttachment) {
-                                        $wire.sendMessage(content);
+                                        const isMobileClient = window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                                        $wire.sendMessage(content, isMobileClient ? 'mobile' : 'desktop');
                                         editor.resetContent();
                                     }
                                 }

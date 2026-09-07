@@ -894,8 +894,6 @@
                         @else
                             {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
                         @endif
-                        <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-1 border-dark"
-                            :style="'width: 10px; height: 10px; background-color: ' + getStatusColor()"></span>
                     </div>
                 </div>
                 <ul class="dropdown-menu dropdown-menu-end shadow-premium mt-3"
