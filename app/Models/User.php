@@ -51,6 +51,11 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
@@ -90,18 +95,48 @@ class User extends Authenticatable
         }
 
         // Super Admin Bypass
-        if ($this->role->slug === 'super-admin') {
+        if (in_array(strtolower($this->role->slug), ['super-admin', 'admin'])) {
             return true;
         }
 
-        $permissions = $this->role->permissions ?? [];
+        if (is_string($permission) && str_contains($permission, '|')) {
+            $permission = explode('|', $permission);
+        }
 
-        return in_array($permission, $permissions);
+        if (is_array($permission)) {
+            foreach ($permission as $p) {
+                if ($this->hasPermission(trim($p))) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        $permissions = $this->role->permissions ?? [];
+        if (is_array($permissions)) {
+            if (in_array('*', $permissions) || in_array($permission, $permissions)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function hasRole($slug)
     {
-        return $this->role && $this->role->slug === $slug;
+        if (! $this->role) {
+            return false;
+        }
+
+        $slug = strtolower($slug);
+        $roleSlug = strtolower($this->role->slug);
+
+        if ($slug === 'super-admin' && in_array($roleSlug, ['super-admin', 'admin'])) {
+            return true;
+        }
+
+        return $roleSlug === $slug;
     }
 
     // Relationships for Blocking

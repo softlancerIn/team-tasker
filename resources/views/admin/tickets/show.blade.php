@@ -37,7 +37,7 @@
                                         <img alt="team-tasker" src="{{ asset('storage/' . $ticket->user->profile_image) }}"
                                             alt="Avatar">
                                     @else
-                                        <div class="d-flex align-items-center justify-content-center w-100 h-100"
+                                        <div class="d-flex align-items-center justify-content-center w-100 h-100 text-white"
                                             style="background: var(--primary); color: white; font-weight: 700;">
                                             {{ substr($ticket->user?->name ?? $ticket->client?->name ?? 'External Contact', 0, 1) }}
                                         </div>
@@ -122,7 +122,7 @@
                                             @if ($replyProfileImage)
                                                 <img src="{{ asset('storage/' . $replyProfileImage) }}" alt="Avatar">
                                             @else
-                                                <div class="d-flex align-items-center justify-content-center w-100 h-100"
+                                                <div class="d-flex align-items-center justify-content-center w-100 h-100 text-white"
                                                     style="background: var(--bg-input); color: var(--text-high); font-weight: 600; font-size: 0.8rem;">
                                                     {{ substr($reply->user?->name ?? $reply->client?->name ?? $reply->email_source ?? 'Unknown', 0, 1) }}
                                                 </div>
@@ -161,7 +161,7 @@
                                     @if ($replyProfileImage)
                                         <img src="{{ asset('storage/' . $replyProfileImage) }}" alt="Avatar">
                                     @else
-                                        <div class="d-flex align-items-center justify-content-center w-100 h-100"
+                                        <div class="d-flex align-items-center justify-content-center w-100 h-100 text-white"
                                             style="background: var(--bg-input); color: var(--text-high); font-weight: 600;">
                                             {{ substr($reply->user?->name ?? $reply->client?->name ?? 'System', 0, 1) }}
                                         </div>

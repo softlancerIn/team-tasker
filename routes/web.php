@@ -113,35 +113,36 @@ Route::middleware(['web', 'auth:web,admin'])->controller(TaskController::class)-
 // Team Management
 Route::middleware(['web', 'auth:web,admin'])->controller(TeamController::class)->prefix('admin')->group(function () {
     // Users
-    Route::group(['middleware' => 'permission:users.view'], function () {
+    Route::group(['middleware' => 'permission:users.view|hr.staff|hr.manage'], function () {
         Route::get('/users', 'index')->name('admin.users.index');
     });
-    Route::group(['middleware' => 'permission:users.create'], function () {
+    Route::group(['middleware' => 'permission:users.create|hr.staff|hr.manage'], function () {
         Route::post('/users/store', 'storeUser')->name('admin.users.store');
     });
-    Route::group(['middleware' => 'permission:users.edit'], function () {
+    Route::group(['middleware' => 'permission:users.edit|hr.staff|hr.manage'], function () {
         Route::post('/users/{id}/update', 'updateUser')->name('admin.users.update');
         Route::post('/users/{id}/toggle-approval', 'toggleApproval')->name('admin.users.toggleApproval'); // Using edit for approval
     });
-    Route::group(['middleware' => 'permission:users.delete'], function () {
+    Route::group(['middleware' => 'permission:users.delete|hr.staff|hr.manage'], function () {
         Route::delete('/users/{id}/delete', 'deleteUser')->name('admin.users.delete');
     });
 
     Route::post('/users/bulk-action', 'bulkAction')->name('admin.users.bulkAction');
 
     // Roles
-    Route::group(['middleware' => 'permission:roles.view'], function () {
+    Route::group(['middleware' => 'permission:roles.view|hr.roles|hr.manage'], function () {
         Route::get('/roles', 'roles')->name('admin.roles.index');
     });
-    Route::group(['middleware' => 'permission:roles.create'], function () {
+    Route::group(['middleware' => 'permission:roles.create|hr.roles|hr.manage'], function () {
         Route::post('/roles/store', 'storeRole')->name('admin.roles.store');
     });
-    Route::group(['middleware' => 'permission:roles.edit'], function () {
+    Route::group(['middleware' => 'permission:roles.edit|hr.roles|hr.manage'], function () {
         Route::post('/roles/{id}/update', 'updateRole')->name('admin.roles.update');
     });
-    Route::group(['middleware' => 'permission:roles.delete'], function () {
+    Route::group(['middleware' => 'permission:roles.delete|hr.roles|hr.manage'], function () {
         Route::delete('/roles/{id}/delete', 'deleteRole')->name('admin.roles.delete');
     });
+    Route::post('/roles/bulk-action', 'bulkRoleAction')->name('admin.roles.bulkAction');
 
     // Chat Route
     Route::get('/chat', function () {
@@ -219,27 +220,43 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\At
     Route::get('/', 'dashboard')->name('admin.attendance.dashboard');
     Route::post('/clock-in', 'clockIn')->name('admin.attendance.clockIn');
     Route::post('/clock-out', 'clockOut')->name('admin.attendance.clockOut');
-    Route::get('/requests', 'requests')->name('admin.attendance.requests');
+    
+    // User Attendance
+    Route::get('/my-daily', 'myDaily')->name('admin.attendance.myDaily');
+    Route::get('/my-monthly', 'myMonthly')->name('admin.attendance.myMonthly');
+    Route::post('/{id}/submit', 'submit')->name('admin.attendance.submit');
+    Route::post('/{id}/resubmit', 'resubmit')->name('admin.attendance.resubmit');
+    Route::post('/submit-today-report', 'submitTodayReport')->name('admin.attendance.submitTodayReport');
+    Route::get('/{id}/history', 'history')->name('admin.attendance.history');
+
+    // Super Admin / Management Routes
+    Route::get('/daily', 'daily')->name('admin.attendance.daily');
+    Route::get('/report-details', 'reportDetails')->name('admin.attendance.reportDetails');
+    Route::post('/daily/update', 'updateDailyAttendance')->name('admin.attendance.daily.update');
+    Route::post('/{id}/approve', 'approve')->name('admin.attendance.approve');
+    Route::post('/{id}/reject', 'reject')->name('admin.attendance.reject');
+    Route::post('/bulk-approve', 'bulkApprove')->name('admin.attendance.bulkApprove');
+    Route::post('/bulk-action', 'bulkAction')->name('admin.attendance.bulkAction');
+    Route::get('/monthly', 'monthly')->name('admin.attendance.monthly');
+
+    Route::get('/requests', 'requests')->name('admin.attendance.requests')->middleware('permission:attendance.requests_manage|attendance.view|hr.leave_requests|hr.manage');
     Route::post('/requests', 'storeRequest')->name('admin.attendance.requests.store');
     Route::put('/requests/{id}', 'updateRequest')->name('admin.attendance.requests.update');
+    Route::put('/requests/{id}/status', 'updateRequestStatus')->name('admin.attendance.requests.updateStatus')->middleware('permission:attendance.requests_manage|hr.leave_requests|hr.manage');
+    Route::post('/requests/bulk-action', 'bulkRequestAction')->name('admin.attendance.requests.bulkAction')->middleware('permission:attendance.requests_manage|hr.leave_requests|hr.manage');
     Route::get('/calendar', 'calendar')->name('admin.attendance.calendar');
-
-    // Admin Only Attendance Routes
-    Route::get('/daily', 'daily')->name('admin.attendance.daily')->middleware('permission:attendance.daily');
-    Route::post('/daily/update', 'updateDailyAttendance')->name('admin.attendance.daily.update')->middleware('permission:attendance.daily');
-    Route::get('/monthly', 'monthly')->name('admin.attendance.monthly')->middleware('permission:attendance.monthly');
-    Route::put('/requests/{id}/status', 'updateRequestStatus')->name('admin.attendance.requests.updateStatus')->middleware('permission:attendance.requests_manage');
-    Route::get('/reports', 'reports')->name('admin.attendance.reports')->middleware('permission:attendance.reports');
-    Route::get('/settings', 'settings')->name('admin.attendance.settings')->middleware('permission:attendance.settings');
-    Route::put('/settings', 'updateSettings')->name('admin.attendance.settings.update')->middleware('permission:attendance.settings');
+    Route::get('/reports', 'reports')->name('admin.attendance.reports');
+    Route::get('/settings', 'settings')->name('admin.attendance.settings')->middleware('permission:attendance.settings|attendance.manage|hr.attendance_settings|hr.manage');
+    Route::put('/settings', 'updateSettings')->name('admin.attendance.settings.update')->middleware('permission:attendance.settings|attendance.manage|hr.attendance_settings|hr.manage');
 });
 
 // Consolidated Settings
 Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\SettingsController::class)->prefix('admin/settings')->group(function () {
     Route::get('/general', 'general')->name('admin.settings.general')->middleware('permission:settings.view');
+    Route::get('/hr', 'hrSettings')->name('admin.hr.settings')->middleware('permission:settings.view|hr.view|hr.manage');
     Route::get('/statuses', 'statuses')->name('admin.settings.statuses')->middleware('permission:settings.view');
     Route::get('/email', 'email')->name('admin.settings.email')->middleware('permission:settings.view');
-    Route::get('/autostop', 'autostop')->name('admin.settings.autostop')->middleware('permission:settings.view');
+    Route::get('/autostop', 'autostop')->name('admin.settings.autostop')->middleware('permission:settings.view|hr.shift_rules|hr.manage');
 
     Route::view('/chat-permissions', 'admin.settings.chat-permissions')->name('admin.settings.chat-permissions')->middleware('permission:settings.view');
 
@@ -250,7 +267,7 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\Se
     Route::post('/email', 'storeEmail')->name('admin.settings.email.store')->middleware('permission:settings.edit');
 
     // Auto Stop Timer
-    Route::post('/autostop', 'storeAutostop')->name('admin.settings.autostop.store')->middleware('permission:settings.edit');
+    Route::post('/autostop', 'storeAutostop')->name('admin.settings.autostop.store')->middleware('permission:settings.edit|hr.shift_rules|hr.manage');
 
     // Statuses
     Route::post('/statuses', 'storeStatus')->name('admin.settings.status.store')->middleware('permission:settings.edit');

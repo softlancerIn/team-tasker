@@ -32,7 +32,7 @@
                             @if ($ticket->user && $ticket->user->profile_image)
                                 <img alt="team-tasker" src="{{ asset('storage/' . $ticket->user->profile_image) }}" alt="Avatar">
                             @else
-                                <div class="d-flex align-items-center justify-content-center w-100 h-100"
+                                <div class="d-flex align-items-center justify-content-center w-100 h-100text-white"
                                     style="background: var(--primary); color: white; font-weight: 700;">
                                     {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
                                 </div>
@@ -95,7 +95,7 @@
                                         <img alt="team-tasker" src="{{ asset('storage/' . $reply->user->profile_image) }}"
                                             alt="Avatar">
                                     @else
-                                        <div class="d-flex align-items-center justify-content-center w-100 h-100"
+                                        <div class="d-flex align-items-center justify-content-center w-100 h-100 text-white"
                                             style="background: var(--bg-input); color: var(--text-high); font-weight: 600; font-size: 0.8rem;">
                                             {{ substr($reply->user ? $reply->user->name : $reply->email_source, 0, 1) }}
                                         </div>

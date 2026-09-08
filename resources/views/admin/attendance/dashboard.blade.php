@@ -75,58 +75,42 @@
         </div>
     @endif
 
-    @if (Auth::user()->hasPermission('attendance.dashboard_overview'))
-        <div class="row row-cols-1 row-cols-md-4 g-4 mb-4">
+    @if (Auth::user()->hasPermission('attendance.dashboard_overview') || Auth::user()->hasRole('super-admin'))
+        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
             <div class="col">
-                <div class="glass-card p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <p class="text-low mb-1" style="font-size: 0.85rem;">Present Today</p>
-                            <h3 class="mb-0 text-high fw-bold">{{ $presentToday }}</h3>
-                        </div>
-                        <div class="stat-icon-premium icon-success-premium" style="width: 45px; height: 45px;">
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                    </div>
+                <div class="glass-card p-3 border-main h-100">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Total Users</span>
+                    <h3 class="mb-0 text-high fw-bold">{{ $dailyStats['total_users'] }}</h3>
                 </div>
             </div>
             <div class="col">
-                <div class="glass-card p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <p class="text-low mb-1" style="font-size: 0.85rem;">Absent Today</p>
-                            <h3 class="mb-0 text-high fw-bold">{{ $absentToday }}</h3>
-                        </div>
-                        <div class="stat-icon-premium icon-danger-premium" style="width: 45px; height: 45px;">
-                            <i class="fas fa-user-times"></i>
-                        </div>
-                    </div>
+                <div class="glass-card p-3 border-main h-100">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Submitted</span>
+                    <h3 class="mb-0 text-primary fw-bold">{{ $dailyStats['submitted'] }}</h3>
                 </div>
             </div>
             <div class="col">
-                <div class="glass-card p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <p class="text-low mb-1" style="font-size: 0.85rem;">Late Today</p>
-                            <h3 class="mb-0 text-high fw-bold">{{ $lateToday }}</h3>
-                        </div>
-                        <div class="stat-icon-premium icon-warning-premium" style="width: 45px; height: 45px;">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                    </div>
+                <div class="glass-card p-3 border-main h-100">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Pending</span>
+                    <h3 class="mb-0 text-warning fw-bold">{{ $dailyStats['pending'] }}</h3>
                 </div>
             </div>
             <div class="col">
-                <div class="glass-card p-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <p class="text-low mb-1" style="font-size: 0.85rem;">On Leave Today</p>
-                            <h3 class="mb-0 text-high fw-bold">{{ $onLeaveToday }}</h3>
-                        </div>
-                        <div class="stat-icon-premium icon-info-premium" style="width: 45px; height: 45px;">
-                            <i class="fas fa-calendar-minus"></i>
-                        </div>
-                    </div>
+                <div class="glass-card p-3 border-main h-100">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Approved</span>
+                    <h3 class="mb-0 text-success fw-bold">{{ $dailyStats['approved'] }}</h3>
+                </div>
+            </div>
+            <div class="col">
+                <div class="glass-card p-3 border-main h-100">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Rejected</span>
+                    <h3 class="mb-0 text-danger fw-bold">{{ $dailyStats['rejected'] }}</h3>
+                </div>
+            </div>
+            <div class="col">
+                <div class="glass-card p-3 border-main h-100">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Not Submitted</span>
+                    <h3 class="mb-0 text-muted fw-bold">{{ $dailyStats['not_submitted'] }}</h3>
                 </div>
             </div>
         </div>

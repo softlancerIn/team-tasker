@@ -5,283 +5,856 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\AttendanceRequest;
 use App\Models\Setting;
+use App\Models\TaskLog;
+use App\Models\TimeLog;
 use App\Models\User;
+use App\Services\AttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class AttendanceController extends Controller
 {
+    protected AttendanceService $attendanceService;
+
+    public function __construct(AttendanceService $attendanceService)
+    {
+        $this->attendanceService = $attendanceService;
+    }
+
+    /**
+     * Attendance Dashboard.
+     */
     public function dashboard()
     {
-        $today = Carbon::today();
-        $totalUsers = User::count();
-        $presentToday = Attendance::where('date', $today)->whereIn('status', ['Present', 'Late', 'Half-Day'])->count();
-        $lateToday = Attendance::where('date', $today)->where('status', 'Late')->count();
-        $onLeaveToday = Attendance::where('date', $today)->where('status', 'Leave')->count();
-        $absentToday = max(0, $totalUsers - $presentToday - $onLeaveToday);
+        $user = Auth::user();
+        $today = $this->attendanceService->today();
+        $todayStr = $today->format('Y-m-d');
 
-        $myAttendance = Attendance::where('user_id', Auth::id())->where('date', $today)->first();
+        $dailyStats = $this->attendanceService->getDailyStats($todayStr);
+        $myAttendance = Attendance::where('user_id', $user->id)
+            ->where(function ($q) use ($todayStr) {
+                $q->where('attendance_date', $todayStr)->orWhere('date', $todayStr);
+            })
+            ->first();
 
-        // 7-Day Trend Graph Data (Team)
+        // 7-Day Trend Graph Data
         $chartLabels = [];
         $chartPresent = [];
         $chartAbsent = [];
         $chartLate = [];
         $chartLeave = [];
-
-        // Personal 7-Day Trend Graph Data
         $personalWorkHours = [];
 
         for ($i = 6; $i >= 0; $i--) {
-            $d = Carbon::today()->subDays($i);
+            $d = $this->attendanceService->today()->subDays($i);
             $dateStr = $d->format('Y-m-d');
             $chartLabels[] = $d->format('D');
 
-            // Team
-            $p = Attendance::where('date', $dateStr)->whereIn('status', ['Present', 'Late', 'Half-Day'])->count();
-            $l = Attendance::where('date', $dateStr)->where('status', 'Late')->count();
-            $lv = Attendance::where('date', $dateStr)->where('status', 'Leave')->count();
-            $ab = max(0, $totalUsers - $p - $lv);
+            $stats = $this->attendanceService->getDailyStats($dateStr);
+            $chartPresent[] = $stats['approved'] + $stats['pending'];
+            $chartLate[] = 0;
+            $chartLeave[] = 0;
+            $chartAbsent[] = $stats['not_submitted'] + $stats['rejected'];
 
-            $chartPresent[] = $p;
-            $chartLate[] = $l;
-            $chartLeave[] = $lv;
-            $chartAbsent[] = $ab;
+            $myAtt = Attendance::where('user_id', $user->id)
+                ->where(function ($q) use ($dateStr) {
+                    $q->where('attendance_date', $dateStr)->orWhere('date', $dateStr);
+                })
+                ->first();
 
-            // Personal
-            $myAtt = Attendance::where('user_id', Auth::id())->where('date', $dateStr)->first();
-            $personalWorkHours[] = $myAtt ? (float) $myAtt->work_hours : 0;
+            $personalWorkHours[] = $myAtt ? round(((float) $myAtt->working_minutes) / 60, 2) : 0;
         }
 
-        return view('admin.attendance.dashboard', compact('presentToday', 'lateToday', 'onLeaveToday', 'absentToday', 'myAttendance', 'today', 'chartLabels', 'chartPresent', 'chartAbsent', 'chartLate', 'chartLeave', 'personalWorkHours'));
+        $presentToday = $dailyStats['approved'] + $dailyStats['pending'];
+        $lateToday = 0;
+        $onLeaveToday = 0;
+        $absentToday = $dailyStats['not_submitted'] + $dailyStats['rejected'];
+
+        return view('admin.attendance.dashboard', compact(
+            'dailyStats',
+            'presentToday',
+            'lateToday',
+            'onLeaveToday',
+            'absentToday',
+            'myAttendance',
+            'today',
+            'chartLabels',
+            'chartPresent',
+            'chartAbsent',
+            'chartLate',
+            'chartLeave',
+            'personalWorkHours'
+        ));
     }
 
+    /**
+     * Super Admin Daily Reports Table & Approval view.
+     */
     public function daily(Request $request)
     {
-        $date = $request->input('date', Carbon::today()->format('Y-m-d'));
+        Gate::authorize('viewAny', Attendance::class);
+
+        $date = $request->input('date', $this->attendanceService->today()->format('Y-m-d'));
+        if ($date === 'today') {
+            $date = $this->attendanceService->today()->format('Y-m-d');
+        } elseif ($date === 'yesterday') {
+            $date = $this->attendanceService->today()->subDay()->format('Y-m-d');
+        }
+
+        $selectedUserId = $request->input('user_id') ?: $request->input('user_ids');
+        if (is_array($selectedUserId)) {
+            $selectedUserId = array_values(array_filter($selectedUserId));
+            if (empty($selectedUserId)) {
+                $selectedUserId = null;
+            }
+        }
         $search = $request->input('search');
-        $status = $request->input('status');
-        $clockIn = $request->input('clock_in');
-        $clockOut = $request->input('clock_out');
-        $workHours = $request->input('work_hours');
+        $attendanceStatus = $request->input('attendance_status') ?: $request->input('status');
+        $approvalStatus = $request->input('approval_status');
 
-        $users = User::when($search, function ($query) use ($search) {
-            return $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        })
-            ->when($status, function ($query) use ($status, $date) {
-                if ($status == 'Absent') {
-                    return $query->whereDoesntHave('attendances', function ($q) use ($date) {
-                        $q->where('date', $date)->where('status', '!=', 'Absent');
-                    });
-                } else {
-                    return $query->whereHas('attendances', function ($q) use ($date, $status) {
-                        $q->where('date', $date)->where('status', $status);
-                    });
-                }
-            })
-            ->when($clockIn, function ($query) use ($clockIn, $date) {
-                return $query->whereHas('attendances', function ($q) use ($date, $clockIn) {
-                    $q->where('date', $date)->whereTime('clock_in', '>=', $clockIn);
-                });
-            })
-            ->when($clockOut, function ($query) use ($clockOut, $date) {
-                return $query->whereHas('attendances', function ($q) use ($date, $clockOut) {
-                    $q->where('date', $date)->whereTime('clock_out', '<=', $clockOut);
-                });
-            })
-            ->when($workHours, function ($query) use ($workHours, $date) {
-                return $query->whereHas('attendances', function ($q) use ($date, $workHours) {
-                    $q->where('date', $date)->where('work_hours', '>=', (float) $workHours);
-                });
-            })
-            ->paginate(15)
-            ->withQueryString();
+        $filters = [
+            'date' => $date,
+            'user_id' => $selectedUserId,
+            'search' => $search,
+            'attendance_status' => $attendanceStatus,
+            'approval_status' => $approvalStatus,
+        ];
 
-        $attendances = Attendance::with('user')
-            ->where('date', $date)
+        $perPage = (int) $request->input('per_page', 15);
+        $users = $this->attendanceService->getDailyReport($filters, $perPage > 0 ? $perPage : 15);
+        $dailyStats = $this->attendanceService->getDailyStats($date);
+
+        $attendances = Attendance::with(['user', 'approver'])
+            ->where('attendance_date', $date)
             ->whereIn('user_id', $users->pluck('id'))
             ->get()
             ->keyBy('user_id');
 
-        return view('admin.attendance.daily', compact('users', 'attendances', 'date'));
+        // Summarize time log activities for displayed users on this date
+        $timeLogCounts = TimeLog::whereIn('user_id', $users->pluck('id'))
+            ->whereDate('start_time', $date)
+            ->selectRaw('user_id, count(*) as count, sum(duration) as total_duration')
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
+
+        $allUsers = User::orderBy('name')->get(['id', 'name', 'email']);
+
+        return view('admin.attendance.daily', compact(
+            'users',
+            'attendances',
+            'date',
+            'dailyStats',
+            'allUsers',
+            'timeLogCounts',
+            'selectedUserId'
+        ));
     }
 
+    /**
+     * AJAX endpoint to return full daily work report & activity details for a user on a given date.
+     */
+    public function reportDetails(Request $request)
+    {
+        Gate::authorize('viewAny', Attendance::class);
+
+        $userId = $request->input('user_id');
+        $date = $request->input('date', $this->attendanceService->today()->format('Y-m-d'));
+        if ($date === 'today') {
+            $date = $this->attendanceService->today()->format('Y-m-d');
+        } elseif ($date === 'yesterday') {
+            $date = $this->attendanceService->today()->subDay()->format('Y-m-d');
+        }
+
+        $user = User::with('role')->findOrFail($userId);
+
+        $attendance = Attendance::with(['approver', 'logs.user'])
+            ->where('user_id', $userId)
+            ->where('attendance_date', $date)
+            ->first();
+
+        // Time logs / task activity on that date
+        $timeLogs = TimeLog::where('user_id', $userId)
+            ->whereDate('start_time', $date)
+            ->with('task.project')
+            ->orderBy('start_time')
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'task_id' => $log->task_id,
+                    'task_title' => $log->task?->title ?? 'General Task',
+                    'project_name' => $log->task?->project?->name ?? 'General',
+                    'start_time' => $log->start_time ? $log->start_time->format('h:i A') : '--:--',
+                    'end_time' => $log->end_time ? $log->end_time->format('h:i A') : '--:--',
+                    'duration_seconds' => $log->duration,
+                    'formatted_duration' => gmdate('H\h i\m', $log->duration),
+                    'description' => $log->description,
+                    'mode' => $log->mode,
+                ];
+            });
+
+        // Task logs / notes on that date
+        $taskLogs = TaskLog::where('user_id', $userId)
+            ->whereDate('created_at', $date)
+            ->with('task')
+            ->orderBy('created_at')
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'task_id' => $log->task_id,
+                    'task_title' => $log->task?->title ?? 'General',
+                    'note' => $log->note,
+                    'type' => $log->type,
+                    'created_at' => $log->created_at ? $log->created_at->format('h:i A') : '',
+                ];
+            });
+
+        $totalTrackedSeconds = $timeLogs->sum('duration_seconds');
+        $formattedTotalTracked = gmdate('H\h i\m', $totalTrackedSeconds);
+
+        $canApprove = Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('attendance.approve') || Auth::user()->hasPermission('attendance.manage');
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role?->name ?? 'Employee',
+                'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+            ],
+            'date' => Carbon::parse($date)->format('l, d F Y'),
+            'date_raw' => $date,
+            'attendance' => $attendance ? [
+                'id' => $attendance->id,
+                'check_in' => $attendance->check_in ? Carbon::parse($attendance->check_in)->format('h:i A') : null,
+                'check_out' => $attendance->check_out ? Carbon::parse($attendance->check_out)->format('h:i A') : null,
+                'working_hours' => $attendance->formatted_working_hours,
+                'attendance_status' => $attendance->attendance_status,
+                'approval_status' => $attendance->approval_status,
+                'remarks' => $attendance->remarks,
+                'submitted_at' => $attendance->submitted_at ? $attendance->submitted_at->format('d M Y, h:i A') : null,
+                'approver_name' => $attendance->approver_name,
+                'approved_at' => $attendance->approved_at ? Carbon::parse($attendance->approved_at)->format('d M Y, h:i A') : null,
+                'rejection_reason' => $attendance->rejection_reason,
+            ] : null,
+            'time_logs' => $timeLogs,
+            'task_logs' => $taskLogs,
+            'total_tracked_seconds' => $totalTrackedSeconds,
+            'total_tracked_formatted' => $formattedTotalTracked,
+            'can_approve' => $canApprove,
+        ]);
+    }
+
+    /**
+     * Normal User Today's Attendance & Submission view.
+     */
+    public function myDaily(Request $request)
+    {
+        $user = Auth::user();
+        $today = $this->attendanceService->today();
+        $todayStr = $today->format('Y-m-d');
+
+        $myAttendance = Attendance::with(['logs.user', 'approver'])
+            ->where('user_id', $user->id)
+            ->where(function ($q) use ($todayStr) {
+                $q->where('attendance_date', $todayStr)->orWhere('date', $todayStr);
+            })
+            ->first();
+
+        $timeLogs = TimeLog::where('user_id', $user->id)
+            ->whereDate('start_time', $todayStr)
+            ->with('task.project')
+            ->orderBy('start_time')
+            ->get();
+
+        $totalTrackedSeconds = $timeLogs->sum('duration');
+        $formattedTotalTracked = gmdate('H\h i\m', $totalTrackedSeconds);
+
+        return view('admin.attendance.my-daily', compact('myAttendance', 'today', 'timeLogs', 'formattedTotalTracked'));
+    }
+
+    /**
+     * Super Admin Monthly Reports Aggregation view.
+     */
+    public function monthly(Request $request)
+    {
+        Gate::authorize('viewReport', Attendance::class);
+
+        $month = $request->input('month', $this->attendanceService->today()->format('Y-m'));
+        $search = $request->input('search');
+        $selectedUserId = $request->input('user_id');
+
+        $filters = [
+            'search' => $search,
+        ];
+
+        $perPage = (int) $request->input('per_page', 15);
+        $users = $this->attendanceService->getMonthlyReport($month, $selectedUserId, $filters, $perPage > 0 ? $perPage : 15);
+        $teamStats = $this->attendanceService->getMonthlyTeamStats($month);
+
+        // If a specific user is selected for detailed inspection:
+        $selectedUser = null;
+        $selectedUserCalendar = [];
+        $selectedUserStats = null;
+        if ($selectedUserId) {
+            $selectedUser = User::find($selectedUserId);
+            if ($selectedUser) {
+                $selectedUserStats = $this->attendanceService->getMonthlyUserStats($selectedUser, $month);
+                $selectedUserCalendar = $this->attendanceService->getUserMonthlyCalendar($selectedUser->id, $month);
+            }
+        }
+
+        return view('admin.attendance.monthly', compact(
+            'users',
+            'month',
+            'selectedUser',
+            'selectedUserStats',
+            'selectedUserCalendar',
+            'teamStats'
+        ));
+    }
+
+    /**
+     * Normal User Monthly Report view (strictly restricted to own data).
+     */
+    public function myMonthly(Request $request)
+    {
+        $user = Auth::user();
+        $month = $request->input('month', $this->attendanceService->today()->format('Y-m'));
+
+        $stats = $this->attendanceService->getMonthlyUserStats($user, $month);
+        $calendar = $this->attendanceService->getUserMonthlyCalendar($user->id, $month);
+
+        return view('admin.attendance.my-monthly', compact('user', 'month', 'stats', 'calendar'));
+    }
+
+    /**
+     * Punch In (strictly decoupled from GPS).
+     */
+    public function clockIn(Request $request)
+    {
+        $user = Auth::user();
+
+        try {
+            $this->attendanceService->punchIn(
+                $user,
+                $request->input('notes') ?: $request->input('remarks'),
+                $request->ip()
+            );
+
+            return redirect()->back()->with('success', 'Punched in successfully at '.$this->attendanceService->now()->format('h:i A'));
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Punch Out (strictly decoupled from GPS).
+     */
+    public function clockOut(Request $request)
+    {
+        $user = Auth::user();
+
+        try {
+            $attendance = $this->attendanceService->punchOut(
+                $user,
+                $request->input('notes') ?: $request->input('remarks'),
+                $request->ip()
+            );
+
+            return redirect()->back()->with('success', 'Punched out successfully at '.$this->attendanceService->now()->format('h:i A')." (Total: {$attendance->formatted_working_hours})");
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Submit daily attendance report for approval.
+     */
+    public function submit(Request $request, $id)
+    {
+        $user = Auth::user();
+        $attendance = Attendance::findOrFail($id);
+
+        Gate::authorize('submit', $attendance);
+
+        try {
+            $this->attendanceService->submitAttendance(
+                $attendance,
+                $user,
+                $request->input('remarks')
+            );
+
+            return redirect()->back()->with('success', 'Daily attendance submitted successfully for approval.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Submit today's daily work report from the global header button.
+     */
+    public function submitTodayReport(Request $request)
+    {
+        $user = Auth::user();
+        $today = $this->attendanceService->today();
+        $userId = $user->getAuthIdentifier();
+
+        $attendance = Attendance::where('user_id', $userId)
+            ->where(function ($q) use ($today) {
+                $q->where('attendance_date', $today->format('Y-m-d'))
+                    ->orWhere('date', $today->format('Y-m-d'));
+            })
+            ->first();
+
+        $remarks = $request->input('remarks');
+
+        try {
+            if (! $attendance) {
+                $now = $this->attendanceService->now();
+                $attendance = Attendance::create([
+                    'user_id' => $userId,
+                    'attendance_date' => $today->format('Y-m-d'),
+                    'check_in' => $now->format('H:i:s'),
+                    'check_out' => $now->format('H:i:s'),
+                    'working_minutes' => 480,
+                    'attendance_status' => 'present',
+                    'approval_status' => 'draft',
+                    'remarks' => $remarks,
+                ]);
+            }
+
+            Gate::authorize('submit', $attendance);
+
+            if ($attendance->isApproved()) {
+                return redirect()->back()->with('error', 'Your daily report for today has already been approved by Super Admin.');
+            }
+
+            if ($attendance->isRejected()) {
+                $this->attendanceService->resubmitAttendance($attendance, $user, $remarks);
+                return redirect()->back()->with('success', 'Corrected daily work report resubmitted successfully for Super Admin approval.');
+            }
+
+            $this->attendanceService->submitAttendance($attendance, $user, $remarks);
+
+            return redirect()->back()->with('success', 'Daily work report submitted successfully for Super Admin approval.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Super Admin approve daily report.
+     */
+    public function approve(Request $request, $id)
+    {
+        $admin = Auth::user();
+        $attendance = Attendance::findOrFail($id);
+
+        Gate::authorize('approve', $attendance);
+
+        try {
+            $this->attendanceService->approveAttendance($attendance, $admin);
+
+            return redirect()->back()->with('success', "Attendance report for {$attendance->user->name} approved successfully.");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Super Admin reject daily report with mandatory reason.
+     */
+    public function reject(Request $request, $id)
+    {
+        $admin = Auth::user();
+        $attendance = Attendance::findOrFail($id);
+
+        Gate::authorize('reject', $attendance);
+
+        $request->validate([
+            'rejection_reason' => 'required|string|min:3|max:1000',
+        ]);
+
+        try {
+            $this->attendanceService->rejectAttendance(
+                $attendance,
+                $admin,
+                $request->input('rejection_reason')
+            );
+
+            return redirect()->back()->with('success', "Attendance report for {$attendance->user->name} was rejected.");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * User resubmits corrected daily report.
+     */
+    public function resubmit(Request $request, $id)
+    {
+        $user = Auth::user();
+        $attendance = Attendance::findOrFail($id);
+
+        Gate::authorize('resubmit', $attendance);
+
+        try {
+            $this->attendanceService->resubmitAttendance(
+                $attendance,
+                $user,
+                $request->input('remarks')
+            );
+
+            return redirect()->back()->with('success', 'Your corrected attendance report has been resubmitted.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Super Admin bulk approve reports.
+     */
+    public function bulkApprove(Request $request)
+    {
+        $admin = Auth::user();
+        Gate::authorize('bulkApprove', Attendance::class);
+
+        $attendanceIds = $request->input('attendance_ids', []);
+        $userIds = $request->input('ids', []);
+        if (empty($attendanceIds) && !empty($userIds)) {
+            $request->merge(['action' => 'approve']);
+            return $this->bulkAction($request);
+        }
+
+        if (is_string($attendanceIds)) {
+            $attendanceIds = explode(',', $attendanceIds);
+        }
+
+        $result = $this->attendanceService->bulkApprove($attendanceIds, $admin);
+
+        return redirect()->back()->with('success', "Bulk approval complete: {$result['approved']} reports approved, {$result['skipped']} skipped.");
+    }
+
+    /**
+     * Super Admin bulk action for daily attendance & reports.
+     * Supported actions: approve, reject, mark_present, mark_absent.
+     */
+    public function bulkAction(Request $request)
+    {
+        $admin = Auth::user();
+        Gate::authorize('bulkApprove', Attendance::class);
+
+        $ids = $request->input('ids', []);
+        if (is_string($ids)) {
+            $ids = explode(',', $ids);
+        }
+        $ids = array_filter(array_map('intval', (array) $ids));
+
+        if (empty($ids)) {
+            return back()->with('error', 'No employees selected.');
+        }
+
+        $action = $request->input('action');
+        $date = $request->input('date', $this->attendanceService->today()->format('Y-m-d'));
+        if ($date === 'today') {
+            $date = $this->attendanceService->today()->format('Y-m-d');
+        } elseif ($date === 'yesterday') {
+            $date = $this->attendanceService->today()->subDay()->format('Y-m-d');
+        }
+
+        $reason = $request->input('rejection_reason', 'Bulk action applied by administrator.');
+
+        $count = 0;
+        foreach ($ids as $userId) {
+            $user = User::find($userId);
+            if (! $user) {
+                continue;
+            }
+
+            $attendance = Attendance::firstOrNew([
+                'user_id' => $userId,
+                'attendance_date' => $date,
+            ]);
+
+            switch ($action) {
+                case 'approve':
+                    if (! $attendance->exists) {
+                        $attendance->attendance_status = 'present';
+                        $attendance->check_in = '09:00:00';
+                        $attendance->check_out = '18:00:00';
+                        $attendance->working_minutes = 540;
+                    }
+                    $attendance->approval_status = 'approved';
+                    $attendance->approved_at = now();
+                    $attendance->approved_by = $admin->id;
+                    $attendance->approved_by_type = ($admin instanceof \App\Models\Admin) ? 'admin' : 'user';
+                    $attendance->rejection_reason = null;
+                    $attendance->save();
+
+                    $this->attendanceService->logActivity(
+                        $attendance,
+                        $admin,
+                        'attendance.approved',
+                        "Bulk approved attendance report for {$user->name} on {$date}."
+                    );
+                    $count++;
+                    break;
+
+                case 'reject':
+                    if (! $attendance->exists) {
+                        $attendance->attendance_status = 'absent';
+                        $attendance->working_minutes = 0;
+                    }
+                    $attendance->approval_status = 'rejected';
+                    $attendance->rejection_reason = $reason;
+                    $attendance->approved_at = null;
+                    $attendance->approved_by = null;
+                    $attendance->save();
+
+                    $this->attendanceService->logActivity(
+                        $attendance,
+                        $admin,
+                        'attendance.rejected',
+                        "Bulk rejected report for {$user->name} on {$date}: {$reason}"
+                    );
+                    $count++;
+                    break;
+
+                case 'mark_present':
+                    if (! $attendance->exists) {
+                        $attendance->check_in = '09:00:00';
+                        $attendance->check_out = '18:00:00';
+                        $attendance->working_minutes = 540;
+                    }
+                    $attendance->attendance_status = 'present';
+                    $attendance->approval_status = 'approved';
+                    $attendance->approved_at = now();
+                    $attendance->approved_by = $admin->id;
+                    $attendance->approved_by_type = ($admin instanceof \App\Models\Admin) ? 'admin' : 'user';
+                    $attendance->rejection_reason = null;
+                    $attendance->save();
+
+                    $this->attendanceService->logActivity(
+                        $attendance,
+                        $admin,
+                        'attendance.marked_present',
+                        "Marked present in bulk for {$user->name} on {$date}."
+                    );
+                    $count++;
+                    break;
+
+                case 'mark_absent':
+                    $attendance->attendance_status = 'absent';
+                    $attendance->working_minutes = 0;
+                    $attendance->approval_status = 'approved';
+                    $attendance->approved_at = now();
+                    $attendance->approved_by = $admin->id;
+                    $attendance->approved_by_type = ($admin instanceof \App\Models\Admin) ? 'admin' : 'user';
+                    $attendance->save();
+
+                    $this->attendanceService->logActivity(
+                        $attendance,
+                        $admin,
+                        'attendance.marked_absent',
+                        "Marked absent in bulk for {$user->name} on {$date}."
+                    );
+                    $count++;
+                    break;
+
+                default:
+                    return back()->with('error', 'Invalid bulk action specified.');
+            }
+        }
+
+        return redirect()->back()->with('success', "Bulk action '{$action}' applied successfully to {$count} employees.");
+    }
+
+    /**
+     * Super Admin attendance manual correction.
+     */
     public function updateDailyAttendance(Request $request)
     {
+        $admin = Auth::user();
+        Gate::authorize('update', Attendance::class);
+
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'date' => 'required|date',
-            'status' => 'required|in:Present,Late,Half-Day,Absent,Leave,Holiday',
-            'clock_in' => 'nullable|date_format:H:i',
-            'clock_out' => 'nullable|date_format:H:i',
-            'notes' => 'nullable|string',
+            'attendance_status' => 'required|in:present,absent,half_day,Present,Late,Half-Day,Absent',
+            'check_in' => 'nullable|date_format:H:i',
+            'check_out' => 'nullable|date_format:H:i',
+            'remarks' => 'nullable|string|max:1000',
+            'correction_reason' => 'nullable|string|max:500',
         ]);
 
-        if ($request->status == 'Absent') {
-            // Delete record if it exists and marked as completely absent, or update status
-            $attendance = Attendance::where('user_id', $request->user_id)->where('date', $request->date)->first();
-            if ($attendance) {
-                $attendance->delete();
-            }
-        } else {
-            $workHours = 0;
-            if ($request->clock_in && $request->clock_out) {
-                $clockIn = Carbon::parse($request->clock_in);
-                $clockOut = Carbon::parse($request->clock_out);
-                if ($clockOut->greaterThan($clockIn)) {
-                    $workHours = round(abs($clockIn->diffInMinutes($clockOut, false)) / 60, 2);
-                }
-            }
+        $attendance = Attendance::firstOrNew([
+            'user_id' => $request->user_id,
+            'attendance_date' => $request->date,
+        ]);
 
-            Attendance::updateOrCreate(
-                [
-                    'user_id' => $request->user_id,
-                    'date' => $request->date,
-                ],
-                [
-                    'status' => $request->status,
-                    'clock_in' => $request->clock_in,
-                    'clock_out' => $request->clock_out,
-                    'work_hours' => $workHours,
-                    'notes' => $request->notes,
-                ]
+        $statusMapped = match (strtolower($request->attendance_status)) {
+            'absent' => 'absent',
+            'half-day', 'half_day' => 'half_day',
+            default => 'present'
+        };
+
+        $data = [
+            'attendance_status' => $statusMapped,
+            'check_in' => $request->check_in,
+            'check_out' => $request->check_out,
+            'remarks' => $request->remarks ?: $request->notes,
+        ];
+
+        if (! $attendance->exists) {
+            $attendance->user_id = $request->user_id;
+            $attendance->attendance_date = $request->date;
+            $attendance->approval_status = 'approved';
+            $attendance->approved_at = now();
+            $attendance->approved_by = $admin->id;
+            $attendance->fill($data);
+            $attendance->save();
+
+            $this->attendanceService->logActivity(
+                $attendance,
+                $admin,
+                'attendance.created',
+                "Attendance record manually created by {$admin->name}.",
+                ['created_by' => $admin->id]
+            );
+        } else {
+            $this->attendanceService->correctAttendance(
+                $attendance,
+                $data,
+                $admin,
+                $request->input('correction_reason')
             );
         }
 
-        return redirect()->back()->with('success', 'Attendance record updated successfully.');
+        return redirect()->back()->with('success', 'Attendance record saved successfully.');
     }
 
-    public function monthly(Request $request)
+    /**
+     * View audit history logs for an attendance record.
+     */
+    public function history($id)
     {
-        $month = $request->input('month', Carbon::today()->format('Y-m'));
-        $search = $request->input('search');
-        $minPresent = $request->input('total_present');
-        $minLate = $request->input('total_late');
-        $minLeave = $request->input('total_leave');
-        $minHours = $request->input('total_hours');
-        $minAbsent = $request->input('total_absent');
+        $attendance = Attendance::with(['logs.user', 'user'])->findOrFail($id);
 
-        $startDate = Carbon::parse($month.'-01');
-        $endDate = $startDate->copy()->endOfMonth();
+        Gate::authorize('view', $attendance);
 
-        $workingDaysSetting = Setting::where('key', 'working_days')->value('value') ?? '5';
-        $totalWorkingDays = 0;
-
-        $currentDate = $startDate->copy();
-        $today = Carbon::today();
-
-        while ($currentDate->lte($endDate) && $currentDate->lte($today)) {
-            if ($workingDaysSetting == '5') {
-                if (! $currentDate->isWeekend()) {
-                    $totalWorkingDays++;
-                }
-            } else {
-                if (! $currentDate->isSunday()) {
-                    $totalWorkingDays++;
-                }
-            }
-            $currentDate->addDay();
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'attendance' => $attendance,
+                'logs' => $attendance->logs,
+            ]);
         }
 
-        $users = User::when($search, function ($query) use ($search) {
-            return $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        })
-            ->when($minPresent, function ($q) use ($minPresent, $startDate, $endDate) {
-                return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
-                    $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                        ->whereIn('status', ['Present', 'Late', 'Half-Day']);
-                }, '>=', (int) $minPresent);
-            })
-            ->when($minLate, function ($q) use ($minLate, $startDate, $endDate) {
-                return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
-                    $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                        ->where('status', 'Late');
-                }, '>=', (int) $minLate);
-            })
-            ->when($minLeave, function ($q) use ($minLeave, $startDate, $endDate) {
-                return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
-                    $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                        ->where('status', 'Leave');
-                }, '>=', (int) $minLeave);
-            })
-            ->when($minAbsent, function ($q) use ($minAbsent, $totalWorkingDays, $startDate, $endDate) {
-                $maxPresentAndLeave = max(0, $totalWorkingDays - (int) $minAbsent);
-
-                return $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
-                    $sub->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                        ->whereIn('status', ['Present', 'Late', 'Half-Day', 'Leave']);
-                }, '<=', $maxPresentAndLeave);
-            })
-            ->when($minHours, function ($q) use ($minHours, $startDate, $endDate) {
-                return $q->whereRaw('(SELECT COALESCE(SUM(work_hours), 0) FROM attendances WHERE attendances.user_id = users.id AND date BETWEEN ? AND ?) >= ?', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d'), (float) $minHours]);
-            })
-            ->paginate(15)
-            ->withQueryString();
-
-        $attendances = Attendance::whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->whereIn('user_id', $users->pluck('id'))
-            ->get()
-            ->groupBy('user_id');
-
-        return view('admin.attendance.monthly', compact('users', 'attendances', 'month', 'startDate', 'endDate', 'totalWorkingDays'));
+        return view('admin.attendance.history', compact('attendance'));
     }
 
+    /**
+     * CSV Export.
+     */
+    public function reports(Request $request)
+    {
+        $users = User::all();
+
+        if ($request->has('export')) {
+            Gate::authorize('export', Attendance::class);
+
+            $exportType = $request->input('export');
+            $month = $request->input('month', $this->attendanceService->today()->format('Y-m'));
+            $userId = $request->input('user_id');
+
+            if ($exportType === 'daily') {
+                $date = $request->input('date', $this->attendanceService->today()->format('Y-m-d'));
+
+                return $this->attendanceService->exportDailyCsv($date, $request->all());
+            }
+
+            return $this->attendanceService->exportMonthlyCsv($month, $request->all(), $userId && $userId !== 'all' ? (int) $userId : null);
+        }
+
+        return view('admin.attendance.reports', compact('users'));
+    }
+
+    /**
+     * Settings Page.
+     */
+    public function settings()
+    {
+        Gate::authorize('manage', Attendance::class);
+
+        $officeStartTime = Setting::where('key', 'office_start_time')->value('value') ?? '09:15';
+        $officeEndTime = Setting::where('key', 'office_end_time')->value('value') ?? '18:00';
+        $workingDays = Setting::where('key', 'working_days')->value('value') ?? '5';
+        $allowedIps = Setting::where('key', 'allowed_ips')->value('value') ?? '';
+
+        return view('admin.attendance.settings', compact('officeStartTime', 'officeEndTime', 'workingDays', 'allowedIps'));
+    }
+
+    /**
+     * Update Settings.
+     */
+    public function updateSettings(Request $request)
+    {
+        Gate::authorize('manage', Attendance::class);
+
+        $request->validate([
+            'office_start_time' => 'required|date_format:H:i',
+            'office_end_time' => 'required|date_format:H:i',
+            'working_days' => 'required|in:5,6',
+            'allowed_ips' => 'nullable|string',
+        ]);
+
+        Setting::updateOrCreate(['key' => 'office_start_time'], ['value' => $request->office_start_time]);
+        Setting::updateOrCreate(['key' => 'office_end_time'], ['value' => $request->office_end_time]);
+        Setting::updateOrCreate(['key' => 'working_days'], ['value' => $request->working_days]);
+        Setting::updateOrCreate(['key' => 'allowed_ips'], ['value' => $request->allowed_ips]);
+
+        return redirect()->back()->with('success', 'Settings updated successfully.');
+    }
+
+    /**
+     * Calendar view.
+     */
     public function calendar(Request $request)
     {
         $userId = Auth::id();
-        if (Auth::user()->hasPermission('attendance.calendar_all')) {
+        if (Auth::user()->hasPermission('attendance.calendar_all') || Auth::user()->hasRole('super-admin')) {
             $userId = $request->input('user_id', Auth::id());
         }
 
         $attendances = Attendance::where('user_id', $userId)->get();
-        $leaves = AttendanceRequest::where('user_id', $userId)->get();
-
         $events = [];
 
         foreach ($attendances as $att) {
-            $color = match ($att->status) {
-                'Present' => '#10b981', // success
-                'Late' => '#f59e0b', // warning
-                'Half-Day' => '#0ea5e9', // info
-                'Absent' => '#ef4444', // danger
-                default => '#6b7280', // secondary
+            $color = match ($att->attendance_status) {
+                'present' => '#10b981', // success
+                'half_day' => '#0ea5e9', // info
+                'absent' => '#ef4444', // danger
+                default => '#6b7280',
             };
 
+            $title = ucfirst($att->attendance_status).($att->check_in ? ' ('.Carbon::parse($att->check_in)->format('H:i').')' : '');
+            if ($att->approval_status === 'pending') {
+                $title .= ' [Pending]';
+            } elseif ($att->approval_status === 'rejected') {
+                $title .= ' [Rejected]';
+            }
+
             $events[] = [
-                'title' => $att->status.($att->clock_in ? ' ('.\Carbon\Carbon::parse($att->clock_in)->format('H:i').')' : ''),
-                'start' => $att->date,
+                'title' => $title,
+                'start' => $att->attendance_date?->format('Y-m-d') ?? $att->date,
                 'backgroundColor' => $color,
                 'borderColor' => $color,
                 'allDay' => true,
-            ];
-        }
-
-        foreach ($leaves as $leave) {
-            $leaveColor = match ($leave->status) {
-                'Approved' => '#10b981', // success
-                'Pending' => '#f59e0b', // warning
-                'Rejected' => '#ef4444', // danger
-                default => '#6b7280', // secondary
-            };
-
-            $events[] = [
-                'title' => 'Leave ('.$leave->status.'): '.$leave->type.' - '.\Illuminate\Support\Str::limit($leave->reason, 20),
-                'start' => $leave->start_date,
-                'end' => $leave->end_date ? \Carbon\Carbon::parse($leave->end_date)->addDay()->format('Y-m-d') : \Carbon\Carbon::parse($leave->start_date)->addDay()->format('Y-m-d'),
-                'backgroundColor' => $leaveColor,
-                'borderColor' => $leaveColor,
-                'allDay' => true,
-                'extendedProps' => [
-                    'reason' => $leave->reason,
-                    'action_notes' => $leave->action_notes,
-                ],
             ];
         }
 
@@ -290,13 +863,16 @@ class AttendanceController extends Controller
         return view('admin.attendance.calendar', compact('events', 'users', 'userId'));
     }
 
+    /**
+     * Requests list (leave/regularization).
+     */
     public function requests(Request $request)
     {
         $status = $request->input('status');
         $search = $request->input('search');
 
         $requests = AttendanceRequest::with(['user', 'actionBy'])
-            ->when(! Auth::user()->hasPermission('attendance.requests_manage'), function ($query) {
+            ->when(! Auth::user()->hasPermission('attendance.requests_manage') && ! Auth::user()->hasRole('super-admin'), function ($query) {
                 return $query->where('user_id', Auth::id());
             })
             ->when($status, function ($query) use ($status) {
@@ -324,7 +900,7 @@ class AttendanceController extends Controller
             'reason' => 'required|string',
         ]);
 
-        $attendanceReq = AttendanceRequest::create([
+        AttendanceRequest::create([
             'user_id' => Auth::id(),
             'type' => $validated['type'],
             'start_date' => $validated['start_date'],
@@ -333,14 +909,6 @@ class AttendanceController extends Controller
             'status' => 'Pending',
         ]);
 
-        $superAdmins = \App\Models\User::whereHas('role', function ($query) {
-            $query->where('slug', 'super-admin');
-        })->get();
-
-        foreach ($superAdmins as $admin) {
-            $admin->notify(new \App\Notifications\LeaveRequestNotification($attendanceReq, 'applied'));
-        }
-
         return redirect()->back()->with('success', 'Request submitted successfully.');
     }
 
@@ -348,7 +916,7 @@ class AttendanceController extends Controller
     {
         $attendanceReq = AttendanceRequest::findOrFail($id);
 
-        if ($attendanceReq->user_id !== Auth::id() && ! Auth::user()->hasPermission('attendance.requests_manage')) {
+        if ($attendanceReq->user_id !== Auth::id() && ! Auth::user()->hasPermission('attendance.requests_manage') && ! Auth::user()->hasRole('super-admin')) {
             return redirect()->back()->with('error', 'Unauthorized to edit this request.');
         }
 
@@ -365,7 +933,7 @@ class AttendanceController extends Controller
 
         $attendanceReq->update($validated);
 
-        return redirect()->back()->with('success', 'Leave request updated successfully.');
+        return redirect()->back()->with('success', 'Request updated successfully.');
     }
 
     public function updateRequestStatus(Request $request, $id)
@@ -383,218 +951,29 @@ class AttendanceController extends Controller
             'action_notes' => $validated['action_notes'] ?? null,
         ]);
 
-        $attendanceReq->user->notify(new \App\Notifications\LeaveRequestNotification($attendanceReq, strtolower($validated['status'])));
-
         return redirect()->back()->with('success', 'Request status updated successfully.');
     }
 
-    public function reports(Request $request)
+    public function bulkRequestAction(Request $request)
     {
-        $users = User::all();
-
-        if ($request->has('export')) {
-            $month = $request->input('month', Carbon::today()->format('Y-m'));
-            $startDate = Carbon::parse($month.'-01')->format('Y-m-d');
-            $endDate = Carbon::parse($month.'-01')->endOfMonth()->format('Y-m-d');
-            $exportType = $request->input('export');
-
-            if ($exportType === 'single') {
-                $userId = $request->input('user_id');
-                $query = Attendance::with('user')->whereBetween('date', [$startDate, $endDate]);
-
-                if ($userId && $userId != 'all') {
-                    $query->where('user_id', $userId);
-                }
-
-                $attendances = $query->orderBy('date', 'asc')->get();
-
-                $csvData = "Employee,Date,Status,Clock In,Clock Out,Work Hours\n";
-
-                foreach ($attendances as $att) {
-                    $csvData .= sprintf(
-                        "%s,%s,%s,%s,%s,%s\n",
-                        '"'.($att->user->name ?? 'Unknown').'"',
-                        \Carbon\Carbon::parse($att->date)->format('d/m/Y'),
-                        $att->status,
-                        $att->clock_in ?? '-',
-                        $att->clock_out ?? '-',
-                        $att->work_hours ?? '0'
-                    );
-                }
-
-                return response($csvData)
-                    ->header('Content-Type', 'text/csv')
-                    ->header('Content-Disposition', 'attachment; filename="attendance_report_'.$month.'.csv"');
-            } elseif ($exportType === 'all') {
-                $attendances = Attendance::whereBetween('date', [$startDate, $endDate])
-                    ->get()
-                    ->groupBy('user_id');
-
-                $workingDaysSetting = Setting::where('key', 'working_days')->value('value') ?? '5';
-                $totalWorkingDays = 0;
-                $currentDate = Carbon::parse($startDate);
-                $end = Carbon::parse($endDate);
-                $today = Carbon::today();
-
-                while ($currentDate->lte($end) && $currentDate->lte($today)) {
-                    if ($workingDaysSetting == '5') {
-                        if (! $currentDate->isWeekend()) {
-                            $totalWorkingDays++;
-                        }
-                    } else {
-                        if (! $currentDate->isSunday()) {
-                            $totalWorkingDays++;
-                        }
-                    }
-                    $currentDate->addDay();
-                }
-
-                $csvData = "Employee,Total Present,Total Late,Total Absent,Total Leave,Total Hours\n";
-
-                foreach ($users as $user) {
-                    $userAtts = $attendances->get($user->id, collect());
-                    $present = $userAtts->whereIn('status', ['Present', 'Late', 'Half-Day'])->count();
-                    $late = $userAtts->where('status', 'Late')->count();
-                    $leave = $userAtts->where('status', 'Leave')->count();
-                    $absent = max(0, $totalWorkingDays - $present - $leave);
-                    $totalHours = $userAtts->sum('work_hours');
-
-                    $csvData .= sprintf(
-                        "%s,%s,%s,%s,%s,%s\n",
-                        '"'.$user->name.'"',
-                        $present,
-                        $late,
-                        $absent,
-                        $leave,
-                        $totalHours
-                    );
-                }
-
-                return response($csvData)
-                    ->header('Content-Type', 'text/csv')
-                    ->header('Content-Disposition', 'attachment; filename="monthly_summary_'.$month.'.csv"');
-            }
+        $ids = $request->input('ids', []);
+        if (empty($ids)) {
+            return back()->with('error', 'No requests selected.');
         }
 
-        return view('admin.attendance.reports', compact('users'));
-    }
-
-    public function settings()
-    {
-        $officeStartTime = Setting::where('key', 'office_start_time')->value('value') ?? '09:15';
-        $officeEndTime = Setting::where('key', 'office_end_time')->value('value') ?? '18:00';
-        $workingDays = Setting::where('key', 'working_days')->value('value') ?? '5';
-        $allowedIps = Setting::where('key', 'allowed_ips')->value('value') ?? '';
-
-        return view('admin.attendance.settings', compact('officeStartTime', 'officeEndTime', 'workingDays', 'allowedIps'));
-    }
-
-    public function updateSettings(Request $request)
-    {
-        $request->validate([
-            'office_start_time' => 'required|date_format:H:i',
-            'office_end_time' => 'required|date_format:H:i',
-            'working_days' => 'required|in:5,6',
-            'allowed_ips' => 'nullable|string',
-        ]);
-
-        Setting::updateOrCreate(['key' => 'office_start_time'], ['value' => $request->office_start_time]);
-        Setting::updateOrCreate(['key' => 'office_end_time'], ['value' => $request->office_end_time]);
-        Setting::updateOrCreate(['key' => 'working_days'], ['value' => $request->working_days]);
-        Setting::updateOrCreate(['key' => 'allowed_ips'], ['value' => $request->allowed_ips]);
-
-        return redirect()->back()->with('success', 'Settings updated successfully.');
-    }
-
-    public function clockIn(Request $request)
-    {
-        $today = Carbon::today();
-        $now = Carbon::now();
-
-        $attendance = Attendance::where('user_id', Auth::id())->where('date', $today)->first();
-
-        if ($attendance) {
-            return redirect()->back()->with('error', 'You are already clocked in for today.');
+        $action = $request->input('action');
+        if (! in_array($action, ['Approved', 'Rejected'])) {
+            return back()->with('error', 'Invalid action.');
         }
 
-        $allowedIpsStr = Setting::where('key', 'allowed_ips')->value('value') ?? '';
-        $allowedIps = array_filter(array_map('trim', explode(',', $allowedIpsStr)));
-        $currentIp = $request->ip();
+        $count = AttendanceRequest::whereIn('id', $ids)
+            ->where('status', 'Pending')
+            ->update([
+                'status' => $action,
+                'action_by' => Auth::id(),
+                'action_notes' => 'Bulk ' . strtolower($action),
+            ]);
 
-        if (count($allowedIps) > 0 && ! in_array($currentIp, $allowedIps)) {
-            return redirect()->back()->with('error', 'Punch in is restricted to the office WiFi network only. Your IP: '.$currentIp);
-        }
-
-        $officeStartTimeStr = Setting::where('key', 'office_start_time')->value('value') ?? '09:15';
-        $timeParts = explode(':', $officeStartTimeStr);
-        $officeStartTime = Carbon::today()->setTime((int) $timeParts[0], (int) $timeParts[1], 0);
-
-        $status = 'Present';
-        if ($now->greaterThan($officeStartTime)) {
-            $status = 'Late';
-        }
-
-        $locationString = $request->input('location');
-        $latitude = $request->input('latitude');
-        $longitude = $request->input('longitude');
-
-        if (! $locationString && $latitude && $longitude) {
-            $locationString = "Lat: {$latitude}, Long: {$longitude}";
-        }
-
-        if (empty($locationString)) {
-            return redirect()->back()->with('error', 'Punch In failed: Location permission is required. Please enable location/GPS in your browser.');
-        }
-
-        Attendance::create([
-            'user_id' => Auth::id(),
-            'date' => $today,
-            'clock_in' => $now->format('H:i:s'),
-            'status' => $status,
-            'notes' => $request->input('notes'),
-            'ip_address' => $currentIp,
-            'clock_in_location' => $locationString,
-        ]);
-
-        return redirect()->back()->with('success', 'Clocked in successfully at '.$now->format('h:i A'));
-    }
-
-    public function clockOut(Request $request)
-    {
-        $today = Carbon::today();
-        $now = Carbon::now();
-
-        $attendance = Attendance::where('user_id', Auth::id())->where('date', $today)->first();
-
-        if (! $attendance) {
-            return redirect()->back()->with('error', 'You have not clocked in today.');
-        }
-
-        if ($attendance->clock_out) {
-            return redirect()->back()->with('error', 'You are already clocked out for today.');
-        }
-
-        $locationString = $request->input('location');
-        $latitude = $request->input('latitude');
-        $longitude = $request->input('longitude');
-
-        if (! $locationString && $latitude && $longitude) {
-            $locationString = "Lat: {$latitude}, Long: {$longitude}";
-        }
-
-        if (empty($locationString)) {
-            return redirect()->back()->with('error', 'Punch Out failed: Location permission is required. Please enable location/GPS in your browser.');
-        }
-
-        $clockInTime = Carbon::parse($attendance->date.' '.$attendance->clock_in);
-        $workHours = abs($clockInTime->diffInMinutes($now, false)) / 60;
-
-        $attendance->update([
-            'clock_out' => $now->format('H:i:s'),
-            'work_hours' => round($workHours, 2),
-            'clock_out_location' => $locationString,
-        ]);
-
-        return redirect()->back()->with('success', 'Clocked out successfully at '.$now->format('h:i A'));
+        return back()->with('success', "{$count} request(s) {$action} successfully.");
     }
 }

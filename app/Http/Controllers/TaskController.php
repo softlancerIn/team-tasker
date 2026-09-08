@@ -281,6 +281,19 @@ class TaskController extends Controller
 
         $allUsers = \App\Models\User::all(); // For the dropdown
 
+        // Attendance Integrations
+        $attendanceService = app(\App\Services\AttendanceService::class);
+        $todayStr = $attendanceService->today()->format('Y-m-d');
+        $attendanceStats = $isAdmin ? $attendanceService->getDailyStats($todayStr) : null;
+        
+        $currentUser = $viewUser ?: Auth::user();
+        $userAttendanceToday = \App\Models\Attendance::where('user_id', $currentUser->id)
+            ->where(function ($q) use ($todayStr) {
+                $q->where('attendance_date', $todayStr)->orWhere('date', $todayStr);
+            })
+            ->first();
+        $userMonthlyStats = $attendanceService->getMonthlyUserStats($currentUser, $attendanceService->today()->format('Y-m'));
+
         return view('admin.dashboard', compact(
             'personalTasks',
             'totalTasks',
@@ -301,7 +314,10 @@ class TaskController extends Controller
             'viewUser',
             'allUsers',
             'isAdmin',
-            'isTicketAdmin'
+            'isTicketAdmin',
+            'attendanceStats',
+            'userAttendanceToday',
+            'userMonthlyStats'
         ));
     }
 

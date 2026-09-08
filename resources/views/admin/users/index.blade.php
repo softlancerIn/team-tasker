@@ -171,7 +171,7 @@
                                             @if ($user->profile_image)
                                                 <img alt="team-tasker" src="{{ asset('storage/' . $user->profile_image) }}" alt="">
                                             @else
-                                                <div class="d-flex align-items-center justify-content-center w-100 h-100" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-weight: 600; font-size: 0.8rem;">
+                                                <div class="d-flex align-items-center justify-content-center w-100 h-100 text-white" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-weight: 600; font-size: 0.8rem;">
                                                     {{ substr($user->name, 0, 1) }}
                                                 </div>
                                             @endif

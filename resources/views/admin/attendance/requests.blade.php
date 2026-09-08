@@ -13,113 +13,153 @@
         </button>
     </div>
 
-    <div class="data-grid-wrapper mb-5">
-        <div class="data-grid-top">
-            <div class="data-grid-search">
-                <form action="{{ route('admin.attendance.requests') }}" method="GET" class="d-flex align-items-center m-0 w-100">
-                    <i class="fas fa-search me-2 text-low"></i>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name or email..." class="border-1 bg-transparent text-high w-100" style="outline: none;">
-                    @if(request('status'))
-                        <input type="hidden" name="status" value="{{ request('status') }}">
-                    @endif
-                </form>
-            </div>
-            <div class="data-grid-results">{{ $requests->total() }} Results</div>
-            <div class="data-grid-actions">
-                {{ $requests->links() }}
-            </div>
-        </div>
+    <form id="bulkRequestsForm" action="{{ route('admin.attendance.requests.bulkAction') }}" method="POST">
+        @csrf
+        <input type="hidden" name="action" id="bulkRequestActionType">
 
-        <div class="table-responsive">
-            <table class="table data-grid-table">
-                <thead>
-                    <tr>
-                        <th>Employee</th>
-                        <th>Type</th>
-                        <th>Dates</th>
-                        <th>Reason</th>
-                        <th>Status</th>
-                        <th>Action By</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($requests as $req)
+        <div class="data-grid-wrapper mb-5">
+            <div class="data-grid-top">
+                <div class="data-grid-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="search" form="requestsSearchForm" value="{{ request('search') }}" placeholder="Search by employee name or email..." onchange="document.getElementById('requestsSearchForm').submit()">
+                    @if(request('search'))
+                        <a href="{{ route('admin.attendance.requests', array_merge(request()->except('search'))) }}" class="text-low ms-2 text-decoration-none small" title="Clear search">
+                            <i class="fas fa-times-circle"></i>
+                        </a>
+                    @endif
+                </div>
+                <div class="data-grid-results">{{ $requests->total() }} Results</div>
+                <div class="data-grid-actions d-flex align-items-center gap-2">
+                    <button type="button" class="btn-premium btn-premium-secondary py-1 px-3" onclick="document.getElementById('filterSlideoverAttendance').classList.add('show')">
+                        <i class="fas fa-sliders-h me-1"></i> Filter
+                    </button>
+                    {{ $requests->links('components.pagination.premium') }}
+                </div>
+            </div>
+
+            <!-- Sticky Bulk Action Bar -->
+            <div class="data-grid-bulk-actions d-none" id="bulkActionBar">
+                <span class="text-white small fw-semibold me-2"><span id="selectedCount">0</span> selected</span>
+                <div class="btn-group shadow-sm">
+                    <button type="button" class="btn-bulk-success" onclick="submitBulkRequests('Approved')">
+                        <i class="fas fa-check-circle me-1"></i> Approve Selected
+                    </button>
+                    <button type="button" class="btn-bulk-danger" onclick="submitBulkRequests('Rejected')">
+                        <i class="fas fa-times-circle me-1"></i> Reject Selected
+                    </button>
+                </div>
+                <button type="button" class="btn-deselect-all" onclick="deselectAllRequests()">
+                    Deselect All
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table data-grid-table">
+                    <thead>
                         <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="avatar-premium" style="width: 32px; height: 32px;">
-                                        @if ($req->user->profile_image)
-                                            <img src="{{ asset('storage/' . $req->user->profile_image) }}" alt="Profile">
-                                        @else
-                                            {{ substr($req->user->name ?? 'U', 0, 1) }}
-                                        @endif
+                            <th style="width: 40px;"><input type="checkbox" class="data-grid-checkbox" id="selectAll"></th>
+                            <th>EMPLOYEE <i class="fas fa-sort text-low ms-1" style="font-size: 10px;"></i></th>
+                            <th>TYPE</th>
+                            <th>DATES</th>
+                            <th>REASON</th>
+                            <th class="text-center">STATUS</th>
+                            <th>ACTION BY</th>
+                            <th class="text-end pe-4">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($requests as $req)
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="ids[]" value="{{ $req->id }}" class="data-grid-checkbox req-checkbox" {{ $req->status !== 'Pending' ? 'disabled title=Processed' : '' }}>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-premium" style="width: 32px; height: 32px;">
+                                            @if ($req->user->profile_image)
+                                                <img src="{{ asset('storage/' . $req->user->profile_image) }}" alt="Profile">
+                                            @else
+                                                <div class="d-flex align-items-center justify-content-center w-100 h-100 text-white" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-weight: 600; font-size: 0.8rem;">
+                                                    {{ strtoupper(substr($req->user->name ?? 'U', 0, 1)) }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-high">{{ $req->user->name }}</div>
+                                            <div class="text-low extra-small">{{ $req->user->email }}</div>
+                                        </div>
                                     </div>
-                                    <span class="text-high fw-semibold">{{ $req->user->name }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge-premium bg-primary-subtle text-primary border border-primary border-opacity-25 px-2 py-1">
-                                    {{ $req->type }}
-                                </span>
-                            </td>
-                            <td class="text-low">
-                                {{ \Carbon\Carbon::parse($req->start_date)->format('d/m/Y') }}
-                                @if($req->end_date && $req->start_date !== $req->end_date)
-                                    - {{ \Carbon\Carbon::parse($req->end_date)->format('d/m/Y') }}
-                                @endif
-                            </td>
-                            <td class="text-low text-truncate" style="max-width: 200px;" title="{{ $req->reason }}">
-                                {{ $req->reason }}
-                            </td>
-                            <td>
-                                @php
-                                    $statusColor = match($req->status) {
-                                        'Approved' => 'success',
-                                        'Rejected' => 'danger',
-                                        default => 'warning'
-                                    };
-                                @endphp
-                                <span class="badge-premium bg-{{ $statusColor }}-subtle text-{{ $statusColor }} border border-{{ $statusColor }} border-opacity-25 px-2 py-1">
-                                    {{ $req->status }}
-                                </span>
-                            </td>
-                            <td class="text-low">
-                                {{ $req->actionBy ? $req->actionBy->name : '-' }}
-                            </td>
-                            <td>
-                                <div class="d-flex gap-2">
-                                    @if($req->status === 'Pending' && Auth::user()->hasPermission('attendance.requests_manage'))
-                                        <button type="button" class="btn btn-sm btn-success" title="Approve" onclick="updateStatus({{ $req->id }}, 'Approved')">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-danger" title="Reject" onclick="updateStatus({{ $req->id }}, 'Rejected')">
-                                            <i class="fas fa-times"></i>
-                                        </button>
+                                </td>
+                                <td>
+                                    <span class="badge-premium bg-primary-subtle text-primary border border-primary border-opacity-25 px-2 py-1">
+                                        {{ $req->type }}
+                                    </span>
+                                </td>
+                                <td class="text-low small">
+                                    {{ \Carbon\Carbon::parse($req->start_date)->format('d M Y') }}
+                                    @if($req->end_date && $req->start_date !== $req->end_date)
+                                        - {{ \Carbon\Carbon::parse($req->end_date)->format('d M Y') }}
                                     @endif
-                                    
-                                    @if($req->status === 'Pending' && $req->user_id === Auth::id())
-                                        <button type="button" class="btn btn-sm btn-premium-primary" title="Edit Request" onclick="editRequest({{ $req->id }}, '{{ $req->type }}', '{{ $req->start_date }}', '{{ $req->end_date }}', `{{ addslashes($req->reason) }}`)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    @endif
+                                </td>
+                                <td class="text-low text-truncate" style="max-width: 200px;" title="{{ $req->reason }}">
+                                    {{ $req->reason }}
+                                </td>
+                                <td class="text-center">
+                                    @php
+                                        $statusColor = match($req->status) {
+                                            'Approved' => 'success',
+                                            'Rejected' => 'danger',
+                                            default => 'warning'
+                                        };
+                                    @endphp
+                                    <span class="badge-premium bg-{{ $statusColor }}-subtle text-{{ $statusColor }} border border-{{ $statusColor }} border-opacity-25 px-2 py-1">
+                                        {{ $req->status }}
+                                    </span>
+                                </td>
+                                <td class="text-low small">
+                                    {{ $req->actionBy ? $req->actionBy->name : '-' }}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        @if($req->status === 'Pending' && (Auth::user()->hasPermission('attendance.requests_manage') || Auth::user()->hasPermission('hr.leave_requests') || Auth::user()->hasRole('super-admin')))
+                                            <button type="button" class="action-link border-0 bg-transparent" title="Approve Request" style="color: var(--success);" onclick="updateStatus({{ $req->id }}, 'Approved')">
+                                                <i class="fas fa-check-circle"></i>
+                                            </button>
+                                            <button type="button" class="action-link delete border-0 bg-transparent" title="Reject Request" onclick="updateStatus({{ $req->id }}, 'Rejected')">
+                                                <i class="fas fa-times-circle"></i>
+                                            </button>
+                                        @endif
+                                        
+                                        @if($req->status === 'Pending' && $req->user_id === Auth::id())
+                                            <button type="button" class="action-link border-0 bg-transparent" title="Edit Request" onclick="editRequest({{ $req->id }}, '{{ $req->type }}', '{{ $req->start_date }}', '{{ $req->end_date }}', `{{ addslashes($req->reason) }}`)">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </button>
+                                        @endif
 
-                                    <a href="{{ route('admin.attendance.calendar', ['user_id' => $req->user_id]) }}" class="btn btn-sm btn-premium-secondary" title="View Details">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                    @if($requests->isEmpty())
-                        <tr>
-                            <td colspan="7" class="text-center text-low py-4">No requests found.</td>
-                        </tr>
-                    @endif
-                </tbody>
-            </table>
+                                        <a href="{{ route('admin.attendance.calendar', ['user_id' => $req->user_id]) }}" class="action-link border-0 bg-transparent" title="View Calendar">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                        @if($requests->isEmpty())
+                            <tr>
+                                <td colspan="8" class="text-center text-low py-4">No requests found.</td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    </form>
+
+    {{-- Standalone search form --}}
+    <form action="{{ route('admin.attendance.requests') }}" method="GET" id="requestsSearchForm" class="d-none">
+        @if(request('status'))
+            <input type="hidden" name="status" value="{{ request('status') }}">
+        @endif
+    </form>
 
     <!-- New Request Modal -->
     <div class="modal fade" id="newRequestModal" tabindex="-1">
@@ -268,6 +308,64 @@
             
             modal.show();
         }
+
+        function submitBulkRequests(action) {
+            const selected = document.querySelectorAll('.req-checkbox:checked');
+            if (selected.length === 0) {
+                alert('Please select at least one request.');
+                return;
+            }
+            if (!confirm(`Are you sure you want to mark ${selected.length} request(s) as ${action}?`)) {
+                return;
+            }
+            document.getElementById('bulkRequestActionType').value = action;
+            document.getElementById('bulkRequestsForm').submit();
+        }
+
+        function updateBulkState() {
+            const enabledCheckboxes = document.querySelectorAll('.req-checkbox:not(:disabled)');
+            const checked = document.querySelectorAll('.req-checkbox:checked');
+            const selectAll = document.getElementById('selectAll');
+            const bulkBar = document.getElementById('bulkActionBar');
+            const countSpan = document.getElementById('selectedCount');
+
+            if (selectAll) {
+                selectAll.checked = enabledCheckboxes.length > 0 && checked.length === enabledCheckboxes.length;
+                selectAll.indeterminate = checked.length > 0 && checked.length < enabledCheckboxes.length;
+            }
+
+            if (bulkBar) {
+                if (checked.length > 0) {
+                    bulkBar.classList.remove('d-none');
+                    bulkBar.classList.add('d-flex');
+                    if (countSpan) countSpan.textContent = checked.length;
+                } else {
+                    bulkBar.classList.remove('d-flex');
+                    bulkBar.classList.add('d-none');
+                }
+            }
+        }
+
+        function deselectAllRequests() {
+            document.querySelectorAll('.req-checkbox').forEach(cb => cb.checked = false);
+            const selectAll = document.getElementById('selectAll');
+            if (selectAll) selectAll.checked = false;
+            updateBulkState();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAll = document.getElementById('selectAll');
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    document.querySelectorAll('.req-checkbox:not(:disabled)').forEach(cb => cb.checked = selectAll.checked);
+                    updateBulkState();
+                });
+            }
+
+            document.querySelectorAll('.req-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateBulkState);
+            });
+        });
     </script>
 </x-admin>
 

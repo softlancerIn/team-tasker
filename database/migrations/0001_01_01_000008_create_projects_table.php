@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('projects', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->string('status')->default('active'); // active, completed, on_hold, archived
-            $table->date('start_date')->nullable();
-            $table->date('deadline')->nullable();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete(); // Project manager/owner
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('projects')) {
+            Schema::create('projects', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->text('description')->nullable();
+                $table->string('status')->default('active'); // active, completed, on_hold, archived
+                $table->date('start_date')->nullable();
+                $table->date('deadline')->nullable();
+                $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete(); // Project manager/owner
+                $table->timestamps();
+            });
+        }
     }
 
     /**

@@ -125,6 +125,142 @@
         @endif
     </div>
 
+    <!-- Attendance Overview Widgets (Super Admin & User) -->
+    @if(isset($attendanceStats) && $isAdmin)
+        <div class="glass-card p-4 mb-4 border-main">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold text-high mb-1 d-flex align-items-center gap-2">
+                        <i class="fas fa-clock text-primary"></i> Today's Attendance Overview
+                    </h5>
+                    <span class="text-low small">{{ now()->format('l, d F Y') }}</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('admin.attendance.daily') }}" class="btn-premium btn-premium-primary btn-sm">
+                        <i class="fas fa-tasks me-1"></i> Review Daily Reports
+                    </a>
+                </div>
+            </div>
+            <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 text-center">
+                <div class="col">
+                    <div class="p-3 rounded bg-subtle border border-subtle">
+                        <span class="text-low small d-block mb-1">Submitted</span>
+                        <h4 class="fw-bold text-primary mb-0">{{ $attendanceStats['submitted'] }}</h4>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="p-3 rounded bg-subtle border border-subtle">
+                        <span class="text-low small d-block mb-1">Pending Approvals</span>
+                        <h4 class="fw-bold text-warning mb-0">{{ $attendanceStats['pending'] }}</h4>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="p-3 rounded bg-subtle border border-subtle">
+                        <span class="text-low small d-block mb-1">Approved Today</span>
+                        <h4 class="fw-bold text-success mb-0">{{ $attendanceStats['approved'] }}</h4>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="p-3 rounded bg-subtle border border-subtle">
+                        <span class="text-low small d-block mb-1">Rejected Today</span>
+                        <h4 class="fw-bold text-danger mb-0">{{ $attendanceStats['rejected'] }}</h4>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="p-3 rounded bg-subtle border border-subtle">
+                        <span class="text-low small d-block mb-1">Not Submitted</span>
+                        <h4 class="fw-bold text-muted mb-0">{{ $attendanceStats['not_submitted'] }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(isset($userMonthlyStats))
+        <div class="glass-card p-4 mb-4 border-main">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold text-high mb-1 d-flex align-items-center gap-2">
+                        <i class="fas fa-calendar-check text-primary"></i> 
+                        {{ $isAdmin && isset($viewUser) ? $viewUser->name . "'s" : "My" }} Attendance & Hours
+                    </h5>
+                    <span class="text-low small">Today: {{ now()->format('d M Y') }} &bull; Month: {{ now()->format('F Y') }}</span>
+                </div>
+                <a href="{{ route('admin.attendance.myDaily') }}" class="btn-premium btn-premium-secondary btn-sm">
+                    <i class="fas fa-calendar-day me-1"></i> Full Attendance Details
+                </a>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-5 border-end border-subtle">
+                    <span class="text-low small d-block mb-2">Today's Status</span>
+                    <div class="d-flex align-items-center justify-content-between pe-3">
+                        <div>
+                            <div class="text-low small">Check In</div>
+                            <div class="fw-bold text-high fs-5">
+                                {{ isset($userAttendanceToday) && $userAttendanceToday->check_in ? \Carbon\Carbon::parse($userAttendanceToday->check_in)->format('h:i A') : '--:--' }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-low small">Check Out</div>
+                            <div class="fw-bold text-high fs-5">
+                                {{ isset($userAttendanceToday) && $userAttendanceToday->check_out ? \Carbon\Carbon::parse($userAttendanceToday->check_out)->format('h:i A') : '--:--' }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-low small">Working Time</div>
+                            <div class="fw-bold text-primary fs-5">
+                                {{ isset($userAttendanceToday) ? $userAttendanceToday->formatted_working_hours : '0h 0m' }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-low small">Approval</div>
+                            <div>
+                                @php
+                                    $appStat = $userAttendanceToday ? $userAttendanceToday->approval_status : 'not_submitted';
+                                    $appColor = match($appStat) {
+                                        'approved' => 'success',
+                                        'pending' => 'warning',
+                                        'rejected' => 'danger',
+                                        'draft' => 'info',
+                                        default => 'secondary'
+                                    };
+                                @endphp
+                                <span class="badge-premium bg-{{ $appColor }}-subtle text-{{ $appColor }}">
+                                    {{ ucfirst(str_replace('_', ' ', $appStat)) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7 ps-md-3">
+                    <span class="text-low small d-block mb-2">{{ now()->format('F') }} Month Summary</span>
+                    <div class="row row-cols-5 text-center g-2">
+                        <div class="col">
+                            <span class="text-low" style="font-size: 0.75rem;">Present</span>
+                            <div class="fw-bold text-success fs-5">{{ $userMonthlyStats['present_days'] }}</div>
+                        </div>
+                        <div class="col">
+                            <span class="text-low" style="font-size: 0.75rem;">Half Day</span>
+                            <div class="fw-bold text-warning fs-5">{{ $userMonthlyStats['half_days'] }}</div>
+                        </div>
+                        <div class="col">
+                            <span class="text-low" style="font-size: 0.75rem;">Absent</span>
+                            <div class="fw-bold text-danger fs-5">{{ $userMonthlyStats['absent_days'] }}</div>
+                        </div>
+                        <div class="col">
+                            <span class="text-low" style="font-size: 0.75rem;">Pending</span>
+                            <div class="fw-bold text-warning fs-5">{{ $userMonthlyStats['pending_days'] }}</div>
+                        </div>
+                        <div class="col">
+                            <span class="text-low" style="font-size: 0.75rem;">Total Hours</span>
+                            <div class="fw-bold text-primary fs-5">{{ $userMonthlyStats['formatted_working_hours'] }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Health & Progress Row -->
     <div class="row g-4 mb-4">
         <div class="col-md-6">

@@ -829,22 +829,68 @@
 
         <div class="header-utils">
             @php
-                $today = \Carbon\Carbon::today();
-                $myAttendance = \App\Models\Attendance::where('user_id', auth()->id())->where('date', $today)->first();
+                $todayDate = \Carbon\Carbon::today()->format('Y-m-d');
+                $currentAuthId = auth()->id() ?? auth('admin')->id();
+                $myAttendance = \App\Models\Attendance::where('user_id', $currentAuthId)
+                    ->where(function($q) use ($todayDate) {
+                        $q->where('attendance_date', $todayDate)
+                          ->orWhere('date', $todayDate);
+                    })->first();
             @endphp
             
-            @if(!$myAttendance)
-                <button class="btn-premium btn-premium-primary btn-sm mobile-hide" data-bs-toggle="modal" data-bs-target="#globalClockInModal" style="padding: 6px 16px;">
-                    <i class="fas fa-sign-in-alt me-1"></i> Clock In
+            {{-- Clock In / Clock Out (Icon Only) --}}
+            @if(!$myAttendance || (!$myAttendance->check_in && !$myAttendance->clock_in))
+                <button type="button" class="btn-premium btn-premium-primary btn-sm p-0 d-inline-flex align-items-center justify-content-center" 
+                    data-bs-toggle="modal" data-bs-target="#globalClockInModal" 
+                    title="Clock In" 
+                    style="width: 38px; height: 38px; border-radius: 8px;">
+                    <i class="fas fa-sign-in-alt"></i>
                 </button>
-            @elseif(!$myAttendance->clock_out)
-                <button type="button" class="btn-premium btn btn-danger btn-sm m-0 mobile-hide" style="padding: 6px 16px;" data-bs-toggle="modal" data-bs-target="#globalClockOutModal">
-                    <i class="fas fa-sign-out-alt me-1"></i> Clock Out
+            @elseif(!$myAttendance->check_out && !$myAttendance->clock_out)
+                <button type="button" class="btn-premium btn btn-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center m-0" 
+                    data-bs-toggle="modal" data-bs-target="#globalClockOutModal" 
+                    title="Clock Out" 
+                    style="width: 38px; height: 38px; border-radius: 8px;">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
             @else
-                <span class="badge-premium mobile-hide" style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 8px 16px; border-radius: 6px;">
-                    <i class="fas fa-check-circle me-1"></i> Shift Ended
-                </span>
+                <button type="button" class="btn-premium btn-sm p-0 d-inline-flex align-items-center justify-content-center" 
+                    disabled 
+                    title="Shift Ended" 
+                    style="width: 38px; height: 38px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">
+                    <i class="fas fa-check-circle"></i>
+                </button>
+            @endif
+
+            {{-- Submit Work Report to Super Admin (Icon Only) --}}
+            @if($myAttendance && $myAttendance->isApproved())
+                <button type="button" class="btn-premium btn-sm p-0 d-inline-flex align-items-center justify-content-center m-0" 
+                    data-bs-toggle="modal" data-bs-target="#globalSubmitReportModal" 
+                    title="Daily Work Report Approved by Super Admin - Click to View" 
+                    style="width: 38px; height: 38px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">
+                    <i class="fas fa-check-double text-success"></i>
+                </button>
+            @elseif($myAttendance && $myAttendance->isPending())
+                <button type="button" class="btn-premium btn-sm p-0 d-inline-flex align-items-center justify-content-center m-0" 
+                    data-bs-toggle="modal" data-bs-target="#globalSubmitReportModal" 
+                    title="Daily Work Report Submitted - Pending Super Admin Approval" 
+                    style="width: 38px; height: 38px; border-radius: 8px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <i class="fas fa-hourglass-half text-warning"></i>
+                </button>
+            @elseif($myAttendance && $myAttendance->isRejected())
+                <button type="button" class="btn-premium btn btn-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center m-0 text-white" 
+                    data-bs-toggle="modal" data-bs-target="#globalSubmitReportModal" 
+                    title="Daily Work Report Rejected by Super Admin - Click to Resubmit" 
+                    style="width: 38px; height: 38px; border-radius: 8px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </button>
+            @else
+                <button type="button" class="btn-premium btn-premium-primary btn-sm p-0 d-inline-flex align-items-center justify-content-center m-0" 
+                    data-bs-toggle="modal" data-bs-target="#globalSubmitReportModal" 
+                    title="Submit Daily Work Report for Super Admin Approval" 
+                    style="width: 38px; height: 38px; border-radius: 8px;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
             @endif
 
             <!-- Theme Toggle -->
@@ -1021,69 +1067,141 @@
                 </a>
             @endif
 
+            @if (Auth::user()->hasPermission('attendance.view') || Auth::user()->hasPermission('attendance.punch') || Auth::user()->hasPermission('attendance.daily') || Auth::user()->hasPermission('attendance.monthly') || Auth::user()->hasPermission('attendance.dashboard_overview') || Auth::user()->hasPermission('attendance.settings'))
+            @php
+                $isAttendanceActive = (request()->routeIs('admin.attendance.*') && !request()->routeIs('admin.attendance.requests'));
+            @endphp
             <div class="nav-item">
                 <a href="javascript:void(0)"
-                    class="nav-link-premium nav-dropdown {{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}"
+                    class="nav-link-premium nav-dropdown {{ $isAttendanceActive ? 'active' : '' }}"
                     onclick="toggleSubmenu(this)">
                     <i class="fas fa-clock"></i>
                     <span>Attendance</span>
-                    <i class="fas fa-chevron-right ms-auto toggle-icon-premium {{ request()->routeIs('admin.attendance.*') ? 'rotate' : '' }}"></i>
+                    <i class="fas fa-chevron-right ms-auto toggle-icon-premium {{ $isAttendanceActive ? 'rotate' : '' }}"></i>
                 </a>
-                <div class="nav-submenu-premium {{ request()->routeIs('admin.attendance.*') ? 'show' : '' }}">
+                <div class="nav-submenu-premium {{ $isAttendanceActive ? 'show' : '' }}">
+                    @if(Auth::user()->hasPermission('attendance.dashboard_overview'))
                     <a href="{{ route('admin.attendance.dashboard') }}"
                         class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.dashboard') ? 'active' : '' }}">
                         <i class="fas fa-chart-pie"></i> Dashboard
                     </a>
-                    
-                    @if (Auth::user()->hasPermission('attendance.daily'))
+                    @endif
+
+                    @if(Auth::user()->hasPermission('attendance.daily') || Auth::user()->hasPermission('attendance.approve') || Auth::user()->hasPermission('attendance.manage'))
                     <a href="{{ route('admin.attendance.daily') }}"
                         class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.daily') ? 'active' : '' }}">
-                        <i class="fas fa-calendar-day"></i> Daily Attendance
+                        <i class="fas fa-file-invoice"></i> Daily Work Reports
                     </a>
                     @endif
-                    @if (Auth::user()->hasPermission('attendance.monthly'))
+
+                    @if(Auth::user()->hasPermission('attendance.monthly') || Auth::user()->hasPermission('attendance.report') || Auth::user()->hasPermission('attendance.manage'))
                     <a href="{{ route('admin.attendance.monthly') }}"
                         class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.monthly') ? 'active' : '' }}">
                         <i class="fas fa-calendar-days"></i> Monthly Attendance
                     </a>
                     @endif
-                    
+
+                    @if(Auth::user()->hasPermission('attendance.punch') || Auth::user()->hasPermission('attendance.submit') || Auth::user()->hasPermission('attendance.view'))
+                    <a href="{{ route('admin.attendance.myDaily') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.myDaily') ? 'active' : '' }}">
+                        <i class="fas fa-user-clock"></i> My Attendance
+                    </a>
+                    <a href="{{ route('admin.attendance.myMonthly') }}"
+                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.myMonthly') ? 'active' : '' }}">
+                        <i class="fas fa-user-check"></i> My Monthly Report
+                    </a>
+                    @endif
+
+                    @if(Auth::user()->hasPermission('attendance.calendar_all') || Auth::user()->hasPermission('attendance.view'))
                     <a href="{{ route('admin.attendance.calendar') }}"
                         class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.calendar') ? 'active' : '' }}">
                         <i class="fas fa-calendar-alt"></i> Calendar
                     </a>
-                    <a href="{{ route('admin.attendance.requests') }}"
-                        class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.requests') ? 'active' : '' }}">
-                        <i class="fas fa-envelope-open-text"></i> Leave Requests
-                    </a>
-                    
-                    @if (Auth::user()->hasPermission('attendance.reports'))
+                    @endif
+
+                    @if(Auth::user()->hasPermission('attendance.reports') || Auth::user()->hasPermission('attendance.report') || Auth::user()->hasPermission('attendance.export'))
                     <a href="{{ route('admin.attendance.reports') }}"
                         class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.reports') ? 'active' : '' }}">
                         <i class="fas fa-file-export"></i> Reports
                     </a>
                     @endif
-                    @if (Auth::user()->hasPermission('attendance.settings'))
+                    
+                    @if(Auth::user()->hasPermission('attendance.settings') || Auth::user()->hasPermission('attendance.manage'))
                     <a href="{{ route('admin.attendance.settings') }}"
                         class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.settings') ? 'active' : '' }}">
-                        <i class="fas fa-cog"></i> Settings
+                        <i class="fas fa-business-time"></i> Attendance Settings
                     </a>
                     @endif
                 </div>
             </div>
+            @endif
 
-            @if (Auth::user()->hasPermission('settings.view'))
+            @if (Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('settings.view') || Auth::user()->hasPermission('hr.view') || Auth::user()->hasPermission('hr.manage') || Auth::user()->hasPermission('users.view') || Auth::user()->hasPermission('roles.view') || Auth::user()->hasPermission('attendance.requests_manage') || Auth::user()->hasPermission('attendance.view'))
+                @php
+                    $isHrActive = request()->routeIs('admin.hr.*') || 
+                                  request()->routeIs('admin.users.*') || 
+                                  request()->routeIs('admin.roles.*') || 
+                                  request()->routeIs('admin.attendance.requests') || 
+                                  request()->routeIs('admin.settings.autostop');
+                @endphp
                 <div class="nav-item">
                     <a href="javascript:void(0)"
-                        class="nav-link-premium nav-dropdown {{ request()->routeIs('admin.settings.*') || request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'active' : '' }}"
+                        class="nav-link-premium nav-dropdown {{ $isHrActive ? 'active' : '' }}"
+                        onclick="toggleSubmenu(this)">
+                        <i class="fas fa-user-gear"></i>
+                        <span>HR Settings</span>
+                        <i class="fas fa-chevron-right ms-auto toggle-icon-premium {{ $isHrActive ? 'rotate' : '' }}"></i>
+                    </a>
+                    <div class="nav-submenu-premium {{ $isHrActive ? 'show' : '' }}">
+                        @if (Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('settings.view') || Auth::user()->hasPermission('hr.view'))
+                            <a href="{{ route('admin.hr.settings') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.hr.settings') ? 'active' : '' }}">
+                                <i class="fas fa-sliders-h"></i> HR Overview
+                            </a>
+                        @endif
+                        @if (Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('users.view'))
+                            <a href="{{ route('admin.users.index') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                                <i class="fas fa-users"></i> Users & Staff
+                            </a>
+                        @endif
+                        @if (Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('roles.view'))
+                            <a href="{{ route('admin.roles.index') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+                                <i class="fas fa-shield-halved"></i> Roles & Permissions
+                            </a>
+                        @endif
+                        @if (Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('attendance.requests_manage') || Auth::user()->hasPermission('attendance.view'))
+                            <a href="{{ route('admin.attendance.requests') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.requests') ? 'active' : '' }}">
+                                <i class="fas fa-envelope-open-text"></i> Leave Requests
+                            </a>
+                        @endif
+                        @if (Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('settings.view') || Auth::user()->hasPermission('hr.manage'))
+                            <a href="{{ route('admin.settings.autostop') }}"
+                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.autostop') ? 'active' : '' }}">
+                                <i class="fas fa-stopwatch"></i> Shift & Timer Rules
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            @if (Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('settings.view'))
+                @php
+                    $isSettingsActive = (request()->routeIs('admin.settings.*') && !request()->routeIs('admin.hr.*') && !request()->routeIs('admin.settings.autostop'));
+                @endphp
+                <div class="nav-item">
+                    <a href="javascript:void(0)"
+                        class="nav-link-premium nav-dropdown {{ $isSettingsActive ? 'active' : '' }}"
                         onclick="toggleSubmenu(this)">
                         <i class="fas fa-cog"></i>
                         <span>Settings</span>
                         <i
-                            class="fas fa-chevron-right ms-auto toggle-icon-premium {{ request()->routeIs('admin.settings.*') || request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'rotate' : '' }}"></i>
+                            class="fas fa-chevron-right ms-auto toggle-icon-premium {{ $isSettingsActive ? 'rotate' : '' }}"></i>
                     </a>
                     <div
-                        class="nav-submenu-premium {{ request()->routeIs('admin.settings.*') || request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'show' : '' }}">
+                        class="nav-submenu-premium {{ $isSettingsActive ? 'show' : '' }}">
                         <a href="{{ route('admin.settings.general') }}"
                             class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.general') ? 'active' : '' }}">
                             <i class="fas fa-sliders-h"></i> General
@@ -1100,23 +1218,7 @@
                             class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.email') ? 'active' : '' }}">
                             <i class="fas fa-envelope"></i> Email Integration
                         </a>
-                        <a href="{{ route('admin.settings.autostop') }}"
-                            class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.autostop') ? 'active' : '' }}">
-                            <i class="fas fa-stopwatch"></i> Auto Stop Timer
-                        </a>
-                        @if (Auth::user()->hasPermission('users.view'))
-                            <a href="{{ route('admin.users.index') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                                <i class="fas fa-users"></i> Users
-                            </a>
-                        @endif
-                        @if (Auth::user()->hasPermission('roles.view'))
-                            <a href="{{ route('admin.roles.index') }}"
-                                class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
-                                <i class="fas fa-shield-halved"></i> Roles
-                            </a>
-                        @endif
-                        @if (Auth::user()->hasPermission('settings.view'))
+                        @if (Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('settings.view'))
                             <a href="{{ route('admin.settings.chat-permissions') }}"
                                 class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.settings.chat-permissions') ? 'active' : '' }}">
                                 <i class="fas fa-comments"></i> Chat Permissions
@@ -1752,7 +1854,7 @@
                     </div>
                     <div class="modal-footer border-subtle">
                         <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" id="punchInSubmitBtn" class="btn-premium btn-premium-primary" disabled style="opacity: 0.5; pointer-events: none;">
+                        <button type="submit" id="punchInSubmitBtn" class="btn-premium btn-premium-primary">
                             <i class="fas fa-sign-in-alt me-2"></i> Punch In Now
                         </button>
                     </div>
@@ -1780,7 +1882,7 @@
                         
                         <div class="mb-3 p-2 rounded border border-subtle bg-subtle d-flex align-items-center gap-2" id="outLocationStatusContainer" style="font-size: 0.8rem;">
                             <i class="fas fa-map-marker-alt text-danger" id="outLocIcon"></i>
-                            <span id="outLocationStatusText" class="text-low">Detecting your location...</span>
+                            <span id="outLocationStatusText" class="text-low">Ready to punch out</span>
                         </div>
 
                         <div class="mb-3">
@@ -1790,7 +1892,7 @@
                     </div>
                     <div class="modal-footer border-subtle">
                         <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" id="punchOutSubmitBtn" class="btn-premium btn btn-danger" disabled style="opacity: 0.5; pointer-events: none;">
+                        <button type="submit" id="punchOutSubmitBtn" class="btn-premium btn btn-danger">
                             <i class="fas fa-sign-out-alt me-2"></i> Confirm Clock Out
                         </button>
                     </div>
@@ -1798,37 +1900,123 @@
             </div>
         </div>
     </div>
+
+    <!-- Global Submit Work Report Modal -->
+    <div class="modal fade" id="globalSubmitReportModal" tabindex="-1" aria-labelledby="globalSubmitReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-main">
+                <div class="modal-header border-subtle">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(0, 168, 132, 0.15); color: #00a884;">
+                            <i class="fas fa-file-signature"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-high m-0" id="globalSubmitReportModalLabel">Daily Work Report</h5>
+                            <small class="text-low">{{ \Carbon\Carbon::today()->format('l, d F Y') }}</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                @if($myAttendance && $myAttendance->isApproved())
+                    <div class="modal-body">
+                        <div class="p-3 rounded border border-success border-opacity-25 bg-success-subtle text-success text-center mb-3">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <h6 class="fw-bold mb-1">Report Approved by Super Admin</h6>
+                            <p class="small mb-0">Your work report for today was approved by <strong>{{ $myAttendance->approver_name ?? 'Super Admin' }}</strong>.</p>
+                        </div>
+                        @if($myAttendance->remarks)
+                            <div class="p-3 rounded bg-subtle border border-subtle">
+                                <label class="text-low small fw-semibold text-uppercase d-block mb-1">Submitted Work Summary</label>
+                                <p class="text-high mb-0 small" style="white-space: pre-wrap;">{{ $myAttendance->remarks }}</p>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer border-subtle">
+                        <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                @elseif($myAttendance && $myAttendance->isPending())
+                    <div class="modal-body">
+                        <div class="p-3 rounded border border-warning border-opacity-25 bg-warning-subtle text-warning text-center mb-3">
+                            <i class="fas fa-hourglass-half fa-2x mb-2"></i>
+                            <h6 class="fw-bold mb-1">Pending Super Admin Approval</h6>
+                            <p class="small mb-0">
+                                Submitted at {{ $myAttendance->submitted_at ? $myAttendance->submitted_at->format('h:i A') : 'Today' }}.
+                                Awaiting Super Admin review and approval.
+                            </p>
+                        </div>
+                        @if($myAttendance->remarks)
+                            <div class="p-3 rounded bg-subtle border border-subtle">
+                                <label class="text-low small fw-semibold text-uppercase d-block mb-1">Submitted Work Summary</label>
+                                <p class="text-high mb-0 small" style="white-space: pre-wrap;">{{ $myAttendance->remarks }}</p>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer border-subtle">
+                        <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                @else
+                    <form action="{{ route('admin.attendance.submitTodayReport') }}" method="POST">
+                        @csrf
+                        <div class="modal-body">
+                            @if($myAttendance && $myAttendance->isRejected())
+                                <div class="alert alert-danger border-0 p-3 mb-3">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <i class="fas fa-exclamation-circle fa-lg mt-1"></i>
+                                        <div>
+                                            <h6 class="fw-bold mb-1">Report Rejected by Super Admin</h6>
+                                            <p class="mb-1 small"><strong>Reason:</strong> {{ $myAttendance->rejection_reason }}</p>
+                                            <small class="text-low">Please adjust your remarks or clarify details below and resubmit.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="p-3 rounded bg-subtle border border-subtle mb-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fas fa-clock text-primary"></i>
+                                            <div>
+                                                <span class="text-low small d-block">Shift Status</span>
+                                                <span class="text-high fw-semibold small">
+                                                    {{ ($myAttendance && ($myAttendance->check_in || $myAttendance->clock_in)) ? \Carbon\Carbon::parse($myAttendance->check_in ?? $myAttendance->clock_in)->format('h:i A') : 'Active' }}
+                                                    -
+                                                    {{ ($myAttendance && ($myAttendance->check_out || $myAttendance->clock_out)) ? \Carbon\Carbon::parse($myAttendance->check_out ?? $myAttendance->clock_out)->format('h:i A') : 'End of Day' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        @if($myAttendance && $myAttendance->working_minutes > 0)
+                                            <span class="badge bg-primary-subtle text-primary fw-bold px-2 py-1">
+                                                {{ $myAttendance->formatted_working_hours }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
+
+                            <div class="mb-3">
+                                <label class="form-label text-high fw-semibold">
+                                    Daily Work Summary / Tasks Completed <span class="text-danger">*</span>
+                                </label>
+                                <textarea name="remarks" class="form-premium-control w-100" rows="4" required placeholder="Detail the tasks completed, projects worked on, blockers faced, and hours spent today...">{{ $myAttendance?->remarks }}</textarea>
+                                <small class="text-low d-block mt-1">
+                                    <i class="fas fa-shield-alt text-primary me-1"></i> This report will be sent to the Super Admin for daily verification and approval.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-subtle">
+                            <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn-premium btn-premium-primary">
+                                <i class="fas fa-paper-plane me-2"></i> {{ ($myAttendance && $myAttendance->isRejected()) ? 'Resubmit Corrected Report' : 'Submit to Super Admin' }}
+                            </button>
+                        </div>
+                    </form>
+                @endif
+            </div>
+        </div>
+    </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            function disableBtn(btn) {
-                if (!btn) return;
-                btn.disabled = true;
-                btn.setAttribute('disabled', 'disabled');
-                btn.style.opacity = '0.5';
-                btn.style.pointerEvents = 'none';
-            }
-
-            function enableBtn(btn) {
-                if (!btn) return;
-                btn.disabled = false;
-                btn.removeAttribute('disabled');
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
-            }
-
-            const punchInForm = document.getElementById('punchInForm');
-            if (punchInForm) {
-                punchInForm.addEventListener('submit', function(e) {
-                    const loc = document.getElementById('punch_location').value;
-                    const lat = document.getElementById('punch_latitude').value;
-                    if (!loc && !lat) {
-                        e.preventDefault();
-                        alert('Location has not been fetched yet. Please allow location permissions.');
-                        return false;
-                    }
-                });
-            }
-
+            // Optional background location detection - strictly non-blocking
             const modalEl = document.getElementById('globalClockInModal');
             if (modalEl) {
                 modalEl.addEventListener('show.bs.modal', function () {
@@ -1836,55 +2024,28 @@
                     const latInput = document.getElementById('punch_latitude');
                     const lngInput = document.getElementById('punch_longitude');
                     const locInput = document.getElementById('punch_location');
-                    const submitBtn = document.getElementById('punchInSubmitBtn');
                     
-                    latInput.value = '';
-                    lngInput.value = '';
-                    locInput.value = '';
-                    disableBtn(submitBtn);
-                    statusText.innerText = "Detecting your location...";
-                    
-                    if (navigator.geolocation) {
-                        statusText.innerText = "Fetching your location (lat, long)...";
+                    if (navigator.geolocation && statusText) {
                         navigator.geolocation.getCurrentPosition(function(position) {
                             const lat = position.coords.latitude;
                             const lng = position.coords.longitude;
-                            latInput.value = lat;
-                            lngInput.value = lng;
+                            if (latInput) latInput.value = lat;
+                            if (lngInput) lngInput.value = lng;
                             
                             fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
                                 .then(response => response.json())
                                 .then(data => {
                                     const address = data.display_name || `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                                    locInput.value = address;
-                                    statusText.innerText = "📍 Location: " + address;
-                                    enableBtn(submitBtn);
+                                    if (locInput) locInput.value = address;
+                                    if (statusText) statusText.innerText = "📍 " + address;
                                 })
-                                .catch(err => {
-                                    locInput.value = `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                                    statusText.innerText = `📍 Location: Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                                    enableBtn(submitBtn);
+                                .catch(() => {
+                                    if (locInput) locInput.value = `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                    if (statusText) statusText.innerText = `📍 Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
                                 });
-                        }, function(error) {
-                            statusText.innerText = "⚠️ Location access denied/failed. You cannot punch in without enabling location permission.";
-                            disableBtn(submitBtn);
-                        }, { enableHighAccuracy: true, timeout: 10000 });
-                    } else {
-                        statusText.innerText = "⚠️ Geolocation is not supported by your browser. Punch in disabled.";
-                        disableBtn(submitBtn);
-                    }
-                });
-            }
-
-            const punchOutForm = document.getElementById('punchOutForm');
-            if (punchOutForm) {
-                punchOutForm.addEventListener('submit', function(e) {
-                    const loc = document.getElementById('punch_out_location').value;
-                    const lat = document.getElementById('punch_out_latitude').value;
-                    if (!loc && !lat) {
-                        e.preventDefault();
-                        alert('Location has not been fetched yet. Please allow location permissions.');
-                        return false;
+                        }, function() {
+                            if (statusText) statusText.innerText = "Location optional (not provided)";
+                        }, { timeout: 4000 });
                     }
                 });
             }
@@ -1896,42 +2057,28 @@
                     const latInput = document.getElementById('punch_out_latitude');
                     const lngInput = document.getElementById('punch_out_longitude');
                     const locInput = document.getElementById('punch_out_location');
-                    const submitBtn = document.getElementById('punchOutSubmitBtn');
-                    
-                    latInput.value = '';
-                    lngInput.value = '';
-                    locInput.value = '';
-                    disableBtn(submitBtn);
-                    statusText.innerText = "Detecting your location...";
 
-                    if (navigator.geolocation) {
-                        statusText.innerText = "Fetching your location (lat, long)...";
+                    if (navigator.geolocation && statusText) {
                         navigator.geolocation.getCurrentPosition(function(position) {
                             const lat = position.coords.latitude;
                             const lng = position.coords.longitude;
-                            latInput.value = lat;
-                            lngInput.value = lng;
+                            if (latInput) latInput.value = lat;
+                            if (lngInput) lngInput.value = lng;
                             
                             fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
                                 .then(response => response.json())
                                 .then(data => {
                                     const address = data.display_name || `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                                    locInput.value = address;
-                                    statusText.innerText = "📍 Location: " + address;
-                                    enableBtn(submitBtn);
+                                    if (locInput) locInput.value = address;
+                                    if (statusText) statusText.innerText = "📍 " + address;
                                 })
-                                .catch(err => {
-                                    locInput.value = `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                                    statusText.innerText = `📍 Location: Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
-                                    enableBtn(submitBtn);
+                                .catch(() => {
+                                    if (locInput) locInput.value = `Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
+                                    if (statusText) statusText.innerText = `📍 Lat: ${lat.toFixed(5)}, Long: ${lng.toFixed(5)}`;
                                 });
-                        }, function(error) {
-                            statusText.innerText = "⚠️ Location access denied/failed. You cannot punch out without enabling location permission.";
-                            disableBtn(submitBtn);
-                        }, { enableHighAccuracy: true, timeout: 10000 });
-                    } else {
-                        statusText.innerText = "⚠️ Geolocation is not supported by your browser. Punch out disabled.";
-                        disableBtn(submitBtn);
+                        }, function() {
+                            if (statusText) statusText.innerText = "Location optional (not provided)";
+                        }, { timeout: 4000 });
                     }
                 });
             }

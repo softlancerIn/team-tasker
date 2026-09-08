@@ -431,4 +431,33 @@ class SettingsController extends Controller
 
         return back()->with('success', 'Tag deleted successfully.');
     }
+
+    /**
+     * Centralized HR Settings Hub
+     */
+    public function hrSettings()
+    {
+        $officeStartTime = Setting::where('key', 'office_start_time')->value('value') ?? '09:15';
+        $officeEndTime = Setting::where('key', 'office_end_time')->value('value') ?? '18:00';
+        $workingDays = Setting::where('key', 'working_days')->value('value') ?? '5';
+        $allowedIps = Setting::where('key', 'allowed_ips')->value('value') ?? '';
+        $autoStopTimers = Setting::where('key', 'auto_stop_timers')->value('value') ?? 'no';
+        $officeCloseTime = Setting::where('key', 'office_close_time')->value('value') ?? '18:00';
+
+        $totalUsers = \App\Models\User::count();
+        $totalRoles = \App\Models\Role::count();
+        $pendingApprovals = \App\Models\Attendance::where('approval_status', 'pending')->count();
+
+        return view('admin.settings.hr', compact(
+            'officeStartTime',
+            'officeEndTime',
+            'workingDays',
+            'allowedIps',
+            'autoStopTimers',
+            'officeCloseTime',
+            'totalUsers',
+            'totalRoles',
+            'pendingApprovals'
+        ));
+    }
 }

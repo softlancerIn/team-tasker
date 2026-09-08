@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('messages', function (Blueprint $table) {
-            $table->string('device_type', 20)->nullable()->default('desktop')->after('body');
-        });
+        if (! Schema::hasColumn('messages', 'device_type')) {
+            Schema::table('messages', function (Blueprint $table) {
+                $table->string('device_type', 20)->nullable()->default('desktop')->after('body');
+            });
+        }
     }
 
     /**
