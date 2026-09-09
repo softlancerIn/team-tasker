@@ -4,6 +4,7 @@
     'options' => [],
     'selected' => null,
     'class' => '',
+    'clearable' => false,
 ])
 
 <div class="premium-select-wrapper {{ $class }}" wire:ignore x-data="{
@@ -13,10 +14,11 @@
     init() {
         this.instance = new TomSelect(this.$refs.select, {
             create: false,
-            plugins: ['clear_button'],
+            plugins: {{ $clearable ? "['clear_button']" : '[]' }},
             allowEmptyOption: true,
+            placeholder: '{{ $placeholder }}',
             dropdownParent: 'body',
-            maxOptions: 20,
+            maxOptions: 50,
             onInitialize: function() {
                 const self = this;
                 self.dropdown_content.addEventListener('scroll', function() {
@@ -25,6 +27,16 @@
                         self.refreshOptions(false);
                     }
                 });
+            },
+            onFocus: function() {
+                if (!this.getValue()) {
+                    this.setTextboxValue('');
+                }
+            },
+            onDropdownOpen: function() {
+                if (!this.getValue()) {
+                    this.setTextboxValue('');
+                }
             },
             onItemAdd: () => this.instance.setTextboxValue(''),
             onChange: (val) => {

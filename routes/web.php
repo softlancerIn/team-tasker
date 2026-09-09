@@ -271,12 +271,14 @@ Route::middleware(['web', 'auth:web,admin'])->controller(App\Http\Controllers\Se
 
     // Statuses
     Route::post('/statuses', 'storeStatus')->name('admin.settings.status.store')->middleware('permission:settings.edit');
+    Route::post('/statuses/bulk-action', 'bulkStatusAction')->name('admin.settings.status.bulkAction')->middleware('permission:settings.edit');
     Route::post('/statuses/{id}/update', 'updateStatus')->name('admin.settings.status.update')->middleware('permission:settings.edit');
     Route::delete('/statuses/{id}/delete', 'destroyStatus')->name('admin.settings.status.delete')->middleware('permission:settings.edit');
 
     // Tags
     Route::get('/tags', 'tags')->name('admin.settings.tags')->middleware('permission:settings.view');
     Route::post('/tags', 'storeTag')->name('admin.settings.tag.store')->middleware('permission:settings.edit');
+    Route::post('/tags/bulk-action', 'bulkTagAction')->name('admin.settings.tag.bulkAction')->middleware('permission:settings.edit');
     Route::post('/tags/{id}/update', 'updateTag')->name('admin.settings.tag.update')->middleware('permission:settings.edit');
     Route::delete('/tags/{id}/delete', 'destroyTag')->name('admin.settings.tag.delete')->middleware('permission:settings.edit');
 });

@@ -127,6 +127,27 @@
                     <label class="heading-label d-block mb-2 text-low">SEARCH QUERY</label>
                     <input type="text" name="search" value="{{ request('search') }}" class="form-premium-control bg-white text-dark border-main" placeholder="Search anything...">
                 </div>
+                @if(isset($allUsers) && $allUsers->isNotEmpty())
+                    <div class="mb-4">
+                        <label class="heading-label d-block mb-2 text-low">ASSIGNED TO / EMPLOYEE</label>
+                        @php
+                            $selectedAssigneeIds = is_array(request('assigned_to')) 
+                                ? array_values(array_filter(array_map('strval', request('assigned_to')))) 
+                                : (request('assigned_to') ? [(string) request('assigned_to')] : []);
+                        @endphp
+                        <x-multiselect 
+                            id="filter_assigned_to" 
+                            name="assigned_to[]" 
+                            placeholder="Select assignees..." 
+                            :selected="$selectedAssigneeIds"
+                            class="w-100"
+                        >
+                            @foreach($allUsers as $u)
+                                <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->email }})</option>
+                            @endforeach
+                        </x-multiselect>
+                    </div>
+                @endif
                 <div class="mb-4">
                     <label class="heading-label d-block mb-2 text-low">PRIORITY</label>
                     <x-select name="priority" placeholder="All Priorities" :selected="request('priority')">

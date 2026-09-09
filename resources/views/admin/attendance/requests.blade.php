@@ -373,19 +373,63 @@
     <form action="{{ route('admin.attendance.requests') }}" method="GET" class="h-100 d-flex flex-column">
         <div class="filter-slideover-header">
             <h4><i class="fas fa-sliders-h text-low me-2"></i> Advanced Filters</h4>
-            <div class="filter-slideover-close" onclick="document.querySelector('.filter-slideover').classList.remove('show')">
+            <div class="filter-slideover-close" onclick="document.getElementById('filterSlideoverAttendance').classList.remove('show')">
                 <i class="fas fa-times"></i>
             </div>
         </div>
         <div class="filter-slideover-body">
+            @if((Auth::user()->hasPermission('attendance.requests_manage') || Auth::user()->hasRole('super-admin')) && isset($allUsers) && $allUsers->isNotEmpty())
+                <div class="mb-4">
+                    <label class="heading-label d-block mb-2 text-low">EMPLOYEE / USER</label>
+                    @php
+                        $selectedUserIds = is_array(request('user_id')) 
+                            ? array_values(array_filter(array_map('strval', request('user_id')))) 
+                            : (request('user_id') ? [(string) request('user_id')] : []);
+                    @endphp
+                    <x-multiselect 
+                        id="filter_user_id" 
+                        name="user_id[]" 
+                        placeholder="Select employees..." 
+                        :selected="$selectedUserIds"
+                        class="w-100"
+                    >
+                        @foreach($allUsers as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->email }})</option>
+                        @endforeach
+                    </x-multiselect>
+                </div>
+            @endif
+
+            <div class="mb-4">
+                <label class="heading-label d-block mb-2 text-low">REQUEST TYPE</label>
+                <x-select 
+                    id="filter_type" 
+                    name="type" 
+                    placeholder="All Request Types" 
+                    :selected="request('type')"
+                    class="w-100"
+                >
+                    <option value="" class="bg-dark">All Request Types</option>
+                    <option value="Leave" class="bg-dark">Leave</option>
+                    <option value="Regularization" class="bg-dark">Regularization</option>
+                    <option value="Overtime" class="bg-dark">Overtime</option>
+                </x-select>
+            </div>
+
             <div class="mb-4">
                 <label class="heading-label d-block mb-2 text-low">STATUS</label>
-                <select name="status" class="form-premium-control bg-white text-dark border-main">
-                    <option value="">All Statuses</option>
-                    <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="Approved" {{ request('status') == 'Approved' ? 'selected' : '' }}>Approved</option>
-                    <option value="Rejected" {{ request('status') == 'Rejected' ? 'selected' : '' }}>Rejected</option>
-                </select>
+                <x-select 
+                    id="filter_status" 
+                    name="status" 
+                    placeholder="All Statuses" 
+                    :selected="request('status')"
+                    class="w-100"
+                >
+                    <option value="" class="bg-dark">All Statuses</option>
+                    <option value="Pending" class="bg-dark">Pending</option>
+                    <option value="Approved" class="bg-dark">Approved</option>
+                    <option value="Rejected" class="bg-dark">Rejected</option>
+                </x-select>
             </div>
         </div>
         <div class="filter-slideover-footer">

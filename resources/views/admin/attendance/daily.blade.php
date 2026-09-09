@@ -129,7 +129,7 @@
                             <i class="fas fa-check-circle text-secondary" style="font-size: 0.75rem;"></i>
                         @endif
                     </div>
-                    <h4 class="fw-bold mb-0 text-muted">{{ $dailyStats['not_submitted'] }}</h4>
+                    <h4 class="fw-bold mb-0 dark:text-white">{{ $dailyStats['not_submitted'] }}</h4>
                 </div>
             </a>
         </div>

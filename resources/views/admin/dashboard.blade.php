@@ -20,6 +20,14 @@
             font-size: 0.85rem !important;
             padding: 1px 6px !important;
         }
+        @media (max-width: 576px) {
+            .dashboard-view-as {
+                width: 100%;
+            }
+            .dashboard-view-as .ts-wrapper {
+                width: 100% !important;
+            }
+        }
     </style>
     @endpush
 
@@ -33,9 +41,9 @@
             @endif
         </h4>
         
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap w-100-mobile">
             <span class="text-low" style="font-size: 0.85rem;"><i class="fas fa-eye me-1"></i> View As:</span>
-            <form action="{{ route('dashboard') }}" method="GET" class="m-0" id="viewAsForm">
+            <form action="{{ route('dashboard') }}" method="GET" class="m-0 flex-grow-1" id="viewAsForm">
                 @php
                     $userOptions = [];
                     foreach($allUsers as $u) {
@@ -43,7 +51,7 @@
                     }
                 @endphp
                 <div class="dashboard-view-as">
-                    <x-select name="view_user_id" placeholder="-- All (My View) --" :options="$userOptions" :selected="request('view_user_id')" onchange="document.getElementById('viewAsForm').submit()" style="min-width: 250px;" />
+                    <x-select name="view_user_id" placeholder="-- All (My View) --" :options="$userOptions" :selected="request('view_user_id')" onchange="document.getElementById('viewAsForm').submit()" style="min-width: 200px; width: 100%;" />
                 </div>
             </form>
         </div>
@@ -169,7 +177,7 @@
                 <div class="col">
                     <div class="p-3 rounded bg-subtle border border-subtle">
                         <span class="text-low small d-block mb-1">Not Submitted</span>
-                        <h4 class="fw-bold text-muted mb-0">{{ $attendanceStats['not_submitted'] }}</h4>
+                        <h4 class="fw-bold mb-0 dark:text-white">{{ $attendanceStats['not_submitted'] }}</h4>
                     </div>
                 </div>
             </div>

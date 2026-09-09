@@ -869,14 +869,27 @@ class AttendanceController extends Controller
     public function requests(Request $request)
     {
         $status = $request->input('status');
+        $type = $request->input('type');
         $search = $request->input('search');
+        $userIds = $request->input('user_id');
+
+        $isManager = Auth::user()->hasPermission('attendance.requests_manage') || Auth::user()->hasRole('super-admin');
 
         $requests = AttendanceRequest::with(['user', 'actionBy'])
-            ->when(! Auth::user()->hasPermission('attendance.requests_manage') && ! Auth::user()->hasRole('super-admin'), function ($query) {
+            ->when(! $isManager, function ($query) {
                 return $query->where('user_id', Auth::id());
+            })
+            ->when($isManager && !empty($userIds), function ($query) use ($userIds) {
+                $ids = is_array($userIds) ? array_filter($userIds) : [$userIds];
+                if (!empty($ids)) {
+                    $query->whereIn('user_id', $ids);
+                }
             })
             ->when($status, function ($query) use ($status) {
                 return $query->where('status', $status);
+            })
+            ->when($type, function ($query) use ($type) {
+                return $query->where('type', $type);
             })
             ->when($search, function ($query) use ($search) {
                 return $query->whereHas('user', function ($q) use ($search) {
@@ -888,7 +901,9 @@ class AttendanceController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.attendance.requests', compact('requests'));
+        $allUsers = $isManager ? User::select('id', 'name', 'email')->orderBy('name')->get() : collect();
+
+        return view('admin.attendance.requests', compact('requests', 'allUsers'));
     }
 
     public function storeRequest(Request $request)

@@ -186,16 +186,35 @@
             background-image: var(--ts-arrow-bg, var(--ts-arrow-dark)) !important;
             background-repeat: no-repeat !important;
             background-position: right 0.85rem center !important;
-            background-size: 12px 12px !important;
+            background-size: 11px 11px !important;
             border: 1px solid var(--border-main) !important;
             border-radius: var(--radius-md) !important;
             color: var(--text-high) !important;
-            padding: 0.6rem 2.5rem 0.6rem 1rem !important;
-            min-height: 42px !important;
+            padding: 0 2rem 0 0.85rem !important;
+            height: 38px !important;
+            min-height: 38px !important;
             box-shadow: none !important;
             cursor: pointer !important;
             font-family: 'Outfit', sans-serif !important;
-            font-size: 0.95rem !important;
+            font-size: 0.85rem !important;
+            display: flex !important;
+            align-items: center !important;
+            box-sizing: border-box !important;
+        }
+
+        .ts-wrapper.single .ts-control {
+            height: 38px !important;
+            min-height: 38px !important;
+            max-height: 38px !important;
+            line-height: 36px !important;
+            padding: 0 2rem 0 0.85rem !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .ts-wrapper.multi .ts-control {
+            min-height: 38px !important;
+            height: auto !important;
+            padding: 3px 2rem 3px 0.5rem !important;
         }
 
         .ts-wrapper.focus .ts-control,
@@ -212,6 +231,90 @@
             color: var(--text-high) !important;
             background: transparent !important;
             caret-color: var(--text-high) !important;
+            font-size: 0.85rem !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* When NOT focused and has items: hide the input so only selected item shows */
+        .ts-wrapper.single.has-items:not(.focus):not(.dropdown-active) .ts-control>input {
+            width: 0 !important;
+            min-width: 0 !important;
+            position: absolute !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        /* When focused / dropdown active: SHOW the input field so user can search options */
+        .ts-wrapper.single.focus .ts-control>input,
+        .ts-wrapper.single.dropdown-active .ts-control>input {
+            width: 100% !important;
+            min-width: 60px !important;
+            position: relative !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            cursor: text !important;
+            display: inline-block !important;
+            flex: 1 1 auto !important;
+        }
+
+        /* When no option is selected (data-value="") or when typing (input-active): hide item so input field shows cleanly */
+        .ts-wrapper.single.focus .ts-control .item[data-value=""],
+        .ts-wrapper.single.dropdown-active .ts-control .item[data-value=""],
+        .ts-wrapper.single.input-active .ts-control .item {
+            display: none !important;
+        }
+
+        .ts-wrapper .ts-control input::placeholder {
+            color: var(--text-low) !important;
+            opacity: 0.7 !important;
+            font-size: 0.85rem !important;
+            font-family: 'Outfit', sans-serif !important;
+        }
+
+        /* Single-select: Plain text, NO pill/tag background */
+        .ts-wrapper.single .ts-control .item {
+            background: transparent !important;
+            color: var(--text-high) !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            font-size: 0.85rem !important;
+            font-weight: 500 !important;
+            display: inline-block !important;
+            border: none !important;
+            box-shadow: none !important;
+            line-height: 36px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: calc(100% - 1.5rem) !important;
+        }
+
+        .ts-wrapper.single .ts-control .item .remove {
+            display: none !important;
+        }
+
+        /* Multi-select Tags */
+        .ts-wrapper.multi .ts-control .item {
+            background: var(--primary) !important;
+            color: #fff !important;
+            border-radius: var(--radius-sm) !important;
+            padding: 2px 8px !important;
+            margin: 2px !important;
+            font-size: 0.82rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 5px !important;
+        }
+
+        .ts-wrapper.multi .ts-control .item .remove {
+            color: #fff !important;
+            border-left: 1px solid rgba(255, 255, 255, 0.3) !important;
+            margin-left: 5px !important;
+            padding-left: 5px !important;
         }
 
         .ts-dropdown,
@@ -242,11 +345,6 @@
         .ts-dropdown .optgroup-header {
             color: var(--text-low) !important;
             background: transparent !important;
-        }
-
-        .ts-control .item .remove {
-            color: var(--primary) !important;
-            border-left: 1px solid rgba(var(--primary-rgb), 0.3) !important;
         }
 
         /* Light mode overrides */
@@ -281,9 +379,14 @@
             color: #0f172a !important;
         }
 
-        [data-theme="light"] .ts-control .item {
+        [data-theme="light"] .ts-wrapper.multi .ts-control .item {
             background: rgba(var(--primary-rgb), 0.1) !important;
             color: var(--primary) !important;
+        }
+
+        [data-theme="light"] .ts-wrapper.single .ts-control .item {
+            background: transparent !important;
+            color: #0f172a !important;
         }
 
         /* TinyMCE Dark Mode Overrides */
@@ -620,7 +723,7 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
-            z-index: 999;
+            z-index: 1040;
             opacity: 0;
             visibility: hidden;
             transition: all var(--transition-base);
@@ -631,10 +734,11 @@
             visibility: visible;
         }
 
-        @media (max-width: 991px) {
+        @media (max-width: 991.98px) {
             .sidebar-premium {
                 transform: translateX(-100%);
                 transition: transform var(--transition-base);
+                z-index: 1045 !important;
             }
 
             .sidebar-premium.mobile-open {
@@ -655,11 +759,15 @@
 
             .main-content-premium {
                 margin-left: 0 !important;
-                padding-top: 80px !important;
+                padding-top: var(--space-2) !important;
             }
 
             .layout-header-premium {
                 left: 0 !important;
+            }
+
+            .mobile-hide {
+                display: none !important;
             }
         }
 
@@ -675,7 +783,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 8px;
+            padding: 0 16px;
             z-index: 1050;
             backdrop-filter: blur(10px);
         }
@@ -684,6 +792,7 @@
             top: 70px !important;
             height: calc(100vh - 70px) !important;
             border-top: none !important;
+            z-index: 1045;
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: var(--border-subtle) transparent;
@@ -709,7 +818,7 @@
         .header-utils {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
         }
 
         .header-icon-btn {
@@ -724,6 +833,7 @@
             border: 1px solid var(--border-subtle);
             cursor: pointer;
             transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         .header-icon-btn:hover {
@@ -767,22 +877,53 @@
             box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
         }
 
-        body {
-            overflow-x: hidden;
-        }
-
-        @media (max-width: 991.98px) {
-            .mobile-hide {
-                display: none !important;
-            }
-        }
-
         @media (max-width: 768px) {
             .header-search-premium {
                 display: none;
             }
             .main-content-premium {
-                padding-top: 0px !important;
+                padding-top: var(--space-2) !important;
+                margin-left: 0 !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .layout-header-premium {
+                padding: 0 10px !important;
+            }
+
+            .header-utils {
+                gap: 8px !important;
+            }
+
+            .header-icon-btn,
+            .header-utils .btn-premium {
+                width: 34px !important;
+                height: 34px !important;
+                min-width: 34px !important;
+                border-radius: 8px !important;
+            }
+
+            .mobile-toggle-premium {
+                width: 36px !important;
+                height: 36px !important;
+                margin-right: 4px !important;
+            }
+
+            .avatar-premium {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 0.8rem !important;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .header-utils {
+                gap: 5px !important;
+            }
+
+            .sidebar-brand-text {
+                display: none !important;
             }
         }
     </style>
@@ -813,7 +954,7 @@
                 @else
                     <i class="fas fa-layer-group text-primary" style="font-size: 1.5rem;"></i>
                 @endif
-                <span class="text-high fw-bold"
+                <span class="text-high fw-bold sidebar-brand-text"
                     style="font-size: 1.25rem; letter-spacing: -0.5px;">{{ $appName }}</span>
             </a>
         </div>

@@ -388,7 +388,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 8px;
+            padding: 0 16px;
             z-index: 1050;
             backdrop-filter: blur(10px);
         }
@@ -397,7 +397,7 @@
             top: 70px !important;
             height: calc(100vh - 70px) !important;
             border-top: none !important;
-            z-index: 1040;
+            z-index: 1045;
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: var(--border-subtle) transparent;
@@ -420,6 +420,20 @@
             margin-top: 70px;
             margin-left: 280px;
             /* Sidebar width */
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-base);
         }
 
         .sidebar-overlay.show {
@@ -454,7 +468,7 @@
         .header-utils {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
         }
 
         .header-icon-btn {
@@ -469,6 +483,7 @@
             border: 1px solid var(--border-subtle);
             cursor: pointer;
             transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         .header-icon-btn:hover {
@@ -512,20 +527,75 @@
             box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
         }
 
-        @media (max-width: 768px) {
-            .header-search-premium {
-                display: none;
+        @media (max-width: 991.98px) {
+            .sidebar-premium {
+                transform: translateX(-100%);
+                transition: transform var(--transition-base);
+                z-index: 1045 !important;
             }
-        }
 
-        @media (max-width: 991px) {
+            .sidebar-premium.mobile-open {
+                transform: translateX(0) !important;
+                box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+            }
+
             .main-content-premium {
                 margin-left: 0 !important;
-                padding-top: 80px !important;
+                padding-top: var(--space-2) !important;
             }
 
             .layout-header-premium {
                 left: 0 !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-search-premium {
+                display: none;
+            }
+
+            .main-content-premium {
+                padding-top: var(--space-2) !important;
+                margin-left: 0 !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .layout-header-premium {
+                padding: 0 10px !important;
+            }
+
+            .header-utils {
+                gap: 8px !important;
+            }
+
+            .header-icon-btn {
+                width: 34px !important;
+                height: 34px !important;
+                min-width: 34px !important;
+                border-radius: 8px !important;
+            }
+
+            .mobile-toggle-premium {
+                width: 36px !important;
+                height: 36px !important;
+                margin-right: 4px !important;
+            }
+
+            .avatar-premium {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 0.8rem !important;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .header-utils {
+                gap: 5px !important;
+            }
+
+            .sidebar-brand-text {
+                display: none !important;
             }
         }
     </style>
@@ -543,7 +613,7 @@
                 $appName = $appSettings['app_name'] ?? 'TeamTasker';
                 $appLogo = $appSettings['app_logo'] ?? null;
             @endphp
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
                 <button class="mobile-toggle-premium d-lg-none" id="mobileSidebarToggle" style="margin-right: 0;">
                     <i class="fas fa-bars"></i>
                 </button>
@@ -555,7 +625,7 @@
                     @else
                         <i class="fas fa-layer-group text-primary" style="font-size: 1.5rem;"></i>
                     @endif
-                    <span class="text-high fw-bold"
+                    <span class="text-high fw-bold sidebar-brand-text"
                         style="font-size: 1.25rem; letter-spacing: -0.5px;">{{ $appName }}</span>
                 </a>
             </div>

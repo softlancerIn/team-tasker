@@ -24,11 +24,28 @@ class TicketController extends Controller
             });
         }
 
-        if ($request->has('priority')) {
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('subject', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('ticket_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('assigned_to')) {
+            $assignedTo = $request->assigned_to;
+            $ids = is_array($assignedTo) ? array_filter($assignedTo) : [$assignedTo];
+            if (!empty($ids)) {
+                $query->whereIn('assigned_to', $ids);
+            }
+        }
+
+        if ($request->filled('priority')) {
             $query->where('priority', $request->priority);
         }
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
@@ -41,8 +58,9 @@ class TicketController extends Controller
         }
 
         $tickets = $query->paginate(request('per_page', 15));
+        $allUsers = User::select('id', 'name', 'email')->orderBy('name')->get();
 
-        return view('admin.tickets.index', compact('tickets'));
+        return view('admin.tickets.index', compact('tickets', 'allUsers'));
     }
 
     public function create()

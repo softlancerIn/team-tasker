@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use App\Models\Status;
 use App\Models\Tag;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Mailer;
@@ -50,12 +51,34 @@ class SettingsController extends Controller
         return view('admin.settings.email', compact('settings'));
     }
 
-    public function statuses()
+    public function statuses(Request $request)
     {
-        // Fetch existing statuses
-        $statuses = Status::orderBy('order')->paginate(request('per_page', 15));
+        $search = $request->input('search');
+        $perPage = (int) $request->input('per_page', 15);
 
-        return view('admin.settings.statuses', compact('statuses'));
+        $statuses = Status::withCount('tasks')
+            ->when($search, function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%")
+                    ->orWhere('color', 'like', "%{$search}%");
+            })
+            ->orderBy('order')
+            ->paginate($perPage > 0 ? $perPage : 15)
+            ->withQueryString();
+
+        $totalStatuses = Status::count();
+        $defaultStatus = Status::where('is_default', true)->first();
+        $inUseStatuses = Status::has('tasks')->count();
+        $totalTasksInStatuses = Task::count();
+
+        $statusStats = [
+            'total' => $totalStatuses,
+            'default_name' => $defaultStatus ? $defaultStatus->name : 'None',
+            'in_use' => $inUseStatuses,
+            'total_tasks' => $totalTasksInStatuses,
+        ];
+
+        return view('admin.settings.statuses', compact('statuses', 'statusStats'));
     }
 
     public function storeGeneral(Request $request)
@@ -333,15 +356,35 @@ class SettingsController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'color' => 'required|string',
+            'slug' => 'nullable|string|max:255',
+            'order' => 'nullable|integer',
+            'is_default' => 'nullable|boolean',
         ]);
 
+        $slug = $request->filled('slug') ? Str::slug($request->slug) : Str::slug($request->name);
+
+        // Ensure unique slug
+        $baseSlug = $slug;
+        $counter = 1;
+        while (Status::where('slug', $slug)->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        $isDefault = $request->boolean('is_default');
+        if ($isDefault) {
+            Status::where('is_default', true)->update(['is_default' => false]);
+        }
+
         $maxOrder = Status::max('order') ?? 0;
+        $order = $request->filled('order') ? (int) $request->order : ($maxOrder + 1);
 
         Status::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $slug,
             'color' => $request->color,
-            'order' => $maxOrder + 1,
+            'order' => $order,
+            'is_default' => $isDefault,
         ]);
 
         return back()->with('success', 'Status created successfully.');
@@ -352,15 +395,33 @@ class SettingsController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'color' => 'required|string',
-            'order' => 'numeric',
+            'slug' => 'nullable|string|max:255',
+            'order' => 'nullable|integer',
+            'is_default' => 'nullable|boolean',
         ]);
 
         $status = Status::findOrFail($id);
+        $slug = $request->filled('slug') ? Str::slug($request->slug) : Str::slug($request->name);
+
+        // Ensure unique slug excluding this status
+        $baseSlug = $slug;
+        $counter = 1;
+        while (Status::where('slug', $slug)->where('id', '!=', $id)->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        $isDefault = $request->boolean('is_default');
+        if ($isDefault) {
+            Status::where('id', '!=', $id)->where('is_default', true)->update(['is_default' => false]);
+        }
+
         $status->update([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $slug,
             'color' => $request->color,
-            'order' => $request->order ?? $status->order,
+            'order' => $request->filled('order') ? (int) $request->order : $status->order,
+            'is_default' => $isDefault,
         ]);
 
         return back()->with('success', 'Status updated successfully.');
@@ -368,14 +429,14 @@ class SettingsController extends Controller
 
     public function destroyStatus($id)
     {
-        $status = Status::findOrFail($id);
+        $status = Status::withCount('tasks')->findOrFail($id);
 
-        if ($status->tasks()->count() > 0) {
-            return back()->with('error', 'Cannot delete status with associated tasks.');
+        if ($status->tasks_count > 0) {
+            return back()->with('error', "Cannot delete status \"{$status->name}\" because it has {$status->tasks_count} associated task(s).");
         }
 
         if ($status->is_default) {
-            return back()->with('error', 'Cannot delete default status.');
+            return back()->with('error', "Cannot delete default status \"{$status->name}\".");
         }
 
         $status->delete();
@@ -383,12 +444,69 @@ class SettingsController extends Controller
         return back()->with('success', 'Status deleted successfully.');
     }
 
-    // Tag Management
-    public function tags()
+    public function bulkStatusAction(Request $request)
     {
-        $tags = Tag::all();
+        $action = $request->input('action');
+        $ids = $request->input('ids', []);
 
-        return view('admin.settings.tags', compact('tags'));
+        if (! is_array($ids) || empty($ids)) {
+            return back()->with('error', 'Please select at least one status.');
+        }
+
+        if ($action === 'delete') {
+            $statuses = Status::withCount('tasks')->whereIn('id', $ids)->get();
+            $deleted = 0;
+            $skipped = 0;
+
+            foreach ($statuses as $status) {
+                if ($status->is_default || $status->tasks_count > 0) {
+                    $skipped++;
+                    continue;
+                }
+                $status->delete();
+                $deleted++;
+            }
+
+            if ($deleted > 0 && $skipped > 0) {
+                return back()->with('success', "{$deleted} status(es) deleted. {$skipped} status(es) were skipped because they are default or have associated tasks.");
+            } elseif ($deleted > 0) {
+                return back()->with('success', "{$deleted} status(es) deleted successfully.");
+            } else {
+                return back()->with('error', 'None of the selected statuses could be deleted because they are default statuses or have active tasks.');
+            }
+        }
+
+        return back()->with('error', 'Invalid bulk action.');
+    }
+
+    // Tag Management
+    public function tags(Request $request)
+    {
+        $search = $request->input('search');
+        $perPage = (int) $request->input('per_page', 15);
+
+        $tags = Tag::withCount('tasks')
+            ->when($search, function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%")
+                    ->orWhere('color', 'like', "%{$search}%");
+            })
+            ->orderBy('name')
+            ->paginate($perPage > 0 ? $perPage : 15)
+            ->withQueryString();
+
+        $totalTags = Tag::count();
+        $usedTags = Tag::has('tasks')->count();
+        $totalTaggedTasks = \DB::table('tag_task')->count();
+
+        $tagStats = [
+            'total' => $totalTags,
+            'used' => $usedTags,
+            'unused' => max(0, $totalTags - $usedTags),
+            'tasks_count' => $totalTaggedTasks,
+        ];
+
+        return view('admin.settings.tags', compact('tags', 'tagStats'));
     }
 
     public function storeTag(Request $request)
@@ -396,11 +514,22 @@ class SettingsController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'color' => 'required|string',
+            'slug' => 'nullable|string|max:255',
         ]);
+
+        $slug = $request->filled('slug') ? Str::slug($request->slug) : Str::slug($request->name);
+
+        // Ensure unique slug
+        $baseSlug = $slug;
+        $counter = 1;
+        while (Tag::where('slug', $slug)->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
 
         Tag::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $slug,
             'color' => $request->color,
         ]);
 
@@ -412,12 +541,23 @@ class SettingsController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'color' => 'required|string',
+            'slug' => 'nullable|string|max:255',
         ]);
 
         $tag = Tag::findOrFail($id);
+        $slug = $request->filled('slug') ? Str::slug($request->slug) : Str::slug($request->name);
+
+        // Ensure unique slug excluding this tag
+        $baseSlug = $slug;
+        $counter = 1;
+        while (Tag::where('slug', $slug)->where('id', '!=', $id)->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
         $tag->update([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $slug,
             'color' => $request->color,
         ]);
 
@@ -427,9 +567,33 @@ class SettingsController extends Controller
     public function destroyTag($id)
     {
         $tag = Tag::findOrFail($id);
+        $tag->tasks()->detach();
         $tag->delete();
 
         return back()->with('success', 'Tag deleted successfully.');
+    }
+
+    public function bulkTagAction(Request $request)
+    {
+        $action = $request->input('action');
+        $ids = $request->input('ids', []);
+
+        if (! is_array($ids) || empty($ids)) {
+            return back()->with('error', 'Please select at least one tag.');
+        }
+
+        if ($action === 'delete') {
+            $tags = Tag::whereIn('id', $ids)->get();
+            $count = $tags->count();
+            foreach ($tags as $tag) {
+                $tag->tasks()->detach();
+                $tag->delete();
+            }
+
+            return back()->with('success', "{$count} tag(s) deleted successfully.");
+        }
+
+        return back()->with('error', 'Invalid bulk action.');
     }
 
     /**

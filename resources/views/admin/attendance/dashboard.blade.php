@@ -110,7 +110,7 @@
             <div class="col">
                 <div class="glass-card p-3 border-main h-100">
                     <span class="text-low d-block" style="font-size: 0.75rem;">Not Submitted</span>
-                    <h3 class="mb-0 text-muted fw-bold">{{ $dailyStats['not_submitted'] }}</h3>
+                    <h3 class="mb-0 fw-bold dark:text-white">{{ $dailyStats['not_submitted'] }}</h3>
                 </div>
             </div>
         </div>
