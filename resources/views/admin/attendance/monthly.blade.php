@@ -12,46 +12,115 @@
             <a href="{{ route('admin.attendance.daily') }}" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm d-flex align-items-center gap-2">
                 <i class="fas fa-calendar-day me-1"></i> Daily Reports
             </a>
-            <a href="{{ route('admin.attendance.reports', ['export' => 'monthly', 'month' => $month, 'user_id' => request('user_id')]) }}" 
+            <a href="{{ route('admin.attendance.reports', array_merge(request()->except('page'), ['export' => 'monthly', 'month' => $month])) }}" 
                class="btn-premium btn-premium-secondary px-4 py-2 shadow-sm d-flex align-items-center gap-2">
                 <i class="fas fa-file-csv me-1"></i> Export CSV
             </a>
         </div>
     </div>
 
-    <!-- Monthly Statistics Overview Cards -->
+    <style>
+        .stat-filter-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none !important;
+        }
+        .stat-filter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+            border-color: rgba(var(--primary-rgb, 14, 165, 233), 0.5) !important;
+        }
+        .stat-filter-card.active-filter {
+            border-color: var(--primary) !important;
+            background: rgba(var(--primary-rgb, 14, 165, 233), 0.08) !important;
+            box-shadow: 0 0 0 1px var(--primary), 0 4px 14px rgba(var(--primary-rgb, 14, 165, 233), 0.15) !important;
+        }
+    </style>
+
+    <!-- Monthly Statistics Overview Cards (Interactive Filters) -->
     @if(isset($teamStats))
         <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
+            <!-- 1. Total Employees -->
             <div class="col">
-                <div class="glass-card p-3 h-100 border-main">
-                    <span class="text-low d-block" style="font-size: 0.75rem;">Total Employees</span>
-                    <h4 class="fw-bold mb-0 text-high">{{ $teamStats['total_users'] }}</h4>
-                </div>
+                <a href="{{ route('admin.attendance.monthly', array_merge(request()->except(['status', 'page']), ['month' => $month])) }}" 
+                   class="d-block h-100 text-decoration-none" title="Filter: All Employees">
+                    <div class="glass-card p-3 h-100 border-main stat-filter-card {{ !request('status') ? 'active-filter' : '' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-low d-block" style="font-size: 0.75rem;">Total Employees</span>
+                            @if(!request('status'))
+                                <i class="fas fa-check-circle text-primary" style="font-size: 0.75rem;"></i>
+                            @endif
+                        </div>
+                        <h4 class="fw-bold mb-0 text-high">{{ $teamStats['total_users'] }}</h4>
+                    </div>
+                </a>
             </div>
+
+            <!-- 2. Total Present -->
             <div class="col">
-                <div class="glass-card p-3 h-100 border-main">
-                    <span class="text-low d-block" style="font-size: 0.75rem;">Total Present</span>
-                    <h4 class="fw-bold mb-0 text-success">{{ $teamStats['present'] }}</h4>
-                </div>
+                <a href="{{ route('admin.attendance.monthly', array_merge(request()->except(['status', 'page']), ['month' => $month, 'status' => 'present'])) }}" 
+                   class="d-block h-100 text-decoration-none" title="Filter: Present">
+                    <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('status') === 'present' ? 'active-filter' : '' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-low d-block" style="font-size: 0.75rem;">Total Present</span>
+                            @if(request('status') === 'present')
+                                <i class="fas fa-check-circle text-success" style="font-size: 0.75rem;"></i>
+                            @endif
+                        </div>
+                        <h4 class="fw-bold mb-0 text-success">{{ $teamStats['present'] }}</h4>
+                    </div>
+                </a>
             </div>
+
+            <!-- 3. Half Days -->
             <div class="col">
-                <div class="glass-card p-3 h-100 border-main">
-                    <span class="text-low d-block" style="font-size: 0.75rem;">Half Days</span>
-                    <h4 class="fw-bold mb-0 text-warning">{{ $teamStats['half_days'] }}</h4>
-                </div>
+                <a href="{{ route('admin.attendance.monthly', array_merge(request()->except(['status', 'page']), ['month' => $month, 'status' => 'half_day'])) }}" 
+                   class="d-block h-100 text-decoration-none" title="Filter: Half Days">
+                    <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('status') === 'half_day' ? 'active-filter' : '' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-low d-block" style="font-size: 0.75rem;">Half Days</span>
+                            @if(request('status') === 'half_day')
+                                <i class="fas fa-check-circle text-warning" style="font-size: 0.75rem;"></i>
+                            @endif
+                        </div>
+                        <h4 class="fw-bold mb-0 text-warning">{{ $teamStats['half_days'] }}</h4>
+                    </div>
+                </a>
             </div>
+
+            <!-- 4. Absences -->
             <div class="col">
-                <div class="glass-card p-3 h-100 border-main">
-                    <span class="text-low d-block" style="font-size: 0.75rem;">Absences</span>
-                    <h4 class="fw-bold mb-0 text-danger">{{ $teamStats['absent'] }}</h4>
-                </div>
+                <a href="{{ route('admin.attendance.monthly', array_merge(request()->except(['status', 'page']), ['month' => $month, 'status' => 'absent'])) }}" 
+                   class="d-block h-100 text-decoration-none" title="Filter: Absences">
+                    <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('status') === 'absent' ? 'active-filter' : '' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-low d-block" style="font-size: 0.75rem;">Absences</span>
+                            @if(request('status') === 'absent')
+                                <i class="fas fa-check-circle text-danger" style="font-size: 0.75rem;"></i>
+                            @endif
+                        </div>
+                        <h4 class="fw-bold mb-0 text-danger">{{ $teamStats['absent'] }}</h4>
+                    </div>
+                </a>
             </div>
+
+            <!-- 5. Pending Approvals -->
             <div class="col">
-                <div class="glass-card p-3 h-100 border-main">
-                    <span class="text-low d-block" style="font-size: 0.75rem;">Pending Approvals</span>
-                    <h4 class="fw-bold mb-0 text-warning">{{ $teamStats['pending'] }}</h4>
-                </div>
+                <a href="{{ route('admin.attendance.monthly', array_merge(request()->except(['status', 'page']), ['month' => $month, 'status' => 'pending'])) }}" 
+                   class="d-block h-100 text-decoration-none" title="Filter: Pending Approvals">
+                    <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('status') === 'pending' ? 'active-filter' : '' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-low d-block" style="font-size: 0.75rem;">Pending Approvals</span>
+                            @if(request('status') === 'pending')
+                                <i class="fas fa-check-circle text-warning" style="font-size: 0.75rem;"></i>
+                            @endif
+                        </div>
+                        <h4 class="fw-bold mb-0 text-warning">{{ $teamStats['pending'] }}</h4>
+                    </div>
+                </a>
             </div>
+
+            <!-- 6. Approved Hours -->
             <div class="col">
                 <div class="glass-card p-3 h-100 border-main">
                     <span class="text-low d-block" style="font-size: 0.75rem;">Approved Hours</span>
@@ -80,7 +149,7 @@
                         <div class="text-low small">{{ $selectedUser->email }} &bull; Showing Month: <strong>{{ \Carbon\Carbon::parse($month.'-01')->format('F Y') }}</strong></div>
                     </div>
                 </div>
-                <a href="{{ route('admin.attendance.monthly', ['month' => $month, 'search' => request('search')]) }}" class="btn-premium btn-premium-secondary btn-sm d-flex align-items-center gap-1">
+                <a href="{{ route('admin.attendance.monthly', array_merge(request()->except(['user_id', 'page']), ['month' => $month])) }}" class="btn-premium btn-premium-secondary btn-sm d-flex align-items-center gap-1">
                     <i class="fas fa-times me-1"></i> Close Details
                 </a>
             </div>
@@ -164,24 +233,50 @@
     <!-- Team Summary Table -->
     <div class="data-grid-wrapper mb-5">
         <div class="data-grid-top">
-            <div class="data-grid-search">
-                <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search employee..." value="{{ request('search') }}" onkeypress="if(event.key === 'Enter') { event.preventDefault(); window.location.href='{{ route('admin.attendance.monthly') }}?month={{ $month }}&search=' + encodeURIComponent(this.value); }">
-            </div>
+            <form id="monthlyFilterForm" action="{{ route('admin.attendance.monthly') }}" method="GET" class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+                <div class="data-grid-search" style="min-width: 200px;">
+                    <i class="fas fa-search" onclick="document.getElementById('monthlyFilterForm').submit()" style="cursor: pointer;"></i>
+                    <input type="text" name="search" placeholder="Search employee..." value="{{ request('search') }}" onkeydown="if(event.key === 'Enter') { event.preventDefault(); this.form.submit(); }">
+                </div>
 
-            <div class="d-flex align-items-center gap-2">
-                <input type="month" name="month" value="{{ $month }}" class="form-premium-control form-control-sm" style="width: 160px; padding: 6px 10px;" onchange="window.location.href='{{ route('admin.attendance.monthly') }}?month=' + this.value + '{{ request('search') ? '&search='.urlencode(request('search')) : '' }}'">
-                <a href="{{ route('admin.attendance.monthly', array_merge(request()->except('month'), ['month' => date('Y-m')])) }}" class="btn-premium btn-premium-secondary btn-sm {{ $month == date('Y-m') ? 'active' : '' }}">This Month</a>
-            </div>
+                <div style="min-width: 190px;">
+                    <x-select name="user_id" placeholder="All Employees" :selected="request('user_id')" onchange="document.getElementById('monthlyFilterForm').submit()">
+                        <option value="">All Employees</option>
+                        @foreach($allUsers as $u)
+                            <option value="{{ $u->id }}" {{ request('user_id') == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+
+                <div style="min-width: 170px;">
+                    <x-select name="status" placeholder="All Records" :selected="request('status')" onchange="document.getElementById('monthlyFilterForm').submit()">
+                        <option value="">All Records</option>
+                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending Approvals</option>
+                        <option value="absent" {{ request('status') === 'absent' ? 'selected' : '' }}>Has Absences</option>
+                        <option value="half_day" {{ request('status') === 'half_day' ? 'selected' : '' }}>Has Half Days</option>
+                        <option value="present" {{ request('status') === 'present' ? 'selected' : '' }}>Has Present Days</option>
+                    </x-select>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <input type="month" name="month" value="{{ $month }}" class="form-premium-control form-control-sm" style="width: 155px; padding: 6px 10px;" onchange="document.getElementById('monthlyFilterForm').submit()">
+                    <a href="{{ route('admin.attendance.monthly', array_merge(request()->except(['month', 'page']), ['month' => date('Y-m')])) }}" 
+                       class="btn-premium btn-premium-secondary btn-sm {{ $month == date('Y-m') ? 'active' : '' }}" 
+                       title="View Current Month">
+                        This Month
+                    </a>
+                </div>
+
+                @if(request('search') || request('user_id') || request('status') || ($month !== date('Y-m') && request()->has('month')))
+                    <a href="{{ route('admin.attendance.monthly') }}" class="btn-premium btn-premium-secondary btn-sm d-flex align-items-center gap-1" title="Reset all filters">
+                        <i class="fas fa-redo"></i> Reset
+                    </a>
+                @endif
+            </form>
 
             <div class="data-grid-results">{{ $users->total() }} Employees</div>
 
             <div class="data-grid-actions d-flex align-items-center gap-2">
-                @if(request('search') || request('user_id'))
-                    <a href="{{ route('admin.attendance.monthly', ['month' => $month]) }}" class="btn-premium btn-premium-secondary btn-sm d-flex align-items-center gap-1">
-                        <i class="fas fa-redo"></i> Reset
-                    </a>
-                @endif
                 {{ $users->links('components.pagination.premium') }}
             </div>
         </div>
@@ -251,7 +346,7 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('admin.attendance.monthly', ['month' => $month, 'user_id' => $u->id, 'search' => request('search')]) }}" 
+                                    <a href="{{ route('admin.attendance.monthly', array_merge(request()->except('page'), ['month' => $month, 'user_id' => $u->id])) }}" 
                                        class="action-link border-0 bg-transparent" title="View Details & Calendar">
                                         <i class="fas fa-calendar-alt"></i>
                                     </a>

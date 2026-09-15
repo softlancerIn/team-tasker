@@ -619,7 +619,7 @@ new class extends Component {
         if (!$message || !$message->conversation) return;
 
         $participants = $message->conversation->participants;
-        $currentUserId = auth()->id();
+        $currentUserId = \Illuminate\Support\Facades\Auth::guard('client')->check() ? \Illuminate\Support\Facades\Auth::guard('client')->id() : auth()->id();
         $msgCreated = $message->created_at;
 
         foreach ($participants as $participant) {
@@ -767,6 +767,12 @@ new class extends Component {
 }; ?>
 
 <div class="d-flex flex-column h-100 w-100 flex-grow-1 position-relative">
+    @php
+        $isClientGuard = \Illuminate\Support\Facades\Auth::guard('client')->check();
+        $authUser = $isClientGuard ? \Illuminate\Support\Facades\Auth::guard('client')->user() : auth()->user();
+        $authId = $authUser?->id;
+        $authName = $authUser?->name ?? 'User';
+    @endphp
     <input type="hidden" id="active-conversation-id" value="{{ $conversation ? $conversation->id : '' }}">
     @if ($conversation)
 
@@ -783,7 +789,7 @@ new class extends Component {
                     typingTimeout: null,
                     userId: {{ $conversation->type == 'private' && $receiver ? $receiver->id : 'null' }},
                     conversationId: '{{ $conversation->id }}',
-                    currentUserId: {{ auth()->id() }},
+                    currentUserId: {{ $authId ?? 'null' }},
                     updatePresence(users, statuses) {
                         if (!this.userId) return;
                         const normStatuses = statuses || window.userStatuses || {};
@@ -930,7 +936,7 @@ new class extends Component {
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    @if (Auth::user()->hasPermission('meetings.join'))
+                    @if (!$isClientGuard && Auth::user()?->hasPermission('meetings.join'))
                         @if ($conversation->type == 'private' && $receiver)
                             <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
                                 type="button"
@@ -1009,6 +1015,7 @@ new class extends Component {
                                     </a>
                                 </li>
                             @endif
+                            @if (!$isClientGuard)
                             <li>
                                 @if ($isBlocked)
                                     <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
@@ -1025,6 +1032,7 @@ new class extends Component {
                                     </a>
                                 @endif
                             </li>
+                            @endif
                         </ul>
                     </div>
                 </div>
@@ -1046,7 +1054,7 @@ new class extends Component {
             style="scroll-behavior: smooth; background: transparent; min-height: 0;" wire:key="chat-messages-{{ $conversation->id }}"
             x-data="chatMessages(@this, {
                 conversationId: '{{ $conversation->id }}',
-                userId: {{ auth()->id() }},
+                userId: {{ $authId ?? 'null' }},
                 receiverId: {{ $receiver ? $receiver->id : 'null' }}
             })">
 
@@ -1254,8 +1262,6 @@ new class extends Component {
                             <span>{{ \Carbon\Carbon::parse($createdAt)->format('H:i') }}</span>
                             @if ($msgDeviceType === 'mobile')
                                 <i class="fas fa-mobile-alt" title="Sent from mobile" style="font-size: 0.72rem;"></i>
-                            @else
-                                <i class="fas fa-desktop" title="Sent from desktop" style="font-size: 0.68rem;"></i>
                             @endif
                             @if ($isMe)
                                 @if ($isRead || ($receiver && $receiver->id == $myGuardId))
@@ -1409,8 +1415,8 @@ new class extends Component {
                             <div wire:ignore wire:key="editor-{{ $conversation->id }}" x-data="chatEditor(@this, {
                                 editorId: 'message-editor-{{ $conversation->id }}',
                                 conversationId: '{{ $conversation->id }}',
-                                userId: {{ auth()->id() }},
-                                userName: '{{ auth()->user()->name }}'
+                                userId: {{ $authId ?? 'null' }},
+                                userName: '{{ addslashes($authName) }}'
                             })">
                                 <textarea id="message-editor-{{ $conversation->id }}" class="form-premium-control py-3" rows="1"
                                     style="resize: none; min-height: 52px;" placeholder="Type a message..."></textarea>

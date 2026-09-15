@@ -288,20 +288,29 @@ class AttendanceController extends Controller
         $month = $request->input('month', $this->attendanceService->today()->format('Y-m'));
         $search = $request->input('search');
         $selectedUserId = $request->input('user_id');
+        if (empty($selectedUserId)) {
+            $selectedUserId = null;
+        }
+        $status = $request->input('status');
+        if (empty($status)) {
+            $status = null;
+        }
 
         $filters = [
             'search' => $search,
+            'status' => $status,
         ];
 
         $perPage = (int) $request->input('per_page', 15);
         $users = $this->attendanceService->getMonthlyReport($month, $selectedUserId, $filters, $perPage > 0 ? $perPage : 15);
         $teamStats = $this->attendanceService->getMonthlyTeamStats($month);
+        $allUsers = User::orderBy('name')->get(['id', 'name', 'email']);
 
         // If a specific user is selected for detailed inspection:
         $selectedUser = null;
         $selectedUserCalendar = [];
         $selectedUserStats = null;
-        if ($selectedUserId) {
+        if ($selectedUserId && !is_array($selectedUserId)) {
             $selectedUser = User::find($selectedUserId);
             if ($selectedUser) {
                 $selectedUserStats = $this->attendanceService->getMonthlyUserStats($selectedUser, $month);
@@ -315,7 +324,8 @@ class AttendanceController extends Controller
             'selectedUser',
             'selectedUserStats',
             'selectedUserCalendar',
-            'teamStats'
+            'teamStats',
+            'allUsers'
         ));
     }
 

@@ -723,8 +723,10 @@ $authId = Auth::guard('client')->check() ? Auth::guard('client')->id() : Auth::i
     </div>
 
     <!-- Include Modal Component -->
-    <livewire:create-group-modal />
-    <livewire:create-client-group-modal />
+    @if (!$isClient)
+        <livewire:create-group-modal />
+        <livewire:create-client-group-modal />
+    @endif
 
     <style>
         .user-item-premium {

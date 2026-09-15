@@ -30,9 +30,10 @@ new class extends Component {
 
     public function with()
     {
+        $myId = Auth::id() ?? 0;
         return [
             'staff' => User::where('role_id', '!=', 3)
-                ->where('id', '!=', Auth::id())
+                ->where('id', '!=', $myId)
                 ->when($this->searchStaff, function ($query) {
                     $query->where('name', 'like', '%' . $this->searchStaff . '%');
                 })

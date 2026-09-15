@@ -591,17 +591,55 @@ class AttendanceService
     /**
      * Get monthly aggregated report for all users or filtered user.
      */
-    public function getMonthlyReport(string $month, ?int $userId = null, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    public function getMonthlyReport(string $month, int|string|array|null $userId = null, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
+        if (is_array($userId)) {
+            $cleanIds = array_values(array_filter($userId));
+        } elseif (!empty($userId)) {
+            $cleanIds = [(int) $userId];
+        } else {
+            $cleanIds = [];
+        }
+
         $search = $filters['search'] ?? null;
+        $status = $filters['status'] ?? null;
+
+        $startDate = Carbon::parse("{$month}-01", config('app.timezone'))->startOfMonth()->format('Y-m-d');
+        $endDate = Carbon::parse("{$month}-01", config('app.timezone'))->endOfMonth()->format('Y-m-d');
 
         $usersQuery = User::query()
-            ->when($userId, fn ($q) => $q->where('id', $userId))
+            ->when(!empty($cleanIds), function ($q) use ($cleanIds) {
+                $q->whereIn('id', $cleanIds);
+            })
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
                 });
+            })
+            ->when($status, function ($q) use ($status, $startDate, $endDate) {
+                if ($status === 'pending') {
+                    $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('attendance_date', [$startDate, $endDate])
+                            ->where('approval_status', 'pending');
+                    });
+                } elseif ($status === 'absent') {
+                    $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('attendance_date', [$startDate, $endDate])
+                            ->where('attendance_status', 'absent');
+                    });
+                } elseif ($status === 'half_day') {
+                    $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('attendance_date', [$startDate, $endDate])
+                            ->where('attendance_status', 'half_day');
+                    });
+                } elseif ($status === 'present') {
+                    $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('attendance_date', [$startDate, $endDate])
+                            ->where('attendance_status', 'present')
+                            ->where('approval_status', 'approved');
+                    });
+                }
             })
             ->orderBy('name');
 
@@ -778,8 +816,44 @@ class AttendanceService
      */
     public function exportMonthlyCsv(string $month, array $filters = [], ?int $userId = null): StreamedResponse
     {
+        $search = $filters['search'] ?? null;
+        $status = $filters['status'] ?? null;
+
+        $startDate = Carbon::parse("{$month}-01", config('app.timezone'))->startOfMonth()->format('Y-m-d');
+        $endDate = Carbon::parse("{$month}-01", config('app.timezone'))->endOfMonth()->format('Y-m-d');
+
         $usersQuery = User::query()
             ->when($userId, fn ($q) => $q->where('id', $userId))
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($status, function ($q) use ($status, $startDate, $endDate) {
+                if ($status === 'pending') {
+                    $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('attendance_date', [$startDate, $endDate])
+                            ->where('approval_status', 'pending');
+                    });
+                } elseif ($status === 'absent') {
+                    $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('attendance_date', [$startDate, $endDate])
+                            ->where('attendance_status', 'absent');
+                    });
+                } elseif ($status === 'half_day') {
+                    $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('attendance_date', [$startDate, $endDate])
+                            ->where('attendance_status', 'half_day');
+                    });
+                } elseif ($status === 'present') {
+                    $q->whereHas('attendances', function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('attendance_date', [$startDate, $endDate])
+                            ->where('attendance_status', 'present')
+                            ->where('approval_status', 'approved');
+                    });
+                }
+            })
             ->orderBy('name');
 
         $users = $usersQuery->get();
