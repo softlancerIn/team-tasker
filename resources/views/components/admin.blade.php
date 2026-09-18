@@ -925,9 +925,13 @@
             .sidebar-brand-text {
                 display: none !important;
             }
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
         }
     </style>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    @stack('styles')
 </head>
 
 <body>
@@ -1403,19 +1407,23 @@
                             @php
                                 $type = 'task';
                                 $icon = 'fa-tasks';
-                                if (str_contains($notification->type, 'Ticket')) {
+                                $url = route('notifications.readAndRedirect', $notification->id);
+
+                                if (!empty($notification->data['conversation_id']) || str_contains($notification->type, 'Chat')) {
+                                    $type = 'chat';
+                                    $icon = 'fa-comment-dots';
+                                } elseif (!empty($notification->data['ticket_id']) || str_contains($notification->type, 'Ticket')) {
                                     $type = 'ticket';
                                     $icon = 'fa-ticket-alt';
+                                } elseif (str_contains($notification->type, 'Attendance')) {
+                                    $type = 'attendance';
+                                    $icon = 'fa-clock';
+                                } elseif (str_contains($notification->type, 'Leave')) {
+                                    $type = 'leave';
+                                    $icon = 'fa-calendar-alt';
                                 } elseif (str_contains($notification->type, 'Sla')) {
                                     $type = 'alert';
                                     $icon = 'fa-exclamation-triangle';
-                                }
-
-                                $url = '#';
-                                if (isset($notification->data['ticket_id'])) {
-                                    $url = route('admin.tickets.show', $notification->data['ticket_id']);
-                                } elseif (isset($notification->data['task_id'])) {
-                                    $url = route('details', $notification->data['task_id']);
                                 }
                             @endphp
                             <a href="{{ $url }}"
@@ -1886,13 +1894,25 @@
                     localStorage.setItem(storageKey, '1');
                     setTimeout(() => localStorage.removeItem(storageKey), 10000);
 
-                    const notificationTitle = payload.notification.title;
+                    const notificationTitle = payload.notification ? payload.notification.title : (payload.data?.title || 'New Notification');
                     const notificationOptions = {
-                        body: payload.notification.body,
+                        body: payload.notification ? payload.notification.body : (payload.data?.body || ''),
                         icon: '/images/logo.png',
+                        data: payload.data || {}
                     };
 
-                    new Notification(notificationTitle, notificationOptions);
+                    const notif = new Notification(notificationTitle, notificationOptions);
+                    notif.onclick = function(event) {
+                        event.preventDefault();
+                        window.focus();
+                        if (incomingConversationId) {
+                            window.location.href = "{{ route('admin.chat.index') }}?conversation_id=" + incomingConversationId;
+                        } else if (payload.data?.task_id) {
+                            window.location.href = "/admin/tasks/details/" + payload.data.task_id;
+                        } else if (payload.data?.ticket_id) {
+                            window.location.href = "/admin/tickets/" + payload.data.ticket_id;
+                        }
+                    };
 
                     if (window.Livewire) {
                         window.Livewire.dispatch('notification-received');

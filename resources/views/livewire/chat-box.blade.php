@@ -38,7 +38,9 @@ new class extends Component {
 
     public function mount($selectedConversationId = null)
     {
+        $selectedConversationId = $selectedConversationId ?: (request('conversation_id') ?? request('conversation'));
         if ($selectedConversationId) {
+            $this->selectedConversationId = $selectedConversationId;
             $this->loadConversation($selectedConversationId);
         }
     }
@@ -619,11 +621,12 @@ new class extends Component {
         if (!$message || !$message->conversation) return;
 
         $participants = $message->conversation->participants;
-        $currentUserId = \Illuminate\Support\Facades\Auth::guard('client')->check() ? \Illuminate\Support\Facades\Auth::guard('client')->id() : auth()->id();
+        $isClientSender = \Illuminate\Support\Facades\Auth::guard('client')->check();
+        $currentUserId = $isClientSender ? \Illuminate\Support\Facades\Auth::guard('client')->id() : auth()->id();
         $msgCreated = $message->created_at;
 
         foreach ($participants as $participant) {
-            if ($participant->id != $currentUserId) {
+            if ($isClientSender || $participant->id != $currentUserId) {
                 $pivot = \Illuminate\Support\Facades\DB::table('conversation_participants')
                     ->where('conversation_id', $message->conversation_id)
                     ->where('user_id', $participant->id)
@@ -637,6 +640,25 @@ new class extends Component {
                 }
 
                 $participant->notify(new \App\Notifications\ChatMessageNotification($message));
+            }
+        }
+
+        $clientParticipants = $message->conversation->clientParticipants;
+        foreach ($clientParticipants as $clientParticipant) {
+            if (!$isClientSender || $clientParticipant->id != $currentUserId) {
+                $pivot = \Illuminate\Support\Facades\DB::table('conversation_participants')
+                    ->where('conversation_id', $message->conversation_id)
+                    ->where('client_id', $clientParticipant->id)
+                    ->first();
+
+                if ($pivot && $pivot->last_read_at) {
+                    $lastRead = \Carbon\Carbon::parse($pivot->last_read_at);
+                    if ($lastRead->gte($msgCreated)) {
+                        continue;
+                    }
+                }
+
+                $clientParticipant->notify(new \App\Notifications\ChatMessageNotification($message));
             }
         }
     }

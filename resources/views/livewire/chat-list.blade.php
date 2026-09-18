@@ -11,6 +11,19 @@ new class extends Component {
     public $selectedConversationId = null;
     public $userLimit = 20;
 
+    public function mount($selectedConversationId = null)
+    {
+        $this->selectedConversationId = $selectedConversationId ?: (request('conversation_id') ?? request('conversation'));
+
+        if (!$this->selectedConversationId) {
+            if (request('user_id')) {
+                $this->selectUser(request('user_id'), false);
+            } elseif (request('client_id')) {
+                $this->selectUser(request('client_id'), true);
+            }
+        }
+    }
+
     public function loadMoreUsers()
     {
         $this->userLimit += 20;

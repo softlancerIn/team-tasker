@@ -21,4 +21,40 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
+    const notificationTitle = payload.notification ? payload.notification.title : (payload.data?.title || 'New Notification');
+    const notificationOptions = {
+        body: payload.notification ? payload.notification.body : (payload.data?.body || ''),
+        icon: '/images/logo.png',
+        data: payload.data || {}
+    };
+
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+    const data = event.notification.data || {};
+    let targetUrl = '/';
+    if (data.conversation_id) {
+        targetUrl = '/admin/chat?conversation_id=' + data.conversation_id;
+    } else if (data.task_id) {
+        targetUrl = '/admin/tasks/details/' + data.task_id;
+    } else if (data.ticket_id) {
+        targetUrl = '/admin/tickets/' + data.ticket_id;
+    }
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+            for (let i = 0; i < clientList.length; i++) {
+                let client = clientList[i];
+                if ('focus' in client) {
+                    client.navigate(targetUrl);
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(targetUrl);
+            }
+        })
+    );
 });

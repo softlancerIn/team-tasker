@@ -36,6 +36,7 @@ Route::middleware(['web', 'auth:web,admin'])->get('/search', [App\Http\Controlle
 
 // Notifications
 Route::middleware(['web', 'auth:web,admin,client'])->group(function () {
+    Route::get('/notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'readAndRedirect'])->name('notifications.readAndRedirect');
     Route::post('/notifications/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
     Route::post('/update-fcm-token', function (Illuminate\Http\Request $request) {
         $request->validate(['token' => 'required|string']);
@@ -212,6 +213,7 @@ Route::middleware(['web', 'auth:client,admin'])->prefix('client')->group(functio
     Route::post('/profile/update', [App\Http\Controllers\ClientController::class, 'updateProfile'])->name('client.profile.update');
 
     // Client Notifications
+    Route::get('/notifications/{id}/read', [App\Http\Controllers\ClientController::class, 'readAndRedirect'])->name('client.notifications.readAndRedirect');
     Route::post('/notifications/mark-as-read', [App\Http\Controllers\ClientController::class, 'markNotificationsRead'])->name('client.notifications.markAsRead');
 });
 

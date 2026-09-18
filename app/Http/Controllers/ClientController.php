@@ -237,4 +237,31 @@ class ClientController extends Controller
 
         return back()->with('success', 'Notifications marked as read.');
     }
+
+    public function readAndRedirect($id)
+    {
+        $client = Auth::guard('client')->user();
+        if (!$client) {
+            return redirect()->route('client.login');
+        }
+
+        $notification = $client->notifications()->find($id);
+
+        if ($notification) {
+            $notification->markAsRead();
+            $data = $notification->data ?? [];
+
+            if (!empty($data['conversation_id'])) {
+                return redirect()->route('client.chat.index', ['conversation_id' => $data['conversation_id']]);
+            }
+            if (!empty($data['task_id'])) {
+                return redirect()->route('client.tasks.show', $data['task_id']);
+            }
+            if (!empty($data['ticket_id'])) {
+                return redirect()->route('client.tickets.show', $data['ticket_id']);
+            }
+        }
+
+        return redirect()->back();
+    }
 }

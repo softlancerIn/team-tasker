@@ -9,8 +9,24 @@
         $viewTaskAppend = request('view_user_id') ? '&assigned_to=' . request('view_user_id') : '';
     @endphp
 
-    @push('styles')
     <style>
+        /* Eliminate any horizontal overflow specifically on Dashboard */
+        html, body {
+            overflow-x: hidden !important;
+            max-width: 100% !important;
+        }
+        .main-content-premium {
+            overflow-x: clip !important;
+            max-width: 100% !important;
+        }
+        .dashboard-wrapper {
+            max-width: 100% !important;
+            overflow-x: clip !important;
+        }
+        .dashboard-wrapper > .row {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
         .dashboard-view-as .ts-control {
             min-height: 32px !important;
             padding: 4px 8px !important;
@@ -29,7 +45,9 @@
             }
         }
     </style>
-    @endpush
+
+    <div class="dashboard-wrapper">
+
 
     @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasRole('admin'))
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
@@ -58,7 +76,7 @@
     </div>
     @endif
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-4 mb-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-4 mb-4 mx-0">
         <!-- Project Overall Stats -->
         <div class="col">
             <a href="{{ url('admin/projects') }}{{ $viewUserQuery }}" class="text-decoration-none text-reset d-block h-100">
@@ -135,7 +153,7 @@
 
     <!-- Attendance Overview Widgets (Super Admin & User) -->
     @if(isset($attendanceStats) && $isAdmin)
-        <div class="glass-card p-4 mb-4 border-main">
+        <div class="glass-card p-4 mx-2 mb-4 border-main">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
                     <h5 class="fw-bold text-high mb-1 d-flex align-items-center gap-2">
@@ -185,7 +203,7 @@
     @endif
 
     @if(isset($userMonthlyStats))
-        <div class="glass-card p-4 mb-4 border-main">
+        <div class="glass-card p-4 mx-2 mb-4 border-main">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
                     <h5 class="fw-bold text-high mb-1 d-flex align-items-center gap-2">
@@ -270,7 +288,7 @@
     @endif
 
     <!-- Health & Progress Row -->
-    <div class="row g-4 mb-4">
+    <div class="row g-4 mb-4 mx-0">
         <div class="col-md-6">
             <a href="{{ url('admin/tasks') }}?priority=Critical{{ $viewTaskAppend }}" class="text-decoration-none text-reset d-block h-100">
                 <div class="glass-card h-100"
@@ -310,7 +328,7 @@
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
+    <div class="row g-4 mb-4 mx-0">
         <div class="col-lg-8">
             <div class="glass-card h-100" style="border: 1px solid var(--border-main);">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -417,7 +435,7 @@
     </div>
 
     <!-- Personal Tasks & To-Do Section -->
-    <div class="row g-4 mb-4">
+    <div class="row g-4 mb-4 mx-0">
         <div class="col-lg-8">
             <div class="glass-card p-0 overflow-hidden h-100" style="border: 1px solid var(--border-main);">
                 <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-main">
@@ -509,6 +527,7 @@
             @livewire('todo-list', ['targetUserId' => isset($viewUser) ? $viewUser->id : null])
         </div>
     </div>
+    </div><!-- End dashboard-wrapper -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
