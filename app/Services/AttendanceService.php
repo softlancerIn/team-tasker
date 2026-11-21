@@ -629,17 +629,43 @@ class AttendanceService
 
         $userId = $user->getAuthIdentifier() ?? $user->id;
         $records = Attendance::where('user_id', $userId)
-        ->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+        ->where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->orWhereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+        })
         ->get();
 
-        $presentDays = $records->where('attendance_status', 'present')->where('approval_status', 'approved')->count();
-        $halfDays = $records->where('attendance_status', 'half_day')->where('approval_status', 'approved')->count();
-        $absentDays = $records->where('attendance_status', 'absent')->where('approval_status', 'approved')->count();
+        $presentDays = $records->filter(function ($r) {
+            $status = strtolower($r->attendance_status ?: $r->status ?: '');
+            $app = strtolower($r->approval_status ?: 'approved');
+            return in_array($status, ['present', 'late']) && in_array($app, ['approved', 'draft', 'pending']);
+        })->count();
+
+        $halfDays = $records->filter(function ($r) {
+            $status = strtolower($r->attendance_status ?: $r->status ?: '');
+            return in_array($status, ['half_day', 'half-day']);
+        })->count();
+
+        $absentDays = $records->filter(function ($r) {
+            $status = strtolower($r->attendance_status ?: $r->status ?: '');
+            return $status === 'absent';
+        })->count();
+
         $pendingDays = $records->where('approval_status', 'pending')->count();
         $rejectedDays = $records->where('approval_status', 'rejected')->count();
-        $approvedDays = $records->where('approval_status', 'approved')->count();
+        $approvedDays = $records->filter(function ($r) {
+            return in_array(strtolower($r->approval_status ?: ''), ['approved', 'draft']) || empty($r->approval_status);
+        })->count();
 
-        $totalWorkingMinutes = (int) $records->where('approval_status', 'approved')->sum('working_minutes');
+        $totalWorkingMinutes = (int) $records->sum(function ($r) {
+            if ($r->working_minutes !== null && $r->working_minutes > 0) {
+                return (int) $r->working_minutes;
+            }
+            if ($r->work_hours !== null && (float) $r->work_hours > 0) {
+                return (int) round(((float) $r->work_hours) * 60);
+            }
+            return 0;
+        });
         $totalHours = intdiv($totalWorkingMinutes, 60);
         $remainingMinutes = $totalWorkingMinutes % 60;
         $formattedHours = "{$totalHours}h {$remainingMinutes}m";
@@ -746,19 +772,41 @@ class AttendanceService
 
         $totalUsers = User::count();
 
-        $records = Attendance::whereBetween('attendance_date', [
-            $startDate->format('Y-m-d'),
-            $endDate->format('Y-m-d'),
-        ])->get();
+        $records = Attendance::where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->orWhereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+        })->get();
 
-        $presentCount = $records->where('attendance_status', 'present')->where('approval_status', 'approved')->count();
-        $halfDayCount = $records->where('attendance_status', 'half_day')->where('approval_status', 'approved')->count();
-        $absentCount = $records->where('attendance_status', 'absent')->where('approval_status', 'approved')->count();
+        $presentCount = $records->filter(function ($r) {
+            $status = strtolower($r->attendance_status ?: $r->status ?: '');
+            return in_array($status, ['present', 'late']);
+        })->count();
+
+        $halfDayCount = $records->filter(function ($r) {
+            $status = strtolower($r->attendance_status ?: $r->status ?: '');
+            return in_array($status, ['half_day', 'half-day']);
+        })->count();
+
+        $absentCount = $records->filter(function ($r) {
+            $status = strtolower($r->attendance_status ?: $r->status ?: '');
+            return $status === 'absent';
+        })->count();
+
         $pendingCount = $records->where('approval_status', 'pending')->count();
         $rejectedCount = $records->where('approval_status', 'rejected')->count();
-        $approvedCount = $records->where('approval_status', 'approved')->count();
+        $approvedCount = $records->filter(function ($r) {
+            return in_array(strtolower($r->approval_status ?: ''), ['approved', 'draft']) || empty($r->approval_status);
+        })->count();
 
-        $totalWorkingMinutes = (int) $records->where('approval_status', 'approved')->sum('working_minutes');
+        $totalWorkingMinutes = (int) $records->sum(function ($r) {
+            if ($r->working_minutes !== null && $r->working_minutes > 0) {
+                return (int) $r->working_minutes;
+            }
+            if ($r->work_hours !== null && (float) $r->work_hours > 0) {
+                return (int) round(((float) $r->work_hours) * 60);
+            }
+            return 0;
+        });
         $totalHours = intdiv($totalWorkingMinutes, 60);
         $remMinutes = $totalWorkingMinutes % 60;
 
@@ -783,10 +831,15 @@ class AttendanceService
         $daysInMonth = $startDate->daysInMonth;
 
         $attendances = Attendance::where('user_id', $userId)
-        ->whereBetween('attendance_date', [
-            $startDate->format('Y-m-d'),
-            $startDate->copy()->endOfMonth()->format('Y-m-d'),
-        ])
+        ->where(function ($q) use ($startDate) {
+            $q->whereBetween('attendance_date', [
+                $startDate->format('Y-m-d'),
+                $startDate->copy()->endOfMonth()->format('Y-m-d'),
+            ])->orWhereBetween('date', [
+                $startDate->format('Y-m-d'),
+                $startDate->copy()->endOfMonth()->format('Y-m-d'),
+            ]);
+        })
         ->get()
         ->keyBy(fn ($item) => $item->attendance_date?->format('Y-m-d') ?? Carbon::parse($item->date)->format('Y-m-d'));
 

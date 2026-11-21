@@ -42,6 +42,11 @@ class Admin extends Authenticatable
         return in_array($slug, ['admin', 'super-admin', 'manager']);
     }
 
+    public function isSuperAdmin()
+    {
+        return true;
+    }
+
     public function conversations()
     {
         return $this->belongsToMany(\App\Models\Conversation::class, 'conversation_participants', 'user_id', 'conversation_id')

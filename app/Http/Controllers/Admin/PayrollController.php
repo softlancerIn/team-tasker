@@ -67,17 +67,51 @@ class PayrollController extends Controller
             'net_paid'    => (float) ($counts['paid']->net ?? 0),
         ];
 
-        return view('admin.payroll.index', compact('payrolls', 'month', 'stats'));
+        $employees = User::query()->where('is_payable', true)->orderBy('name')->get(['id', 'name', 'email']);
+
+        return view('admin.payroll.index', compact('payrolls', 'month', 'stats', 'employees'));
     }
 
     public function salaries(): View
     {
         $this->authorizePayroll('salary_view');
 
-        $salaries = EmployeeSalary::query()->with('user')->latest('id')->paginate(15);
-        $users = User::query()->orderBy('name')->get(['id', 'name', 'email']);
+        // Only show payable users in the Employee Salary Directory
+        $salaries = EmployeeSalary::query()
+            ->whereHas('user', function ($q) {
+                $q->where('is_payable', true);
+            })
+            ->with(['user.role'])
+            ->latest('id')
+            ->paginate(15);
 
-        return view('admin.payroll.salaries', compact('salaries', 'users'));
+        $payableUsers = User::query()->where('is_payable', true)->orderBy('name')->get(['id', 'name', 'email']);
+
+        $activeSalaries = EmployeeSalary::query()
+            ->where('is_active', true)
+            ->whereHas('user', function ($q) {
+                $q->where('is_payable', true);
+            })
+            ->get(['user_id', 'monthly_salary']);
+
+        $employeesWithSalary = $activeSalaries->pluck('user_id')->unique()->count();
+        $totalMonthly = (float) $activeSalaries->sum('monthly_salary');
+        $avgSalary = $employeesWithSalary > 0 ? ($totalMonthly / $employeesWithSalary) : 0;
+        $totalPayableUsersCount = $payableUsers->count();
+        $withoutSalary = max(0, $totalPayableUsersCount - $employeesWithSalary);
+
+        $stats = [
+            'employees' => $employeesWithSalary,
+            'total' => $totalMonthly,
+            'average' => $avgSalary,
+            'without' => $withoutSalary,
+        ];
+
+        return view('admin.payroll.salaries', [
+            'salaries' => $salaries,
+            'users' => $payableUsers,
+            'stats' => $stats,
+        ]);
     }
 
     public function storeSalary(Request $request, SalaryService $salaries): RedirectResponse
@@ -138,8 +172,11 @@ class PayrollController extends Controller
         $monthStart = Carbon::createFromFormat('!Y-m', $validated['month'])->startOfMonth();
         $monthEnd = $monthStart->copy()->endOfMonth();
 
-        // Jin employees ka salary record is month ko cover karta hai.
+        // Jin payable employees ka salary record is month ko cover karta hai.
         $userIds = EmployeeSalary::query()
+        ->whereHas('user', function ($q) {
+            $q->where('is_payable', true);
+        })
         ->whereDate('effective_from', '<=', $monthEnd->toDateString())
         ->where(function ($q) use ($monthStart) {
             $q->whereNull('effective_until')

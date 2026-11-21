@@ -102,21 +102,53 @@
     @endphp
     <div class="top-bar-premium">
         <div>
-            <h1 class="h3 fw-semibold mb-1 text-high">Monthly Attendance Report</h1>
+            <h1 class="h3 fw-semibold mb-1 text-high">Attendance Directory</h1>
             <p class="text-low mb-0" style="font-size: 0.9rem;">
                 Aggregated monthly summary, working hours, attendance rates, and employee drilldowns.
             </p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <!-- Odoo-style View Switcher -->
+            <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                <a href="{{ route('admin.attendance.monthly') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.monthly') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-users me-1"></i> Team Attendance
+                </a>
+                <a href="{{ route('admin.attendance.myDaily') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.myDaily') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-user-clock me-1"></i> My Attendance
+                </a>
+                <a href="{{ route('admin.attendance.calendar') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.calendar') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-calendar-alt me-1"></i> Calendar
+                </a>
+            </div>
+
+            <div class="d-flex align-items-center gap-1 bg-subtle p-1 rounded-3 border border-main">
+                <form method="GET" action="{{ route('admin.attendance.monthly') }}" id="monthlyNavMonthForm" class="d-flex align-items-center m-0">
+                    @if(request('user_id'))
+                        <input type="hidden" name="user_id" value="{{ request('user_id') }}">
+                    @endif
+                    @if(request('status'))
+                        <input type="hidden" name="status" value="{{ request('status') }}">
+                    @endif
+                    @if(request('search'))
+                        <input type="hidden" name="search" value="{{ request('search') }}">
+                    @endif
+                    <input type="month" name="month" value="{{ $month }}" class="form-control form-control-sm border-0 bg-transparent text-high fw-semibold py-1 px-2" style="font-size: 0.8rem; cursor: pointer;" onchange="this.form.submit()">
+                </form>
+            </div>
+
+            <button type="button" class="btn-premium btn-premium-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-1" onclick="document.getElementById('filterSlideoverMonthlyAdmin').classList.add('show')">
+                <i class="fas fa-sliders-h me-1"></i> Filters
+            </button>
+
             <a
             href="{{ route('admin.attendance.daily') }}"
-            class="btn-premium btn-premium-primary px-4 py-2 shadow-sm d-flex align-items-center gap-2"
+            class="btn-premium btn-premium-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-1"
             >
-            <i class="fas fa-calendar-day me-1"></i> Daily Reports
+            <i class="fas fa-calendar-day me-1"></i> Work Reports
         </a>
         <a
         href="{{ route('admin.attendance.reports', array_merge(request()->except('page'), ['export' => 'monthly', 'month' => $month])) }}"
-        class="btn-premium btn-premium-secondary px-4 py-2 shadow-sm d-flex align-items-center gap-2"
+        class="btn-premium btn-premium-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-1"
         >
         <i class="fas fa-file-csv me-1"></i> Export CSV
     </a>
@@ -249,8 +281,27 @@
         height: 100%;
         border-radius: 999px;
     }
+    .data-grid-table tbody tr.row-selected > td {
+        background-color: rgba(var(--primary-rgb, 14, 165, 233), 0.12) !important;
+    }
     .data-grid-table tbody tr.row-selected > td:first-child {
-        box-shadow: inset 3px 0 0 var(--primary);
+        box-shadow: inset 4px 0 0 var(--primary);
+    }
+    .data-grid-table tbody tr.row-selected .text-high {
+        color: var(--primary) !important;
+    }
+    .clickable-user-row {
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .clickable-user-row:hover > td {
+        background: rgba(var(--primary-rgb, 14, 165, 233), 0.08) !important;
+    }
+    [data-theme="dark"] .data-grid-table tbody tr.row-selected > td {
+        background-color: rgba(var(--primary-rgb, 14, 165, 233), 0.15) !important;
+    }
+    [data-theme="dark"] .data-grid-table tbody tr.row-selected:hover > td {
+        background-color: rgba(var(--primary-rgb, 14, 165, 233), 0.22) !important;
     }
     .data-grid-table .action-link.act-cal {
         color: #0ea5e9;
@@ -323,12 +374,24 @@
             </div>
         </div>
     </div>
-    <a
-    href="{{ route('admin.attendance.monthly', array_merge(request()->except(['user_id', 'page']), ['month' => $month])) }}"
-    class="btn-premium btn-premium-secondary btn-sm d-flex align-items-center gap-1"
-    >
-    <i class="fas fa-times me-1"></i> Close Details
-</a>
+    <div class="d-flex align-items-center gap-2">
+        @if(auth()->user()->hasRole('super-admin') || auth()->user()->hasPermission('attendance.approve'))
+        <form action="{{ route('admin.attendance.approveUserMonth') }}" method="POST" onsubmit="return confirm('Are you sure you want to approve all unapproved daily reports for {{ $selectedUser->name }} for {{ \Carbon\Carbon::parse($month . '-01')->format('F Y') }}?')">
+            @csrf
+            <input type="hidden" name="user_id" value="{{ $selectedUser->id }}">
+            <input type="hidden" name="month" value="{{ $month }}">
+            <button type="submit" class="btn-premium btn-premium-primary btn-sm d-flex align-items-center gap-1 shadow-sm" style="background: #16a34a; border-color: #16a34a;">
+                <i class="fas fa-check-double me-1"></i> Approve Full Month Report
+            </button>
+        </form>
+        @endif
+        <a
+        href="{{ route('admin.attendance.monthly', array_merge(request()->except(['user_id', 'page']), ['month' => $month])) }}"
+        class="btn-premium btn-premium-secondary btn-sm d-flex align-items-center gap-1"
+        >
+        <i class="fas fa-times me-1"></i> Close Details
+    </a>
+    </div>
 </div>
 {{-- Employee metric cards --}}
 <div class="row row-cols-2 row-cols-md-4 row-cols-xl-8 g-2 mb-4 text-center">
@@ -383,6 +446,99 @@ $selColor = $rateColor($selPct);
     <span><span class="legend-badge" style="--st: {{ $tone['absent'] }};">A</span> Absent</span>
     <span><span class="legend-badge" style="--st: {{ $tone['none'] }};">-</span> No Record</span>
 </div>
+
+@if(isset($selectedUserRecords) && $selectedUserRecords->isNotEmpty())
+<div class="mt-4 pt-3 border-top border-subtle">
+    <h6 class="fw-bold text-high mb-3 d-flex align-items-center justify-content-between">
+        <span><i class="fas fa-file-invoice me-1 text-primary"></i> Daily Work Report Submissions</span>
+        <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ $selectedUserRecords->count() }} Submissions</span>
+    </h6>
+    <div class="table-responsive">
+        <table class="table data-grid-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>DATE</th>
+                    <th>HOURS</th>
+                    <th class="text-center">ATTENDANCE</th>
+                    <th class="text-center">APPROVAL</th>
+                    <th>REMARKS / WORK REPORT</th>
+                    @if($isSuperAdmin ?? false)
+                    <th class="text-end">ACTION</th>
+                    @endif
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($selectedUserRecords as $record)
+                @php
+                    $recDate = $record->attendance_date ?? $record->date;
+                    $recApp = $record->approval_status ?: 'draft';
+                    $recAppColor = match($recApp) {
+                        'approved' => 'success',
+                        'pending' => 'warning',
+                        'rejected' => 'danger',
+                        default => 'info'
+                    };
+                @endphp
+                <tr>
+                    <td class="text-high fw-semibold">
+                        {{ $recDate ? \Carbon\Carbon::parse($recDate)->format('d M Y, D') : '-' }}
+                    </td>
+                    <td class="text-high">
+                        <span class="badge-premium bg-subtle text-high border-subtle">
+                            {{ $record->formatted_working_hours }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge-premium px-2 py-1" style="background: rgba(var(--primary-rgb, 14, 165, 233), 0.1); color: var(--primary);">
+                            {{ ucfirst(str_replace('_', ' ', $record->attendance_status ?: $record->status ?: 'present')) }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge-premium bg-{{ $recAppColor }}-subtle text-{{ $recAppColor }} px-2 py-1 border border-{{ $recAppColor }} border-opacity-25">
+                            {{ ucfirst($recApp) }}
+                        </span>
+                    </td>
+                    <td style="max-width: 300px;">
+                        <div class="text-high small text-truncate" title="{{ $record->remarks }}">
+                            {{ $record->remarks ?: '-' }}
+                        </div>
+                        @if($record->submitted_at)
+                        <div class="text-low" style="font-size: 0.72rem;">
+                            Submitted at {{ \Carbon\Carbon::parse($record->submitted_at)->format('h:i A') }}
+                        </div>
+                        @endif
+                        @if($record->rejection_reason)
+                        <div class="text-danger small mt-1" style="font-size: 0.75rem;">
+                            <i class="fas fa-exclamation-circle me-1"></i><strong>Rejected:</strong> {{ $record->rejection_reason }}
+                        </div>
+                        @endif
+                    </td>
+                    @if($isSuperAdmin ?? false)
+                    <td class="text-end">
+                        <div class="d-flex align-items-center justify-content-end gap-1">
+                            @if($recApp !== 'rejected')
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger py-0 px-2"
+                                style="font-size: 0.78rem; border-radius: 6px;"
+                                onclick="openMonthlyRejectModal('{{ $record->id }}', '{{ addslashes($selectedUser->name) }}', '{{ $recDate ? \Carbon\Carbon::parse($recDate)->format('d M Y') : '' }}')"
+                                title="Reject this day's work report"
+                            >
+                                <i class="fas fa-times-circle me-1"></i> Reject
+                            </button>
+                            @else
+                            <span class="text-low small italic" style="font-size: 0.75rem;">Rejected (Leave)</span>
+                            @endif
+                        </div>
+                    </td>
+                    @endif
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
 </div>
 @endif
 {{-- Team summary table --}}
@@ -461,7 +617,8 @@ $selColor = $rateColor($selPct);
             $pct = $stats['attendance_percentage'] ?? 0;
             $pctColor = $rateColor($pct);
             @endphp
-            <tr class="{{ $isSelected ? 'table-primary bg-opacity-25 row-selected' : '' }}">
+            <tr class="clickable-user-row {{ $isSelected ? 'row-selected' : '' }}"
+                onclick="if (!event.target.closest('a, button, input')) { window.location.href = '{{ route('admin.attendance.monthly', array_merge(request()->except('page'), ['month' => $month, 'user_id' => $u->id])) }}'; }">
                 <td>
                     <div class="d-flex align-items-center gap-3">
                         <div class="avatar-premium" style="width: 32px; height: 32px;">
@@ -605,6 +762,43 @@ $selColor = $rateColor($selPct);
 </div>
 </form>
 </div>
+
+{{-- Reject Single Day Report Modal --}}
+<div class="modal fade" id="monthlyRejectModal" tabindex="-1" aria-labelledby="monthlyRejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-main shadow-lg">
+            <div class="modal-header border-subtle">
+                <h5 class="modal-title fw-bold text-high" id="monthlyRejectModalLabel">Reject Daily Attendance Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="monthlyRejectForm" method="POST" action="">
+                @csrf
+                <div class="modal-body">
+                    <p class="text-medium mb-3">
+                        You are rejecting the daily work report for <strong id="monthlyRejectUserName" class="text-high"></strong>
+                        on <span id="monthlyRejectDate" class="fw-semibold text-primary"></span>.
+                    </p>
+                    <div class="alert alert-warning py-2 px-3 small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        When this work report is rejected, this day will be counted as <strong>leave / absent</strong> in salary calculation.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-high fw-semibold">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea name="rejection_reason" id="monthly_rejection_reason_input" class="form-premium-control w-100" rows="3" required
+                        placeholder="e.g. Work report unsatisfactory / Missing proof of work."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-subtle">
+                    <button type="button" class="btn-premium btn-premium-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times-circle me-1"></i> Confirm Reject
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     document.addEventListener('openFilterModal', () => {
@@ -613,6 +807,17 @@ $selColor = $rateColor($selPct);
             slideover.classList.add('show');
         }
     });
+
+    function openMonthlyRejectModal(recordId, userName, dateFormatted) {
+        const form = document.getElementById('monthlyRejectForm');
+        form.action = `/admin/attendance/${recordId}/reject`;
+        document.getElementById('monthlyRejectUserName').textContent = userName;
+        document.getElementById('monthlyRejectDate').textContent = dateFormatted;
+        document.getElementById('monthly_rejection_reason_input').value = '';
+        
+        const modal = new bootstrap.Modal(document.getElementById('monthlyRejectModal'));
+        modal.show();
+    }
 </script>
 @endpush
 </x-admin>

@@ -342,7 +342,29 @@ class TaskController extends Controller
                 $q->where('attendance_date', $todayStr)->orWhere('date', $todayStr);
             })
             ->first();
-        $userMonthlyStats = $attendanceService->getMonthlyUserStats($currentUser, $attendanceService->today()->format('Y-m'));
+        $currentMonth = $attendanceService->today()->format('Y-m');
+        $hasThisMonth = \App\Models\Attendance::where('user_id', $currentUser->id)
+            ->where(function ($q) use ($currentMonth) {
+                $q->where('attendance_date', 'like', "{$currentMonth}%")
+                  ->orWhere('date', 'like', "{$currentMonth}%");
+            })->exists();
+
+        $statMonth = $currentMonth;
+        if (! $hasThisMonth) {
+            $latestAtt = \App\Models\Attendance::where('user_id', $currentUser->id)
+                ->orderByDesc('attendance_date')
+                ->orderByDesc('date')
+                ->first();
+            if ($latestAtt) {
+                $rawD = $latestAtt->attendance_date ?? $latestAtt->date;
+                if ($rawD) {
+                    $statMonth = \Carbon\Carbon::parse($rawD)->format('Y-m');
+                }
+            }
+        }
+
+        $userMonthlyStats = $attendanceService->getMonthlyUserStats($currentUser, $statMonth);
+        $userMonthlyStats['month_label'] = \Carbon\Carbon::parse("{$statMonth}-01")->format('F Y');
 
         return view('admin.dashboard', compact(
             'personalTasks',

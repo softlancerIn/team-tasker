@@ -765,16 +765,28 @@ body.dark .sal-page .page-item.active .page-link {
 <div class="container-fluid py-3 sal-page">
 
     {{-- Page header --}}
-    <div class="sal-hero mb-3">
+    <div class="top-bar-premium mb-4">
         <div>
-            <h1>Employee Salaries</h1>
-            <p>Manage monthly salaries, working days and effective dates.</p>
+            <h1 class="h3 fw-semibold mb-1 text-high">Payroll & Salaries</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">
+                Employee Salary Directory, scheduled working days, rate calculations, and payroll tenures.
+            </p>
         </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- Odoo-style View Switcher -->
+            <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                <a href="{{ route('admin.payroll.index') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.index') && !request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-file-invoice-dollar me-1"></i> Payroll Management
+                </a>
+                <a href="{{ route('admin.payroll.salaries') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-wallet me-1"></i> Employee Salaries
+                </a>
+            </div>
 
-        <a href="{{ route('admin.payroll.index') }}" class="sal-btn">
-            <i class="fas fa-arrow-left"></i>
-            Back to Payroll
-        </a>
+            <a href="{{ route('admin.users.index') }}" class="btn-premium btn-premium-primary d-flex align-items-center gap-2 shadow-sm">
+                <i class="fas fa-users-cog"></i> Team Management
+            </a>
+        </div>
     </div>
 
     {{-- Alerts --}}
@@ -803,252 +815,84 @@ body.dark .sal-page .page-item.active .page-link {
 
     {{-- Statistics --}}
     @if($stats)
-    <div class="row g-3 mb-3">
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <div>
-                        <span class="stat-label">Employees with salary</span>
-                        <span class="stat-value">{{ number_format($stats['employees'] ?? 0) }}</span>
-                    </div>
-                    <span class="stat-icon"><i class="fas fa-users"></i></span>
+    <div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+        <div class="col">
+            <div class="glass-card p-3 h-100 border-main">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Employees with Salary</span>
+                    <i class="fas fa-users text-primary" style="font-size: 0.85rem;"></i>
                 </div>
+                <h4 class="fw-bold mb-0 text-high">{{ number_format($stats['employees'] ?? 0) }}</h4>
             </div>
         </div>
 
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <div>
-                        <span class="stat-label">Monthly payroll (current)</span>
-                        <span class="stat-value">₹{{ number_format((float) ($stats['total'] ?? 0), 2) }}</span>
-                    </div>
-                    <span class="stat-icon"><i class="fas fa-rupee-sign"></i></span>
+        <div class="col">
+            <div class="glass-card p-3 h-100 border-main">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Monthly Run (Current)</span>
+                    <i class="fas fa-rupee-sign text-success" style="font-size: 0.85rem;"></i>
                 </div>
+                <h4 class="fw-bold mb-0 text-success">₹{{ number_format((float) ($stats['total'] ?? 0), 2) }}</h4>
             </div>
         </div>
 
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <div>
-                        <span class="stat-label">Average salary</span>
-                        <span class="stat-value">₹{{ number_format((float) ($stats['average'] ?? 0), 2) }}</span>
-                    </div>
-                    <span class="stat-icon"><i class="fas fa-chart-line"></i></span>
+        <div class="col">
+            <div class="glass-card p-3 h-100 border-main">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Average Salary</span>
+                    <i class="fas fa-chart-line text-info" style="font-size: 0.85rem;"></i>
                 </div>
+                <h4 class="fw-bold mb-0 text-info">₹{{ number_format((float) ($stats['average'] ?? 0), 2) }}</h4>
             </div>
         </div>
 
-        <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <div>
-                        <span class="stat-label">Without salary record</span>
-                        <span class="stat-value">{{ number_format($stats['without'] ?? 0) }}</span>
-                    </div>
-                    <span class="stat-icon"><i class="fas fa-user-times"></i></span>
+        <div class="col">
+            <div class="glass-card p-3 h-100 border-main">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-low d-block" style="font-size: 0.75rem;">Without Salary Record</span>
+                    <i class="fas fa-user-clock text-warning" style="font-size: 0.85rem;"></i>
                 </div>
+                <h4 class="fw-bold mb-0 text-warning">{{ number_format($stats['without'] ?? 0) }}</h4>
             </div>
         </div>
     </div>
     @endif
 
-    {{-- Add employee salary --}}
-    <div class="card mb-3">
-        <div class="card-header py-3 px-3">
-            <div class="sec-title">
-                <span class="dot"><i class="fas fa-plus"></i></span>
-                Add employee salary
-            </div>
-        </div>
 
-        <div class="card-body p-3">
-            <form
-            method="POST"
-            action="{{ route('admin.payroll.salaries.store') }}"
-            id="salaryForm"
-            >
-            @csrf
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Employee</label>
-                    <x-select name="user_id" placeholder="Select employee" :selected="old('user_id')">
-                        <option value="" class="bg-dark">Select employee</option>
-                        @foreach($users as $user)
-                        <option value="{{ $user->id }}"
-                            {{ old('user_id') == $user->id ? 'selected' : '' }}
-                            class="bg-dark">
-                            {{ $user->name }} ({{ $user->email }})
-                        </option>
-                        @endforeach
-                    </x-select>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="monthly_salary" class="form-label">Monthly salary (₹)</label>
-                    <div class="input-group">
-                        <span class="input-group-text">₹</span>
-                        <input
-                        type="number"
-                        name="monthly_salary"
-                        id="monthly_salary"
-                        class="form-control"
-                        min="0.01"
-                        step="0.01"
-                        value="{{ old('monthly_salary') }}"
-                        placeholder="e.g. 25000"
-                        required
-                        >
-                    </div>
-                </div>
-
-                {{-- Working days --}}
-                <div class="col-12">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                        <label class="form-label mb-0">Scheduled working days</label>
-
-                        <div class="d-flex flex-wrap gap-1">
-                            <button type="button" class="sal-btn sal-btn-soft" data-days="1,2,3,4,5">
-                                Mon–Fri
-                            </button>
-                            <button type="button" class="sal-btn sal-btn-soft" data-days="1,2,3,4,5,6">
-                                Mon–Sat
-                            </button>
-                            <button type="button" class="sal-btn sal-btn-soft" data-days="1,2,3,4,5,6,7">
-                                All days
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="d-flex flex-wrap gap-2">
-                        @foreach($weekdays as $n => $name)
-                        <span class="position-relative">
-                            <input
-                            type="checkbox"
-                            class="day-cb"
-                            id="wd{{ $n }}"
-                            name="working_days[]"
-                            value="{{ $n }}"
-                            @checked(in_array($n, $selectedDays, true))
-                            >
-                            <label for="wd{{ $n }}" class="day-chip">
-                                {{ $name }}
-                            </label>
-                        </span>
-                        @endforeach
-                    </div>
-
-                    <small class="d-block mt-2 sal-help">
-                        Selected days are used to calculate the daily rate. Unselected days are weekly offs.
-                    </small>
-                </div>
-
-                {{-- Effective dates --}}
-                <div class="col-md-6">
-                    <label for="effective_from" class="form-label">Effective from</label>
-                    <input
-                    type="date"
-                    name="effective_from"
-                    id="effective_from"
-                    class="form-control"
-                    value="{{ old('effective_from', now()->toDateString()) }}"
-                    required
-                    >
-                </div>
-
-                <div class="col-md-6">
-                    <label for="effective_until" class="form-label">Effective until (optional)</label>
-                    <input
-                    type="date"
-                    name="effective_until"
-                    id="effective_until"
-                    class="form-control"
-                    value="{{ old('effective_until') }}"
-                    >
-                </div>
-
-                {{-- Salary preview --}}
-                <div class="col-12">
-                    <div class="sal-preview" id="preview">
-                        <span>
-                            <i class="fas fa-calendar-alt me-1"></i>
-                            <span id="pvMonth">-</span>
-                        </span>
-
-                        <span>Working days: <b id="pvDays">-</b></span>
-                        <span>Weekly off: <b id="pvOff">-</b></span>
-                        <span>Daily rate: <b id="pvRate">-</b></span>
-                    </div>
-                    <small class="d-block mt-2 sal-help">
-                        Daily rate preview uses the working days in the month selected by Effective from.
-                    </small>
-                </div>
-
-                {{-- Notes --}}
-                <div class="col-12">
-                    <label for="notes" class="form-label">Notes (optional)</label>
-                    <textarea
-                    name="notes"
-                    id="notes"
-                    class="form-control"
-                    rows="2"
-                    placeholder="e.g. increment, probation completed, etc."
-                    >{{ old('notes') }}</textarea>
-                </div>
-
-                <div class="col-12">
-                    <div class="d-flex flex-wrap align-items-center gap-3">
-                        <button type="submit" class="sal-btn sal-btn-primary" id="saveBtn">
-                            <i class="fas fa-save"></i>
-                            Save salary
-                        </button>
-
-                        <div class="sal-note">
-                            <i class="fas fa-info-circle me-1"></i>
-                            The employee's current active salary will be closed automatically on the day before
-                            “Effective from”.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 
 {{-- Employee salary records --}}
-<div class="card">
-    <div class="card-header py-3 px-3">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div class="sec-title">
-                <span class="dot"><i class="fas fa-list"></i></span>
-                Employee salary records
-            </div>
+<div class="glass-card mb-4 p-0 overflow-hidden" style="border: 1px solid var(--border-main);">
+    <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3" style="background: rgba(var(--primary-rgb, 14, 165, 233), 0.04); border-color: var(--border-main) !important;">
+        <div class="d-flex align-items-center gap-2">
+            <span class="rounded p-2 text-primary d-inline-flex align-items-center justify-content-center" style="background: rgba(var(--primary-rgb, 14, 165, 233), 0.12); width: 32px; height: 32px;">
+                <i class="fas fa-list"></i>
+            </span>
+            <span class="fw-semibold text-high">Employee Salary Directory</span>
+        </div>
 
-            <div style="width: 100%; max-width: 260px;">
-                <input
-                type="search"
-                id="salSearch"
-                class="form-control"
-                placeholder="Search employees on this page..."
-                aria-label="Search salary records on this page"
-                >
-            </div>
+        <div style="width: 100%; max-width: 280px;">
+            <input
+            type="search"
+            id="salSearch"
+            class="form-premium-control"
+            placeholder="Search employees on this page..."
+            aria-label="Search salary records on this page"
+            >
         </div>
     </div>
 
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle sal-table">
+            <table class="table data-grid-table">
                 <thead>
                     <tr>
-                        <th>Employee</th>
-                        <th class="text-end">Monthly salary</th>
-                        <th>Working days</th>
-                        <th>Effective from</th>
-                        <th>Effective until</th>
-                        <th>Status</th>
+                        <th>EMPLOYEE</th>
+                        <th class="text-end">MONTHLY SALARY</th>
+                        <th>WORKING DAYS</th>
+                        <th>EFFECTIVE FROM</th>
+                        <th>EFFECTIVE UNTIL</th>
+                        <th>STATUS</th>
+                        <th class="text-end pe-3">ACTIONS</th>
                     </tr>
                 </thead>
 
@@ -1108,10 +952,12 @@ body.dark .sal-page .page-item.active .page-link {
                             </span>
 
                             <div>
-                                <div class="sal-employee-name">{{ $name }}</div>
+                                <a href="{{ route('admin.users.show', $salary->user_id) }}" class="sal-employee-name text-decoration-none hover-primary fw-bold">
+                                    {{ $name }}
+                                </a>
 
                                 @if($email)
-                                <small class="sal-secondary">{{ $email }}</small>
+                                <small class="sal-secondary d-block">{{ $email }}</small>
                                 @endif
 
                                 @if($salary->notes)
@@ -1160,10 +1006,28 @@ body.dark .sal-page .page-item.active .page-link {
                     {{ $statusLabel }}
                 </span>
             </td>
+
+            <td class="text-end text-nowrap">
+                <div class="d-flex justify-content-end gap-1">
+                    @if($salary->user_id)
+                    <a href="{{ route('admin.users.show', $salary->user_id) }}"
+                       class="btn btn-sm btn-outline-info py-1 px-2"
+                       title="View detailed attendance, reports & performance">
+                        <i class="fas fa-chart-pie me-1"></i> Details
+                    </a>
+                    <a href="{{ route('admin.users.index', ['name' => $salary->user?->name]) }}"
+                       target="_blank"
+                       class="btn btn-sm btn-outline-secondary py-1 px-2"
+                       title="Edit complete employee profile in ERP">
+                        <i class="fas fa-user-edit me-1"></i> Edit User
+                    </a>
+                    @endif
+                </div>
+            </td>
         </tr>
         @empty
         <tr>
-            <td colspan="6" class="sal-empty">
+            <td colspan="7" class="sal-empty">
                 <b>No salary records found</b>
                 Add the first employee salary using the form above.
             </td>
@@ -1171,7 +1035,7 @@ body.dark .sal-page .page-item.active .page-link {
         @endforelse
 
         <tr id="noMatch" style="display: none;">
-            <td colspan="6" class="sal-empty">
+            <td colspan="7" class="sal-empty">
                 <b>No matching employees</b>
                 Try another employee name or email.
             </td>
@@ -1200,147 +1064,33 @@ body.dark .sal-page .page-item.active .page-link {
 
 <script>
     (function () {
-        var salary = document.getElementById('monthly_salary');
-        var from = document.getElementById('effective_from');
-        var until = document.getElementById('effective_until');
-        var boxes = document.querySelectorAll('.day-cb');
-        var form = document.getElementById('salaryForm');
-        var saveBtn = document.getElementById('saveBtn');
         var search = document.getElementById('salSearch');
         var noMatch = document.getElementById('noMatch');
 
-        function selectedDays() {
-            return Array.prototype.filter.call(boxes, function (box) {
-                return box.checked;
-            }).map(function (box) {
-                return Number(box.value);
-            });
-        }
+        // Search records on the currently displayed page.
+        if (search) {
+            search.addEventListener('input', function () {
+                var query = search.value.trim().toLowerCase();
+                var shown = 0;
 
-            // Calculate the daily rate for the Effective from month.
-        function preview() {
-            var days = selectedDays();
+                document.querySelectorAll('#salBody tr[data-search]').forEach(function (row) {
+                    var text = row.getAttribute('data-search') || '';
+                    var matches = !query || text.indexOf(query) !== -1;
 
-            var base = from.value
-            ? new Date(from.value + 'T00:00:00')
-            : new Date();
+                    row.style.display = matches ? '' : 'none';
 
-            var year = base.getFullYear();
-            var month = base.getMonth();
-            var daysInMonth = new Date(year, month + 1, 0).getDate();
-            var workingDays = 0;
-
-            for (var day = 1; day <= daysInMonth; day++) {
-                var weekday = new Date(year, month, day).getDay() || 7;
-
-                if (days.indexOf(weekday) !== -1) {
-                    workingDays++;
-                }
-            }
-
-            var amount = parseFloat(salary.value) || 0;
-
-            document.getElementById('pvMonth').textContent =
-            base.toLocaleString('en-US', {
-                month: 'long',
-                year: 'numeric'
-            });
-
-            document.getElementById('pvDays').textContent = workingDays;
-            document.getElementById('pvOff').textContent = daysInMonth - workingDays;
-
-            document.getElementById('pvRate').textContent =
-            workingDays > 0 && amount > 0
-            ? '₹' + (amount / workingDays).toLocaleString('en-IN', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            })
-            : '-';
-        }
-
-            // Quick-select working day presets.
-        document.querySelectorAll('[data-days]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                var selected = button.getAttribute('data-days')
-                .split(',')
-                .map(Number);
-
-                boxes.forEach(function (box) {
-                    box.checked = selected.indexOf(Number(box.value)) !== -1;
+                    if (matches) {
+                        shown++;
+                    }
                 });
 
-                preview();
-            });
-        });
-
-        [salary, from].forEach(function (element) {
-            element.addEventListener('input', preview);
-            element.addEventListener('change', preview);
-        });
-
-        boxes.forEach(function (box) {
-            box.addEventListener('change', preview);
-        });
-
-            // Effective until must not be earlier than Effective from.
-        function syncMinDate() {
-            until.min = from.value || '';
-
-            if (until.value && from.value && until.value < from.value) {
-                until.setCustomValidity(
-                    'Effective until cannot be earlier than Effective from.'
-                );
-            } else {
-                until.setCustomValidity('');
-            }
-        }
-
-        from.addEventListener('change', syncMinDate);
-        until.addEventListener('change', syncMinDate);
-        syncMinDate();
-
-            // Validate before submitting the form.
-        form.addEventListener('submit', function (event) {
-            if (selectedDays().length === 0) {
-                event.preventDefault();
-                alert('Please select at least one working day.');
-                return;
-            }
-
-            syncMinDate();
-
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                form.reportValidity();
-                return;
-            }
-
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        });
-
-            // Search records on the currently displayed page.
-        search.addEventListener('input', function () {
-            var query = search.value.trim().toLowerCase();
-            var shown = 0;
-
-            document.querySelectorAll('#salBody tr[data-search]').forEach(function (row) {
-                var text = row.getAttribute('data-search') || '';
-                var matches = !query || text.indexOf(query) !== -1;
-
-                row.style.display = matches ? '' : 'none';
-
-                if (matches) {
-                    shown++;
+                if (noMatch) {
+                    noMatch.style.display = (query && shown === 0) ? '' : 'none';
                 }
             });
+        }
 
-            if (noMatch) {
-                noMatch.style.display = (query && shown === 0) ? '' : 'none';
-            }
-        });
-
-            // Dismiss success/error notifications after a short delay.
+        // Dismiss success/error notifications after a short delay.
         document.querySelectorAll('.auto-dismiss').forEach(function (element) {
             window.setTimeout(function () {
                 element.style.transition = 'opacity .4s';
@@ -1351,8 +1101,6 @@ body.dark .sal-page .page-item.active .page-link {
                 }, 400);
             }, 6000);
         });
-
-        preview();
     })();
 </script>
 </x-admin>

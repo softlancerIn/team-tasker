@@ -120,29 +120,34 @@ Route::middleware(['web', 'auth:web,admin'])->controller(ProjectController::clas
 Route::middleware(['web', 'auth:web,admin', 'permission:tasks.todo'])->get('/admin/todos', [TodoController::class, 'index'])->name('admin.todos.index');
 
 // Task Controller
-Route::middleware(['web', 'auth:web,admin'])->controller(TaskController::class)->prefix('admin/tasks')->group(function () {
-    Route::get('/dashboard', 'dashboard')->name('dashboard')->middleware('permission:dashboard.view');
-    Route::get('/api/users/search', 'searchUsers')->name('admin.api.users.search');
-    Route::get('/', 'index')->name('index')->middleware('permission:tasks.my_tasks');
-    Route::get('activity', 'activity')->name('tasks.activity')->middleware('permission:tasks.activity');
-    Route::get('board', 'board')->name('tasks.board')->middleware('permission:tasks.board');
-    Route::get('calendar', 'calendar')->name('tasks.calendar')->middleware('permission:tasks.calendar');
-    Route::get('events', 'calendarEvents')->name('tasks.calendar.events')->middleware('permission:tasks.calendar');
-    Route::get('gantt', 'gantt')->name('tasks.gantt')->middleware('permission:tasks.gantt');
-    Route::get('gantt-data', 'ganttData')->name('tasks.gantt.data')->middleware('permission:tasks.gantt');
-    Route::get('create', 'create')->name('create')->middleware('permission:tasks.create');
-    Route::post('store', 'store')->name('store')->middleware('permission:tasks.create');
-    Route::get('details/{id}', 'show')->name('details')->middleware('permission:tasks.view');
-    Route::get('edit/{id}', 'edit')->name('edit')->middleware('permission:tasks.edit');
-    Route::post('update/{id}', 'update')->name('update')->middleware('permission:tasks.edit');
-    Route::get('delete/{id}', 'destroy')->name('delete')->middleware('permission:tasks.delete');
+Route::middleware(['web', 'auth:web,admin'])->controller(TaskController::class)->group(function () {
+    Route::get('admin/dashboard', 'dashboard')->name('dashboard')->middleware('permission:dashboard.view');
+    Route::get('admin/tasks/dashboard', 'dashboard')->name('admin.tasks.dashboard')->middleware('permission:dashboard.view');
+
+    Route::prefix('admin/tasks')->group(function () {
+        Route::get('/api/users/search', 'searchUsers')->name('admin.api.users.search');
+        Route::get('/', 'index')->name('index')->middleware('permission:tasks.my_tasks');
+        Route::get('activity', 'activity')->name('tasks.activity')->middleware('permission:tasks.activity');
+        Route::get('board', 'board')->name('tasks.board')->middleware('permission:tasks.board');
+        Route::get('calendar', 'calendar')->name('tasks.calendar')->middleware('permission:tasks.calendar');
+        Route::get('events', 'calendarEvents')->name('tasks.calendar.events')->middleware('permission:tasks.calendar');
+        Route::get('gantt', 'gantt')->name('tasks.gantt')->middleware('permission:tasks.gantt');
+        Route::get('gantt-data', 'ganttData')->name('tasks.gantt.data')->middleware('permission:tasks.gantt');
+        Route::get('create', 'create')->name('create')->middleware('permission:tasks.create');
+        Route::post('store', 'store')->name('store')->middleware('permission:tasks.create');
+        Route::get('details/{id}', 'show')->name('details')->middleware('permission:tasks.view');
+        Route::get('edit/{id}', 'edit')->name('edit')->middleware('permission:tasks.edit');
+        Route::post('update/{id}', 'update')->name('update')->middleware('permission:tasks.edit');
+        Route::get('delete/{id}', 'destroy')->name('delete')->middleware('permission:tasks.delete');
+    });
 });
 
 // Team Management
 Route::middleware(['web', 'auth:web,admin'])->controller(TeamController::class)->prefix('admin')->group(function () {
     // Users
-    Route::group(['middleware' => 'permission:users.view|hr.staff|hr.manage'], function () {
+    Route::group(['middleware' => 'permission:users.view|hr.staff|hr.manage|payroll.view|payroll.salary_view'], function () {
         Route::get('/users', 'index')->name('admin.users.index');
+        Route::get('/users/{id}', 'show')->name('admin.users.show');
     });
     Route::group(['middleware' => 'permission:users.create|hr.staff|hr.manage'], function () {
         Route::post('/users/store', 'storeUser')->name('admin.users.store');
@@ -311,6 +316,7 @@ Route::middleware(['web', 'auth:web,admin'])->controller(AttendanceController::c
     Route::post('/bulk-approve', 'bulkApprove')->name('admin.attendance.bulkApprove');
     Route::post('/bulk-action', 'bulkAction')->name('admin.attendance.bulkAction');
     Route::get('/monthly', 'monthly')->name('admin.attendance.monthly');
+    Route::post('/monthly/approve-user-month', 'approveUserMonth')->name('admin.attendance.approveUserMonth');
     
     Route::post('/approval-status', 'changeApprovalStatus')->name('admin.attendance.changeApprovalStatus');
 
@@ -338,7 +344,9 @@ Route::middleware(['web', 'auth:web,admin'])->prefix('admin/payroll')->name('adm
     Route::get('/salaries', 'salaries')->name('salaries');
     Route::post('/salaries', 'storeSalary')->name('salaries.store');
     Route::post('/generate', 'generate')->name('generate');
+    Route::post('/bulk-generate', 'bulkGenerate')->name('bulk-generate');
     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
     Route::post('/{id}/submit', 'submit')->whereNumber('id')->name('submit');
     Route::post('/{id}/approve', 'approve')->whereNumber('id')->name('approve');
     Route::post('/{id}/reject', 'reject')->whereNumber('id')->name('reject');

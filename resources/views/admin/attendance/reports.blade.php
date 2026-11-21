@@ -5,8 +5,19 @@
 
     <div class="top-bar-premium">
         <div>
-            <h1 class="h3 fw-semibold mb-1 text-high">Attendance Reports</h1>
-            <p class="text-low mb-0" style="font-size: 0.9rem;">Generate and export attendance reports.</p>
+            <h1 class="h3 fw-semibold mb-1 text-high">Settings & Reports</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Generate and export company-wide attendance and employee reports.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- Odoo-style View Switcher -->
+            <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                <a href="{{ route('admin.attendance.settings') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.settings') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-sliders-h me-1"></i> Attendance Settings
+                </a>
+                <a href="{{ route('admin.attendance.reports') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.reports') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-file-export me-1"></i> Reports & Exports
+                </a>
+            </div>
         </div>
     </div>
 

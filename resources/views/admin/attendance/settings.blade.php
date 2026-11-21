@@ -5,12 +5,24 @@
 
     <div class="top-bar-premium">
         <div>
-            <h1 class="h3 fw-semibold mb-1 text-high">Attendance Settings</h1>
-            <p class="text-low mb-0" style="font-size: 0.9rem;">Configure office hours, grace periods, and tracking policies.</p>
+            <h1 class="h3 fw-semibold mb-1 text-high">Settings & Reports</h1>
+            <p class="text-low mb-0" style="font-size: 0.9rem;">Configure office hours, grace periods, tracking policies, and generate exports.</p>
         </div>
-        <button type="submit" form="attendanceSettingsForm" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm d-flex align-items-center gap-2">
-            <i class="fas fa-save"></i> Save Settings
-        </button>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- Odoo-style View Switcher -->
+            <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                <a href="{{ route('admin.attendance.settings') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.settings') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-sliders-h me-1"></i> Attendance Settings
+                </a>
+                <a href="{{ route('admin.attendance.reports') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.reports') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-file-export me-1"></i> Reports & Exports
+                </a>
+            </div>
+
+            <button type="submit" form="attendanceSettingsForm" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm d-flex align-items-center gap-2">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
+        </div>
     </div>
 
     @if(session('success'))
@@ -60,10 +72,44 @@
             </div>
             
             <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="form-label text-high fw-semibold">Daily Shift Duration (Hours)</label>
+                    <div class="input-group">
+                        <input type="number" step="0.25" min="1" max="24" name="shift_hours" class="form-premium-control w-100" value="{{ $shiftHours ?? '8.75' }}" placeholder="e.g. 8.75" required>
+                    </div>
+                    <small class="text-low d-block mt-2">Expected working hours required per regular working day.</small>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <label class="form-label text-high fw-semibold">Weekly Target Work Hours</label>
+                    <div class="input-group">
+                        <input type="number" step="0.5" min="1" max="168" name="weekly_work_hours" class="form-premium-control w-100" value="{{ $weeklyWorkHours ?? '40' }}" placeholder="e.g. 40 or 44" required>
+                    </div>
+                    <small class="text-low d-block mt-2">Cumulative target work hours required per employee per week.</small>
+                </div>
+            </div>
+
+            <div class="row">
                 <div class="col-md-12 mb-4">
                     <label class="form-label text-high fw-semibold">Allowed IP Addresses (Office WiFi)</label>
                     <input type="text" name="allowed_ips" class="form-premium-control w-100" value="{{ $allowedIps ?? '' }}" placeholder="e.g. 192.168.1.1, 203.0.113.50">
                     <small class="text-low d-block mt-2">Comma-separated list of IP addresses allowed for punch-in. Leave blank to allow all IPs. Your current IP is: <strong>{{ request()->ip() }}</strong></small>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-4">
+                    <div class="p-3 rounded border border-subtle" style="background: rgba(var(--primary-rgb), 0.04);">
+                        <div class="form-check form-switch d-flex align-items-center gap-3 ps-0 mb-1">
+                            <input class="form-check-input ms-0" type="checkbox" role="switch" id="sandwich_leave_enabled" name="sandwich_leave_enabled" value="1" {{ (isset($sandwichLeaveEnabled) && $sandwichLeaveEnabled == '1') ? 'checked' : '' }} style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                            <label class="form-check-label fw-bold text-high cursor-pointer" for="sandwich_leave_enabled">
+                                <i class="fas fa-layer-group text-warning me-1"></i> Enable Sandwich Leave Policy
+                            </label>
+                        </div>
+                        <small class="text-low d-block ps-md-4 ms-md-4 mt-1">
+                            When enabled, if an employee takes leave or is absent/rejected on both the working day immediately before and immediately after scheduled non-working days (such as weekend / weekly off or company holidays, e.g. Friday and Monday), the intervening weekly off or holiday days (e.g. Saturday & Sunday) will also be treated as <strong>unpaid leave</strong> and deducted from salary.
+                        </small>
+                    </div>
                 </div>
             </div>
 

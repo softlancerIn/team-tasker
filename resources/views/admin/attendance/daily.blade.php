@@ -49,22 +49,35 @@
     {{-- ───────────── Top Bar ───────────── --}}
     <div class="top-bar-premium">
         <div>
-            <h1 class="h3 fw-semibold mb-1 text-high">Daily Work Reports</h1>
+            <h1 class="h3 fw-semibold mb-1 text-high">Work Reports</h1>
             <p class="text-low mb-0" style="font-size: 0.9rem;">
-                Review daily employee work submissions, inspect detailed task activities, and manage report approvals.
+                Review daily and monthly employee work submissions, inspect detailed task activities, and manage report approvals.
             </p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <button type="button" class="btn-premium btn-premium-secondary px-4 py-2 shadow-sm" onclick="openDailyFilters()">
-                <i class="fas fa-sliders-h me-1"></i> Advanced Filters
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <!-- Odoo-style View Switcher -->
+            <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                <a href="{{ route('admin.attendance.daily') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.daily') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-users me-1"></i> All Reports
+                </a>
+                <a href="{{ route('admin.attendance.myDaily') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.myDaily') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-user me-1"></i> My Report
+                </a>
+                <a href="{{ route('admin.attendance.myMonthly') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.myMonthly') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-calendar-alt me-1"></i> My Monthly
+                </a>
+            </div>
+
+            <button type="button" class="btn-premium btn-premium-secondary px-3 py-2 shadow-sm" onclick="openDailyFilters()">
+                <i class="fas fa-sliders-h me-1"></i> Filters
             </button>
-            <button type="button" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm"
+            <button type="button" class="btn-premium btn-premium-primary px-3 py-2 shadow-sm"
             data-bs-toggle="modal" data-bs-target="#globalSubmitReportModal">
             <i class="fas fa-plus-circle me-1"></i> Submit Report
         </button>
         <a href="{{ route('admin.attendance.reports', array_merge(request()->query(), ['export' => 'daily', 'date' => $date])) }}"
-         class="btn-premium btn-premium-secondary px-4 py-2 shadow-sm">
-         <i class="fas fa-file-csv me-1"></i> Export CSV
+         class="btn-premium btn-premium-secondary px-3 py-2 shadow-sm">
+         <i class="fas fa-file-csv me-1"></i> Export
      </a>
  </div>
 </div>
@@ -117,6 +130,13 @@
     /* ── Row accent: colored edge by status ── */
     .data-grid-table tbody tr.row-st > td:first-child {
         box-shadow: inset 3px 0 0 var(--st);
+    }
+    .clickable-user-row {
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .clickable-user-row:hover > td {
+        background: rgba(var(--primary-rgb, 14, 165, 233), 0.05) !important;
     }
     /* ── Bulk action buttons ── */
     #bulkActionBar .btn-bulk-outline.bulk-approve {
@@ -275,7 +295,8 @@
                     'remarks'   => $attendance?->remarks ?? '',
                     ];
                     @endphp
-                    <tr class="row-st" style="--st: {{ $style['color'] }};">
+                    <tr class="row-st clickable-user-row" style="--st: {{ $style['color'] }};"
+                        onclick="if (!event.target.closest('a, button, input, select, label')) { openReportDetailModal({{ $user->id }}, @js($date)); }">
                         <td>
                             <input type="checkbox" name="ids[]" value="{{ $user->id }}" class="data-grid-checkbox item-checkbox">
                         </td>

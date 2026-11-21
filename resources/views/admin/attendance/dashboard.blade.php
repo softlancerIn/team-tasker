@@ -12,7 +12,8 @@
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
             @if(!$myAttendance || !$myAttendance->check_in)
-                <button type="button" class="btn-premium btn-premium-primary px-3 py-2 shadow-sm d-flex align-items-center gap-2"
+                <button type="button"
+                    class="btn-premium btn-premium-primary px-3 py-2 shadow-sm d-flex align-items-center gap-2"
                     data-bs-toggle="modal" data-bs-target="#globalClockInModal">
                     <i class="fas fa-sign-in-alt"></i> Clock In
                 </button>
@@ -22,22 +23,27 @@
                     <i class="fas fa-sign-out-alt"></i> Clock Out
                 </button>
             @else
-                <button type="button" class="btn-premium btn-premium-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-2" disabled
+                <button type="button"
+                    class="btn-premium btn-premium-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-2" disabled
                     title="You have already completed your shift today">
                     <i class="fas fa-check text-success"></i> Shift Done
                 </button>
             @endif
 
-            <a href="{{ route('admin.attendance.daily') }}" class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
+            <a href="{{ route('admin.attendance.daily') }}"
+                class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
                 <i class="fas fa-file-invoice"></i> Daily Reports
             </a>
-            <a href="{{ route('admin.attendance.monthly') }}" class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
+            <a href="{{ route('admin.attendance.monthly') }}"
+                class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
                 <i class="fas fa-calendar-days"></i> Monthly
             </a>
-            <a href="{{ route('admin.attendance.calendar') }}" class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
+            <a href="{{ route('admin.attendance.calendar') }}"
+                class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
                 <i class="fas fa-calendar-alt"></i> Calendar
             </a>
-            <a href="{{ route('admin.attendance.requests') }}" class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
+            <a href="{{ route('admin.attendance.requests') }}"
+                class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
                 <i class="fas fa-envelope-open-text"></i> Leave Requests
             </a>
         </div>
@@ -49,15 +55,26 @@
             cursor: pointer;
             text-decoration: none !important;
         }
+
         .stat-filter-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
             border-color: rgba(var(--primary-rgb, 14, 165, 233), 0.5) !important;
         }
+
         .stat-filter-card.active-filter {
             border-color: var(--primary) !important;
             background: rgba(var(--primary-rgb, 14, 165, 233), 0.08) !important;
             box-shadow: 0 0 0 1px var(--primary), 0 4px 14px rgba(var(--primary-rgb, 14, 165, 233), 0.15) !important;
+        }
+
+        .clickable-user-row {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .clickable-user-row:hover>td {
+            background: rgba(var(--primary-rgb, 14, 165, 233), 0.04) !important;
         }
     </style>
 
@@ -67,7 +84,8 @@
         <div class="col">
             <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['approval_status', 'page']), ['date' => $date])) }}"
                 class="d-block h-100 text-decoration-none" title="Filter: All Employees">
-                <div class="glass-card p-3 h-100 border-main stat-filter-card {{ !request('approval_status') ? 'active-filter' : '' }}">
+                <div
+                    class="glass-card p-3 h-100 border-main stat-filter-card {{ !request('approval_status') ? 'active-filter' : '' }}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="text-low d-block" style="font-size: 0.75rem;">Total Employees</span>
                         @if(!request('approval_status'))
@@ -83,7 +101,8 @@
         <div class="col">
             <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['approval_status', 'page']), ['date' => $date, 'approval_status' => request('approval_status') === 'submitted' ? null : 'submitted'])) }}"
                 class="d-block h-100 text-decoration-none" title="Filter: Submitted Reports">
-                <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'submitted' ? 'active-filter' : '' }}">
+                <div
+                    class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'submitted' ? 'active-filter' : '' }}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="text-low d-block" style="font-size: 0.75rem;">Submitted</span>
                         @if(request('approval_status') === 'submitted')
@@ -99,7 +118,8 @@
         <div class="col">
             <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['approval_status', 'page']), ['date' => $date, 'approval_status' => request('approval_status') === 'pending' ? null : 'pending'])) }}"
                 class="d-block h-100 text-decoration-none" title="Filter: Pending Approval">
-                <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'pending' ? 'active-filter' : '' }}">
+                <div
+                    class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'pending' ? 'active-filter' : '' }}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="text-low d-block" style="font-size: 0.75rem;">Pending Approval</span>
                         @if(request('approval_status') === 'pending')
@@ -115,7 +135,8 @@
         <div class="col">
             <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['approval_status', 'page']), ['date' => $date, 'approval_status' => request('approval_status') === 'approved' ? null : 'approved'])) }}"
                 class="d-block h-100 text-decoration-none" title="Filter: Approved">
-                <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'approved' ? 'active-filter' : '' }}">
+                <div
+                    class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'approved' ? 'active-filter' : '' }}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="text-low d-block" style="font-size: 0.75rem;">Approved</span>
                         @if(request('approval_status') === 'approved')
@@ -131,7 +152,8 @@
         <div class="col">
             <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['approval_status', 'page']), ['date' => $date, 'approval_status' => request('approval_status') === 'rejected' ? null : 'rejected'])) }}"
                 class="d-block h-100 text-decoration-none" title="Filter: Rejected">
-                <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'rejected' ? 'active-filter' : '' }}">
+                <div
+                    class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'rejected' ? 'active-filter' : '' }}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="text-low d-block" style="font-size: 0.75rem;">Rejected</span>
                         @if(request('approval_status') === 'rejected')
@@ -147,7 +169,8 @@
         <div class="col">
             <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['approval_status', 'page']), ['date' => $date, 'approval_status' => request('approval_status') === 'not_submitted' ? null : 'not_submitted'])) }}"
                 class="d-block h-100 text-decoration-none" title="Filter: Not Submitted">
-                <div class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'not_submitted' ? 'active-filter' : '' }}">
+                <div
+                    class="glass-card p-3 h-100 border-main stat-filter-card {{ request('approval_status') === 'not_submitted' ? 'active-filter' : '' }}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="text-low d-block" style="font-size: 0.75rem;">Not Submitted</span>
                         @if(request('approval_status') === 'not_submitted')
@@ -169,13 +192,15 @@
                         <i class="fas fa-user-clock"></i>
                     </div>
                     <div>
-                        <span class="text-low extra-small d-block text-uppercase fw-semibold">Your Today's Shift Status</span>
+                        <span class="text-low extra-small d-block text-uppercase fw-semibold">Your Today's Shift
+                            Status</span>
                         <div class="d-flex align-items-center gap-3 mt-1">
                             <span class="text-high small">
                                 In: <strong>{{ \Carbon\Carbon::parse($myAttendance->check_in)->format('h:i A') }}</strong>
                             </span>
                             <span class="text-high small">
-                                Out: <strong>{{ $myAttendance->check_out ? \Carbon\Carbon::parse($myAttendance->check_out)->format('h:i A') : '--:--' }}</strong>
+                                Out:
+                                <strong>{{ $myAttendance->check_out ? \Carbon\Carbon::parse($myAttendance->check_out)->format('h:i A') : '--:--' }}</strong>
                             </span>
                             <span class="text-high small">
                                 Hours: <strong class="text-primary">{{ $myAttendance->formatted_working_hours }}</strong>
@@ -184,10 +209,12 @@
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge-premium bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1">
+                    <span
+                        class="badge-premium bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1">
                         {{ ucfirst(str_replace('_', ' ', $myAttendance->attendance_status)) }}
                     </span>
-                    <span class="badge-premium bg-primary-subtle text-primary border border-primary border-opacity-25 px-2 py-1">
+                    <span
+                        class="badge-premium bg-primary-subtle text-primary border border-primary border-opacity-25 px-2 py-1">
                         {{ ucfirst($myAttendance->approval_status ?? 'Approved') }}
                     </span>
                     <a href="{{ route('admin.attendance.myDaily') }}" class="btn-premium btn-premium-secondary btn-sm ms-2">
@@ -203,12 +230,12 @@
         <div class="data-grid-top">
             <div class="data-grid-search">
                 <i class="fas fa-search"></i>
-                <input type="text" name="search" form="dashFilterForm" value="{{ request('search') }}" 
-                       placeholder="Search employee name or email..." 
-                       onchange="document.getElementById('dashFilterForm').submit()">
+                <input type="text" name="search" form="dashFilterForm" value="{{ request('search') }}"
+                    placeholder="Search employee name or email..."
+                    onchange="document.getElementById('dashFilterForm').submit()">
                 @if(request('search'))
-                    <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['search', 'page']))) }}" 
-                       class="text-low ms-2 text-decoration-none small" title="Clear search">
+                    <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['search', 'page']))) }}"
+                        class="text-low ms-2 text-decoration-none small" title="Clear search">
                         <i class="fas fa-times-circle"></i>
                     </a>
                 @endif
@@ -218,7 +245,9 @@
 
             <div class="data-grid-actions d-flex align-items-center gap-2">
                 @if(request('search') || request('approval_status') || ($date !== now()->format('Y-m-d') && request()->has('date')))
-                    <a href="{{ route('admin.attendance.dashboard') }}" class="btn-premium btn-premium-secondary btn-sm d-flex align-items-center gap-1 text-decoration-none" title="Reset all filters">
+                    <a href="{{ route('admin.attendance.dashboard') }}"
+                        class="btn-premium btn-premium-secondary btn-sm d-flex align-items-center gap-1 text-decoration-none"
+                        title="Reset all filters">
                         <i class="fas fa-redo"></i> Reset
                     </a>
                 @endif
@@ -258,9 +287,9 @@
                         @php
                             $att = $attendances->get($u->id);
                             $timeLog = $timeLogCounts->get($u->id);
-                            
+
                             $attStatus = $att ? $att->attendance_status : 'absent';
-                            $statusColor = match($attStatus) {
+                            $statusColor = match ($attStatus) {
                                 'present' => 'success',
                                 'half_day' => 'warning',
                                 'absent' => 'danger',
@@ -268,7 +297,7 @@
                             };
 
                             $appStatus = $att ? ($att->approval_status ?? 'draft') : 'not_submitted';
-                            $appBadge = match($appStatus) {
+                            $appBadge = match ($appStatus) {
                                 'approved' => 'success',
                                 'pending' => 'warning',
                                 'rejected' => 'danger',
@@ -276,20 +305,25 @@
                                 default => 'secondary',
                             };
                         @endphp
-                        <tr>
+                        <tr class="clickable-user-row"
+                            onclick="if (!event.target.closest('a, button')) { window.location.href = '{{ route('admin.attendance.monthly', ['user_id' => $u->id]) }}'; }">
                             <td>
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="avatar-premium" style="width: 34px; height: 34px;">
                                         @if ($u->profile_image)
                                             <img src="{{ asset('storage/' . $u->profile_image) }}" alt="{{ $u->name }}">
                                         @else
-                                            <div class="d-flex align-items-center justify-content-center w-100 h-100 text-white" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-weight: 600; font-size: 0.8rem;">
+                                            <div class="d-flex align-items-center justify-content-center w-100 h-100 text-white"
+                                                style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-weight: 600; font-size: 0.8rem;">
                                                 {{ strtoupper(substr($u->name ?? 'U', 0, 1)) }}
                                             </div>
                                         @endif
                                     </div>
                                     <div>
-                                        <div class="fw-bold text-high">{{ $u->name }}</div>
+                                        <a href="{{ route('admin.attendance.monthly', ['user_id' => $u->id]) }}"
+                                            class="fw-bold text-high text-decoration-none hover-primary">
+                                            {{ $u->name }}
+                                        </a>
                                         <div class="text-low extra-small">{{ $u->email }}</div>
                                     </div>
                                 </div>
@@ -306,12 +340,14 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <span class="badge-premium bg-{{ $statusColor }}-subtle text-{{ $statusColor }} border border-{{ $statusColor }} border-opacity-25 px-2 py-1">
+                                <span
+                                    class="badge-premium bg-{{ $statusColor }}-subtle text-{{ $statusColor }} border border-{{ $statusColor }} border-opacity-25 px-2 py-1">
                                     {{ ucfirst(str_replace('_', ' ', $attStatus)) }}
                                 </span>
                             </td>
                             <td class="text-center">
-                                <span class="badge-premium bg-{{ $appBadge }}-subtle text-{{ $appBadge }} border border-{{ $appBadge }} border-opacity-25 px-2 py-1">
+                                <span
+                                    class="badge-premium bg-{{ $appBadge }}-subtle text-{{ $appBadge }} border border-{{ $appBadge }} border-opacity-25 px-2 py-1">
                                     {{ ucfirst(str_replace('_', ' ', $appStatus)) }}
                                 </span>
                             </td>
@@ -325,14 +361,14 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="d-flex align-items-center justify-content-end gap-2">
-                                    <a href="{{ route('admin.attendance.daily', ['date' => $date, 'user_id' => $u->id]) }}" 
-                                       class="action-link border-0 bg-transparent text-decoration-none" 
-                                       title="View Daily Report">
+                                    <a href="{{ route('admin.attendance.daily', ['date' => $date, 'user_id' => $u->id]) }}"
+                                        class="action-link border-0 bg-transparent text-decoration-none"
+                                        title="View Daily Report">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ route('admin.attendance.monthly', ['user_id' => $u->id]) }}" 
-                                       class="action-link border-0 bg-transparent text-decoration-none" 
-                                       title="View Monthly Record">
+                                    <a href="{{ route('admin.attendance.monthly', ['user_id' => $u->id]) }}"
+                                        class="action-link border-0 bg-transparent text-decoration-none"
+                                        title="View Monthly Record">
                                         <i class="fas fa-calendar-alt"></i>
                                     </a>
                                 </div>
@@ -344,7 +380,9 @@
                                 <div class="d-flex flex-column align-items-center justify-content-center">
                                     <i class="fas fa-users-slash fa-3x mb-3 text-secondary opacity-50"></i>
                                     <h6 class="fw-semibold text-high mb-1">No employees found</h6>
-                                    <p class="small text-low mb-0">No attendance records matched your filter criteria for {{ \Carbon\Carbon::parse($date)->format('d M Y') }}.</p>
+                                    <p class="small text-low mb-0">No attendance records matched your filter criteria for
+                                        {{ \Carbon\Carbon::parse($date)->format('d M Y') }}.
+                                    </p>
                                 </div>
                             </td>
                         </tr>
@@ -367,7 +405,8 @@
             </div>
         @endif
 
-        <div class="col-lg-{{ (Auth::user()->hasPermission('attendance.dashboard_overview') || Auth::user()->hasRole('super-admin')) ? '5' : '12' }}">
+        <div
+            class="col-lg-{{ (Auth::user()->hasPermission('attendance.dashboard_overview') || Auth::user()->hasRole('super-admin')) ? '5' : '12' }}">
             <div class="glass-card p-4 border-main h-100">
                 <h5 class="text-high fw-semibold mb-3 d-flex align-items-center gap-2">
                     <i class="fas fa-chart-line text-info"></i> Your Work Hours (Last 7 Days)
@@ -386,7 +425,8 @@
 
             <div class="filter-slideover-header">
                 <h4><i class="fas fa-sliders-h text-low me-2"></i> Filter Attendance</h4>
-                <div class="filter-slideover-close" onclick="document.getElementById('filterSlideoverDashboard').classList.remove('show')">
+                <div class="filter-slideover-close"
+                    onclick="document.getElementById('filterSlideoverDashboard').classList.remove('show')">
                     <i class="fas fa-times"></i>
                 </div>
             </div>
@@ -405,18 +445,19 @@
 
                 <div class="mb-4">
                     <label class="heading-label d-block mb-2 text-low">SPECIFIC DATE</label>
-                    <input type="date" name="date" value="{{ $date }}" class="form-premium-control bg-white text-dark border-main w-100">
+                    <input type="date" name="date" value="{{ $date }}"
+                        class="form-premium-control bg-white text-dark border-main w-100">
                     <div class="d-flex align-items-center gap-2 mt-2">
                         @php
                             $todayStr = now()->format('Y-m-d');
                             $yesterdayStr = now()->subDay()->format('Y-m-d');
                         @endphp
-                        <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['date', 'page']), ['date' => $todayStr])) }}" 
-                           class="btn-premium btn-premium-secondary btn-sm flex-fill text-center text-decoration-none {{ $date === $todayStr ? 'active' : '' }}">
+                        <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['date', 'page']), ['date' => $todayStr])) }}"
+                            class="btn-premium btn-premium-secondary btn-sm flex-fill text-center text-decoration-none {{ $date === $todayStr ? 'active' : '' }}">
                             Today
                         </a>
-                        <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['date', 'page']), ['date' => $yesterdayStr])) }}" 
-                           class="btn-premium btn-premium-secondary btn-sm flex-fill text-center text-decoration-none {{ $date === $yesterdayStr ? 'active' : '' }}">
+                        <a href="{{ route('admin.attendance.dashboard', array_merge(request()->except(['date', 'page']), ['date' => $yesterdayStr])) }}"
+                            class="btn-premium btn-premium-secondary btn-sm flex-fill text-center text-decoration-none {{ $date === $yesterdayStr ? 'active' : '' }}">
                             Yesterday
                         </a>
                     </div>
@@ -424,7 +465,8 @@
             </div>
 
             <div class="filter-slideover-footer d-flex gap-2">
-                <a href="{{ route('admin.attendance.dashboard') }}" class="btn-premium btn-premium-secondary flex-fill text-center text-decoration-none bg-white text-dark border-main">
+                <a href="{{ route('admin.attendance.dashboard') }}"
+                    class="btn-premium btn-premium-secondary flex-fill text-center text-decoration-none bg-white text-dark border-main">
                     Reset
                 </a>
                 <button type="submit" class="btn-premium btn-premium-primary flex-fill justify-content-center">
@@ -512,9 +554,9 @@
                         options: {
                             responsive: true,
                             plugins: {
-                                legend: { 
-                                    position: 'top', 
-                                    labels: { color: document.documentElement.getAttribute('data-theme') === 'light' ? '#4b5563' : '#e5e7eb' } 
+                                legend: {
+                                    position: 'top',
+                                    labels: { color: document.documentElement.getAttribute('data-theme') === 'light' ? '#4b5563' : '#e5e7eb' }
                                 }
                             },
                             scales: {

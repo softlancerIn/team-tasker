@@ -9,32 +9,25 @@
                 <i class="fas fa-columns text-primary" style="font-size: 1.4rem;"></i>
                 Task Board
             </h1>
-            <div class="ms-2 d-none d-md-flex gap-1 bg-glass border border-main p-1" style="border-radius: var(--radius-md);">
-                <a href="{{ route('tasks.board') }}"
-                    class="btn-premium btn-premium-secondary btn-sm px-3 py-1 active"
-                    style="font-size: 0.75rem; border: none; border-radius: var(--radius-sm);">
-                    <i class="fas fa-columns me-1"></i> Kanban
-                </a>
-                <a href="{{ route('index') }}"
-                    class="btn-premium btn-premium-secondary btn-sm px-3 py-1"
-                    style="font-size: 0.75rem; border: none; border-radius: var(--radius-sm);">
-                    <i class="fas fa-list me-1"></i> List
-                </a>
-                <a href="{{ route('tasks.calendar') }}"
-                    class="btn-premium btn-premium-secondary btn-sm px-3 py-1"
-                    style="font-size: 0.75rem; border: none; border-radius: var(--radius-sm);">
-                    <i class="fas fa-calendar-alt me-1"></i> Calendar
-                </a>
-                <a href="{{ route('tasks.gantt') }}"
-                    class="btn-premium btn-premium-secondary btn-sm px-3 py-1"
-                    style="font-size: 0.75rem; border: none; border-radius: var(--radius-sm);">
-                    <i class="fas fa-project-diagram me-1"></i> Gantt
-                </a>
-                <a href="{{ route('tasks.activity') }}"
-                    class="btn-premium btn-premium-secondary btn-sm px-3 py-1"
-                    style="font-size: 0.75rem; border: none; border-radius: var(--radius-sm);">
-                    <i class="fas fa-history me-1"></i> Activity
-                </a>
+            <div class="ms-2 d-none d-md-flex align-items-center">
+                <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                    <a href="{{ route('tasks.board') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.board') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                        style="font-size: 0.8rem;">
+                        <i class="fas fa-columns me-1"></i> Kanban
+                    </a>
+                    <a href="{{ route('index') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('index') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                        style="font-size: 0.8rem;">
+                        <i class="fas fa-list me-1"></i> List
+                    </a>
+                    <a href="{{ route('tasks.calendar') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.calendar') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                        style="font-size: 0.8rem;">
+                        <i class="fas fa-calendar-alt me-1"></i> Calendar
+                    </a>
+                    <a href="{{ route('tasks.gantt') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.gantt') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                        style="font-size: 0.8rem;">
+                        <i class="fas fa-project-diagram me-1"></i> Gantt
+                    </a>
+                </div>
             </div>
         </div>
         <div class="d-flex align-items-center gap-2">

@@ -181,8 +181,21 @@
                                     @endif
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-high">{{ $user->name }}</div>
-                                    <div class="text-low extra-small">ID: #{{ $user->id }}</div>
+                                    <a href="{{ route('admin.users.show', $user->id) }}" class="fw-bold text-high text-decoration-none hover-primary">
+                                        {{ $user->name }}
+                                    </a>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="text-low extra-small">ID: #{{ $user->id }}</span>
+                                        @if($user->is_payable)
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-size: 0.62rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
+                                            PAYABLE
+                                        </span>
+                                        @else
+                                        <span class="badge" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; font-size: 0.62rem; font-weight: 600; padding: 2px 6px; border-radius: 4px;">
+                                            NON-PAYABLE
+                                        </span>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </td>
@@ -208,6 +221,9 @@
                         </td>
                         <td class="text-end pe-4">
                             <div class="d-flex justify-content-end gap-2">
+                                <a href="{{ route('admin.users.show', $user->id) }}" class="action-link border-0 bg-transparent" title="View Full Employee Profile & Analytics">
+                                    <i class="fas fa-chart-pie text-info"></i>
+                                </a>
                                 @if ($user->id !== auth()->id())
                                 <form action="{{ route('admin.users.toggleApproval', $user->id) }}" method="POST">
                                     @csrf
@@ -286,6 +302,12 @@
         }
 
         document.getElementById('bulkActionForm').submit();
+    }
+
+    function setUserDays(uid, days) {
+        document.querySelectorAll('.user-day-cb-' + uid).forEach(function(cb) {
+            cb.checked = days.indexOf(Number(cb.value)) !== -1;
+        });
     }
 </script>
 

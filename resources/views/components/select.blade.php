@@ -38,10 +38,18 @@
                     this.setTextboxValue('');
                 }
             },
-            onItemAdd: () => this.instance.setTextboxValue(''),
+            onItemAdd: function() {
+                this.setTextboxValue('');
+                this.close();
+                this.blur();
+            },
             onChange: (val) => {
                 this.value = val;
                 this.$refs.select.dispatchEvent(new Event('change', { bubbles: true }));
+                if (this.instance) {
+                    this.instance.close();
+                    this.instance.blur();
+                }
             }
         });
 

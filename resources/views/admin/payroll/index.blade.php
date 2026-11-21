@@ -408,27 +408,32 @@ $employees = $employees ?? collect();
         {{-- Header --}}
         <div class="top-bar-premium d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
-                <h1 class="h3 fw-semibold mb-1 text-high">Payroll Dashboard</h1>
+                <h1 class="h3 fw-semibold mb-1 text-high">Payroll & Salaries</h1>
                 <p class="text-low mb-0" style="font-size:.9rem;">
-                    Generate, review and approve employee monthly salaries.
+                    Generate, review and approve employee monthly salaries and compensation.
                 </p>
             </div>
 
             <div class="d-flex flex-wrap align-items-center gap-2">
+                <!-- Odoo-style View Switcher -->
+                <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                    <a href="{{ route('admin.payroll.index') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.index') && !request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                        <i class="fas fa-file-invoice-dollar me-1"></i> Payroll Management
+                    </a>
+                    <a href="{{ route('admin.payroll.salaries') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                        <i class="fas fa-wallet me-1"></i> Employee Salaries
+                    </a>
+                </div>
+
                 <div class="month-nav">
                     <a href="{{ request()->fullUrlWithQuery(['month' => $prevMonth, 'page' => null]) }}"
                        title="Previous month" aria-label="Previous month">&lsaquo;</a>
-                       <span>{{ $monthDate->format('F Y') }}</span>
-                       <a href="{{ request()->fullUrlWithQuery(['month' => $nextMonth, 'page' => null]) }}"
-                           title="Next month" aria-label="Next month">&rsaquo;</a>
-                       </div>
-
-                       <a href="{{ route('admin.payroll.salaries') }}"
-                       class="btn-premium btn-premium-secondary px-3 py-2">
-                       <i class="fas fa-users me-1"></i> Manage Salaries
-                   </a>
-               </div>
-           </div>
+                    <span>{{ $monthDate->format('F Y') }}</span>
+                    <a href="{{ request()->fullUrlWithQuery(['month' => $nextMonth, 'page' => null]) }}"
+                       title="Next month" aria-label="Next month">&rsaquo;</a>
+                </div>
+            </div>
+        </div>
 
            {{-- Alerts --}}
            @if(session('success'))
@@ -454,76 +459,86 @@ $employees = $employees ?? collect();
         @endif
 
         {{-- Statistics --}}
-        <div class="row g-3 mb-3">
+        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
             @foreach($cards as $key => $card)
             @php
             $isActive = ($key === 'total' && !$activeStatus)
             || $key === $activeStatus;
             @endphp
 
-            <div class="col-6 col-md-4 col-xl-2">
-                <a class="pr-stat {{ $isActive ? 'active' : '' }}"
+            <div class="col">
+                <a class="d-block h-100 text-decoration-none"
                 href="{{ request()->fullUrlWithQuery([
                 'status' => $key === 'total' ? null : $key,
                 'page' => null
                 ]) }}">
-                <span class="pr-stat-label">{{ $card[0] }}</span>
-                <span class="pr-stat-value">{{ $stats[$key] ?? 0 }}</span>
-            </a>
+                    <div class="glass-card p-3 h-100 border-main {{ $isActive ? 'active-filter' : '' }}" style="{{ $isActive ? 'border-color: var(--primary) !important; background: rgba(var(--primary-rgb), 0.08) !important;' : '' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-low d-block" style="font-size: 0.75rem;">{{ $card[0] }}</span>
+                            @if($isActive)
+                            <i class="fas fa-check-circle text-primary" style="font-size: 0.75rem;"></i>
+                            @endif
+                        </div>
+                        <h4 class="fw-bold mb-0 text-high">{{ $stats[$key] ?? 0 }}</h4>
+                    </div>
+                </a>
+            </div>
+            @endforeach
         </div>
-        @endforeach
-    </div>
 
-    {{-- Salary summary --}}
-    <div class="card mb-3">
-        <div class="card-body p-3">
+        {{-- Salary summary --}}
+        <div class="glass-card mb-4 p-4 border-main">
             <div class="row g-3 align-items-center">
                 <div class="col-6 col-md-3">
                     <div class="money-box">
-                        <small>Total payable</small>
-                        <b>₹{{ number_format($netPayable, 2) }}</b>
+                        <small class="text-low" style="font-size: 0.75rem; text-transform: uppercase;">Total Payable</small>
+                        <b class="text-high fs-5 d-block mt-1">₹{{ number_format($netPayable, 2) }}</b>
                     </div>
                 </div>
 
                 <div class="col-6 col-md-3">
                     <div class="money-box">
-                        <small>Paid so far</small>
-                        <b>₹{{ number_format($netPaid, 2) }}</b>
+                        <small class="text-low" style="font-size: 0.75rem; text-transform: uppercase;">Paid So Far</small>
+                        <b class="text-success fs-5 d-block mt-1">₹{{ number_format($netPaid, 2) }}</b>
                     </div>
                 </div>
 
                 <div class="col-12 col-md-6">
                     <div class="d-flex justify-content-between small text-low mb-2">
-                        <span>Payment progress</span>
-                        <strong>{{ $paidPct }}%</strong>
+                        <span style="font-size: 0.75rem; text-transform: uppercase;">Payment Progress</span>
+                        <strong class="text-high">{{ $paidPct }}%</strong>
                     </div>
 
-                    <div class="progress">
-                        <div class="progress-bar"
+                    <div class="progress" style="height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px;">
+                        <div class="progress-bar bg-success"
                         role="progressbar"
-                        style="width:{{ $paidPct }}%"
+                        style="width:{{ $paidPct }}%; border-radius: 999px;"
                         aria-valuenow="{{ $paidPct }}"
                         aria-valuemin="0"
                         aria-valuemax="100"></div>
                     </div>
 
                     <div class="small text-low mt-2">
-                        Remaining: ₹{{ number_format(max(0, $netPayable - $netPaid), 2) }}
+                        Remaining: <span class="text-high fw-semibold">₹{{ number_format(max(0, $netPayable - $netPaid), 2) }}</span>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    {{-- Generate payroll --}}
-    <div class="card mb-3">
-        <div class="card-body p-3">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                <h2 class="h6 fw-semibold text-high mb-0">Generate Payroll</h2>
+        {{-- Generate payroll --}}
+        <div class="glass-card mb-4 p-0 overflow-hidden border-main">
+            <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2" style="background: rgba(var(--primary-rgb), 0.04); border-color: var(--border-main) !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded p-2 text-primary d-inline-flex align-items-center justify-content-center" style="background: rgba(var(--primary-rgb), 0.12); width: 32px; height: 32px;">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </span>
+                    <h2 class="h6 fw-semibold text-high mb-0">Generate Payroll</h2>
+                </div>
                 <small class="text-low">
                     Payroll can only be generated for a completed month.
                 </small>
             </div>
+            <div class="p-4">
 
             <form action="{{ route('admin.payroll.generate') }}"
             method="POST"
@@ -534,13 +549,15 @@ $employees = $employees ?? collect();
                 <div class="col-md-5">
                     <label for="user_id" class="form-label">Employee</label>
 
-                    @if($employees->isNotEmpty())
-                    <select name="gender" class="form-premium-control">
-                        <option value="">Select</option>
-                        @foreach (['male' => 'Male', 'female' => 'Female', 'other' => 'Other'] as $k => $label)
-                        <option value="{{ $k }}" @selected($val('gender') === $k)>{{ $label }}</option>
+                    @if(isset($employees) && $employees->isNotEmpty())
+                    <x-select name="user_id" id="user_id" placeholder="Select employee" :selected="old('user_id')">
+                        <option value="" class="bg-dark">Select employee</option>
+                        @foreach($employees as $emp)
+                        <option value="{{ $emp->id }}" @selected(old('user_id') == $emp->id) class="bg-dark">
+                            {{ $emp->name }} ({{ $emp->email }})
+                        </option>
                         @endforeach
-                    </select>
+                    </x-select>
                     @else
                     <input type="number"
                     min="1"
@@ -599,71 +616,76 @@ $employees = $employees ?? collect();
 </div>
 
 {{-- Payroll records --}}
-<div class="card mb-4">
-    <div class="card-body border-bottom p-3">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<div class="glass-card mb-4 p-0 overflow-hidden border-main">
+    <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2" style="background: rgba(var(--primary-rgb), 0.04); border-color: var(--border-main) !important;">
+        <div class="d-flex align-items-center gap-2">
+            <span class="rounded p-2 text-primary d-inline-flex align-items-center justify-content-center" style="background: rgba(var(--primary-rgb), 0.12); width: 32px; height: 32px;">
+                <i class="fas fa-list-check"></i>
+            </span>
             <h2 class="h6 fw-semibold text-high mb-0">
                 Payroll Records — {{ $monthDate->format('F Y') }}
             </h2>
+        </div>
 
-            <div class="pills">
-                <a class="pill {{ !$activeStatus ? 'on' : '' }}"
-                href="{{ request()->fullUrlWithQuery(['status' => null, 'page' => null]) }}">
-                All <em>{{ $stats['total'] ?? 0 }}</em>
+        <div class="pills">
+            <a class="pill {{ !$activeStatus ? 'on' : '' }}"
+            href="{{ request()->fullUrlWithQuery(['status' => null, 'page' => null]) }}">
+            All <em>{{ $stats['total'] ?? 0 }}</em>
             </a>
 
             @foreach($statusMeta as $key => $meta)
             <a class="pill {{ $activeStatus === $key ? 'on' : '' }}"
             href="{{ request()->fullUrlWithQuery(['status' => $key, 'page' => null]) }}">
             {{ $meta[0] }} <em>{{ $stats[$key] ?? 0 }}</em>
-        </a>
-        @endforeach
-    </div>
-</div>
-
-<form method="GET"
-action="{{ route('admin.payroll.index') }}"
-id="filterForm">
-@if($activeStatus)
-<input type="hidden" name="status" value="{{ $activeStatus }}">
-@endif
-
-<div class="row g-3 align-items-end">
-    <div class="col-md-3">
-        <label for="month" class="form-label">Month</label>
-        <input type="month"
-        name="month"
-        id="month"
-        class="form-control"
-        value="{{ $month }}"
-        required
-        onchange="this.form.submit()">
+            </a>
+            @endforeach
+        </div>
     </div>
 
-    <div class="col-md-5">
-        <label for="search" class="form-label">Search employee</label>
-        <input type="text"
-        name="search"
-        id="search"
-        class="form-control"
-        value="{{ request('search') }}"
-        placeholder="Name or email">
+    <div class="p-3 border-bottom" style="border-color: var(--border-main) !important;">
+        <form method="GET"
+        action="{{ route('admin.payroll.index') }}"
+        id="filterForm">
+        @if($activeStatus)
+        <input type="hidden" name="status" value="{{ $activeStatus }}">
+        @endif
+
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="month" class="heading-label mb-2" style="font-size: 0.75rem;">Month</label>
+                <input type="month"
+                name="month"
+                id="month"
+                class="form-premium-control"
+                value="{{ $month }}"
+                required
+                onchange="this.form.submit()">
+            </div>
+
+            <div class="col-md-5">
+                <label for="search" class="heading-label mb-2" style="font-size: 0.75rem;">Search Employee</label>
+                <input type="text"
+                name="search"
+                id="search"
+                class="form-premium-control"
+                value="{{ request('search') }}"
+                placeholder="Name or email">
+            </div>
+
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit"
+                class="btn-premium btn-premium-primary px-3 py-2">
+                <i class="fas fa-search me-1"></i> Search
+                </button>
+
+                <a href="{{ route('admin.payroll.index', ['month' => $month]) }}"
+                   class="btn-premium btn-premium-secondary px-3 py-2">
+                   Reset
+                </a>
+            </div>
+        </div>
+        </form>
     </div>
-
-    <div class="col-md-4 d-flex gap-2">
-        <button type="submit"
-        class="btn-premium btn-premium-primary px-3 py-2">
-        <i class="fas fa-search me-1"></i> Search
-    </button>
-
-    <a href="{{ route('admin.payroll.index', ['month' => $month]) }}"
-       class="btn-premium btn-premium-secondary px-3 py-2">
-       Reset
-   </a>
-</div>
-</div>
-</form>
-</div>
 
 <div class="table-responsive">
     <table class="table data-grid-table pr-table">
@@ -705,7 +727,11 @@ id="filterForm">
                         <span class="pr-avatar">{{ $init }}</span>
                         <div>
                             <div class="fw-semibold text-high">
-                                {{ $name }}
+                                <a href="{{ route('admin.users.show', $payroll->user_id) }}"
+                                   class="text-high fw-semibold hover-primary text-decoration-none"
+                                   title="View Employee Profile & Analytics">
+                                    {{ $name }}
+                                </a>
                             </div>
                             <small class="text-low">
                                 {{ $payroll->user?->email }}

@@ -12,6 +12,19 @@
         </div>
 
         <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- Odoo-style View Switcher -->
+            <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                <a href="{{ route('admin.attendance.monthly') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.monthly') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-users me-1"></i> Team Attendance
+                </a>
+                <a href="{{ route('admin.attendance.myDaily') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.myDaily') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-user-clock me-1"></i> My Attendance
+                </a>
+                <a href="{{ route('admin.attendance.calendar') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.calendar') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-calendar-alt me-1"></i> Calendar
+                </a>
+            </div>
+
             <form id="dailyDateForm" action="{{ route('admin.attendance.myDaily') }}" method="GET" class="d-flex align-items-center gap-2 m-0">
                 <input type="date" name="date" value="{{ $date }}" class="form-premium-control form-control-sm" style="width: 155px; padding: 6px 10px;" onchange="this.form.submit()">
                 @php
@@ -23,13 +36,6 @@
                     Today
                 </a>
             </form>
-
-            <a href="{{ route('admin.attendance.myMonthly') }}" class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
-                <i class="fas fa-calendar-alt"></i> Monthly Report
-            </a>
-            <a href="{{ route('admin.attendance.calendar') }}" class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
-                <i class="fas fa-calendar-week"></i> Calendar View
-            </a>
         </div>
     </div>
 
@@ -322,7 +328,7 @@
                                 default => 'info',
                             };
                         @endphp
-                        <tr class="{{ $isCurrentDate ? 'table-primary bg-opacity-25' : '' }}">
+                        <tr class="{{ $isCurrentDate ? 'row-selected' : '' }}" style="{{ $isCurrentDate ? 'background-color: rgba(var(--primary-rgb, 14, 165, 233), 0.14) !important;' : '' }}">
                             <td class="text-high fw-semibold">
                                 <i class="fas fa-calendar-day text-primary me-2"></i>
                                 {{ $rDateFormatted }}

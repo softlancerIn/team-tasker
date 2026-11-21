@@ -4,7 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Attendance;
+use App\Models\Task;
+use App\Models\Payroll;
 use App\Services\SalaryService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class TeamController extends Controller
@@ -49,6 +53,136 @@ class TeamController extends Controller
         $roles = Role::all();
 
         return view('admin.users.index', compact('users', 'roles'));
+    }
+
+    public function show($id)
+    {
+        $user = User::with([
+            'role',
+            'currentSalary',
+            'salaries' => fn($q) => $q->latest('effective_from'),
+            'payrolls' => fn($q) => $q->latest('payroll_month')->limit(12),
+        ])->findOrFail($id);
+
+        // Fetch recent attendances (last 60 days)
+        $attendances = Attendance::where('user_id', $user->id)
+            ->orderBy('date', 'desc')
+            ->paginate(15, ['*'], 'att_page');
+
+        // Recent work reports (attendances with remarks / submitted report)
+        $reports = Attendance::where('user_id', $user->id)
+            ->whereNotNull('remarks')
+            ->where('remarks', '!=', '')
+            ->orderBy('date', 'desc')
+            ->paginate(10, ['*'], 'rep_page');
+
+        // User assigned tasks
+        $tasks = Task::where('assigned_to', $user->id)
+            ->with(['status', 'project'])
+            ->latest()
+            ->paginate(10, ['*'], 'task_page');
+
+        // Stats summary for the employee
+        $totalAttendanceCount = Attendance::where('user_id', $user->id)->count();
+        $presentCount = Attendance::where('user_id', $user->id)
+            ->whereIn('status', ['Present', 'present'])
+            ->count();
+        $lateCount = Attendance::where('user_id', $user->id)
+            ->whereIn('status', ['Late', 'late'])
+            ->count();
+        $absentCount = Attendance::where('user_id', $user->id)
+            ->whereIn('status', ['Absent', 'absent'])
+            ->count();
+        $halfDayCount = Attendance::where('user_id', $user->id)
+            ->whereIn('status', ['Half-Day', 'half_day'])
+            ->count();
+        $reportsSubmittedCount = Attendance::where('user_id', $user->id)
+            ->whereNotNull('remarks')
+            ->where('remarks', '!=', '')
+            ->count();
+
+        $totalAssignedTasks = Task::where('assigned_to', $user->id)->count();
+        $completedTasksCount = Task::where('assigned_to', $user->id)
+            ->whereHas('status', fn($q) => $q->where('is_completed', true))
+            ->count();
+
+        // 30-Day Attendance & Reports Trend Graph Data
+        $chartLabels = [];
+        $chartPresent = [];
+        $chartLate = [];
+        $chartAbsent = [];
+        $chartReportCount = [];
+
+        $today = Carbon::today();
+        for ($i = 29; $i >= 0; $i--) {
+            $date = $today->copy()->subDays($i)->toDateString();
+            $chartLabels[] = Carbon::parse($date)->format('d M');
+
+            $att = Attendance::where('user_id', $user->id)
+                ->where('date', $date)
+                ->first();
+
+            $status = $att ? strtolower($att->status ?? $att->attendance_status ?? '') : '';
+            $chartPresent[] = in_array($status, ['present', 'half-day', 'half_day']) ? 1 : 0;
+            $chartLate[] = ($status === 'late') ? 1 : 0;
+            $chartAbsent[] = ($status === 'absent') ? 1 : 0;
+            $chartReportCount[] = ($att && !empty($att->remarks)) ? 1 : 0;
+        }
+
+        // Monthly Attendance History (last 6 months)
+        $monthlyStats = [];
+        for ($m = 5; $m >= 0; $m--) {
+            $mDate = Carbon::today()->startOfMonth()->subMonths($m);
+            $mStart = $mDate->copy()->startOfMonth()->toDateString();
+            $mEnd = $mDate->copy()->endOfMonth()->toDateString();
+
+            $mPresent = Attendance::where('user_id', $user->id)
+                ->whereBetween('date', [$mStart, $mEnd])
+                ->whereIn('status', ['Present', 'present'])
+                ->count();
+            $mLate = Attendance::where('user_id', $user->id)
+                ->whereBetween('date', [$mStart, $mEnd])
+                ->whereIn('status', ['Late', 'late'])
+                ->count();
+            $mAbsent = Attendance::where('user_id', $user->id)
+                ->whereBetween('date', [$mStart, $mEnd])
+                ->whereIn('status', ['Absent', 'absent'])
+                ->count();
+            $mReports = Attendance::where('user_id', $user->id)
+                ->whereBetween('date', [$mStart, $mEnd])
+                ->whereNotNull('remarks')
+                ->where('remarks', '!=', '')
+                ->count();
+
+            $monthlyStats[] = [
+                'month' => $mDate->format('M Y'),
+                'present' => $mPresent,
+                'late' => $mLate,
+                'absent' => $mAbsent,
+                'reports' => $mReports,
+            ];
+        }
+
+        return view('admin.users.show', compact(
+            'user',
+            'attendances',
+            'reports',
+            'tasks',
+            'totalAttendanceCount',
+            'presentCount',
+            'lateCount',
+            'absentCount',
+            'halfDayCount',
+            'reportsSubmittedCount',
+            'totalAssignedTasks',
+            'completedTasksCount',
+            'chartLabels',
+            'chartPresent',
+            'chartLate',
+            'chartAbsent',
+            'chartReportCount',
+            'monthlyStats'
+        ));
     }
 
     public function storeUser(Request $request, SalaryService $salaries)
@@ -290,6 +424,7 @@ class TeamController extends Controller
             'bank_name' => 'nullable|string|max:255',
             'bank_account_number' => 'nullable|digits_between:6,20',
             'bank_ifsc' => ['nullable', 'regex:/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/'],
+            'is_payable' => 'nullable|boolean',
 
             // Salary (optional, par bharo to teeno zaroori)
             'monthly_salary' => 'nullable|numeric|min:0.01|max:9999999999.99',
@@ -308,6 +443,10 @@ class TeamController extends Controller
             'employee_code', 'designation', 'department', 'joining_date',
             'aadhaar_number', 'bank_name', 'bank_account_number',
         ]);
+
+        if ($request->has('is_payable')) {
+            $data['is_payable'] = $request->boolean('is_payable');
+        }
 
         $data['pan_number'] = $request->filled('pan_number') ? strtoupper($request->pan_number) : null;
         $data['bank_ifsc'] = $request->filled('bank_ifsc') ? strtoupper($request->bank_ifsc) : null;
@@ -343,11 +482,15 @@ class TeamController extends Controller
             $currentDays = array_map('intval', (array) $current->working_days);
             sort($currentDays);
 
+            $reqEffFrom = $request->effective_from ? \Carbon\Carbon::parse($request->effective_from)->toDateString() : null;
+            $curEffFrom = $current->effective_from ? \Carbon\Carbon::parse($current->effective_from)->toDateString() : null;
+
             if ((float) $current->monthly_salary === (float) $request->monthly_salary
-                && $currentDays === $days) {
+                && $currentDays === $days
+                && $curEffFrom === $reqEffFrom) {
                 return;
+            }
         }
-    }
 
     $salaries->setSalary($user->id, [
         'monthly_salary' => $request->monthly_salary,

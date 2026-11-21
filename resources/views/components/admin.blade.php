@@ -89,9 +89,18 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
             width: 1px !important;
         }
 
+        /* Dropdown Arrow Variables */
+        :root {
+            --ts-arrow-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%2364748b'/%3E%3C/svg%3E");
+            --ts-arrow-dark-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 4l5 5H1z' fill='%2364748b'/%3E%3C/svg%3E");
+            --ts-arrow-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23475569'/%3E%3C/svg%3E");
+            --ts-arrow-light-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 4l5 5H1z' fill='%23475569'/%3E%3C/svg%3E");
+        }
+
         .ts-wrapper {
             position: relative;
             display: block;
+            --ts-arrow-bg: var(--ts-arrow-dark);
         }
 
         .ts-control {
@@ -201,8 +210,7 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
         }
 
         .ts-control,
-        .ts-wrapper.single .ts-control,
-        .ts-wrapper.multi .ts-control {
+        .ts-wrapper.single .ts-control {
             background-color: var(--bg-input) !important;
             background-image: var(--ts-arrow-bg, var(--ts-arrow-dark)) !important;
             background-repeat: no-repeat !important;
@@ -223,19 +231,24 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
             box-sizing: border-box !important;
         }
 
-        .ts-wrapper.single .ts-control {
-            height: 38px !important;
-            min-height: 38px !important;
-            max-height: 38px !important;
-            line-height: 36px !important;
-            padding: 0 2rem 0 0.85rem !important;
-            flex-wrap: nowrap !important;
-        }
-
         .ts-wrapper.multi .ts-control {
+            background-color: var(--bg-input) !important;
+            background-image: none !important;
+            background-repeat: no-repeat !important;
+            border: 1px solid var(--border-main) !important;
+            border-radius: var(--radius-md) !important;
+            color: var(--text-high) !important;
             min-height: 38px !important;
             height: auto !important;
-            padding: 3px 2rem 3px 0.5rem !important;
+            padding: 3px 0.5rem !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+            font-family: 'Outfit', sans-serif !important;
+            font-size: 0.85rem !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            box-sizing: border-box !important;
         }
 
         .ts-wrapper.focus .ts-control,
@@ -268,10 +281,9 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
             pointer-events: none !important;
         }
 
-        /* When focused / dropdown active: SHOW the input field so user can search options */
+        /* When focused / dropdown active: SHOW input field only if empty or searching */
         .ts-wrapper.single.focus .ts-control>input,
         .ts-wrapper.single.dropdown-active .ts-control>input {
-            width: 100% !important;
             min-width: 60px !important;
             position: relative !important;
             opacity: 1 !important;
@@ -281,10 +293,20 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
             flex: 1 1 auto !important;
         }
 
-        /* When no option is selected (data-value="") or when typing (input-active): hide item so input field shows cleanly */
+        /* If single select already has an item selected and is not actively typing a query, let item stay visible */
+        .ts-wrapper.single.has-items .ts-control .item {
+            display: inline-block !important;
+        }
+
+        /* Hide placeholder item or empty option */
+        .ts-wrapper.single .ts-control .item[data-value=""],
         .ts-wrapper.single.focus .ts-control .item[data-value=""],
-        .ts-wrapper.single.dropdown-active .ts-control .item[data-value=""],
-        .ts-wrapper.single.input-active .ts-control .item {
+        .ts-wrapper.single.dropdown-active .ts-control .item[data-value=""] {
+            display: none !important;
+        }
+
+        /* Only hide selected item when user is actively typing a search filter query in the input */
+        .ts-wrapper.single.input-active:not(.has-items) .ts-control .item {
             display: none !important;
         }
 
@@ -369,18 +391,42 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
         }
 
         /* Light mode overrides */
-        [data-theme="light"] .ts-control,
-        [data-theme="light"] .ts-wrapper.single .ts-control,
+        [data-theme="light"] .ts-wrapper {
+            --ts-arrow-bg: var(--ts-arrow-light);
+        }
+
+        [data-theme="light"] .ts-wrapper.dropdown-active .ts-control {
+            background-image: var(--ts-arrow-light-up) !important;
+        }
+
         [data-theme="light"] .ts-wrapper.multi .ts-control {
-            background: #f8fafc !important;
+            background-image: none !important;
+            background-color: #f8fafc !important;
+        }
+
+        [data-theme="light"] .ts-control,
+        [data-theme="light"] .ts-wrapper.single .ts-control {
+            background-color: #f8fafc !important;
+            background-image: var(--ts-arrow-light) !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        [data-theme="light"] .ts-wrapper.multi .ts-control {
+            background-color: #f8fafc !important;
             border-color: #e2e8f0 !important;
             color: #0f172a !important;
         }
 
         [data-theme="light"] .ts-wrapper.focus .ts-control,
-        [data-theme="light"] .ts-wrapper.focus.single .ts-control {
-            background: #ffffff !important;
+        [data-theme="light"] .ts-wrapper.focus.single .ts-control,
+        [data-theme="light"] .ts-wrapper.focus.multi .ts-control {
+            background-color: #ffffff !important;
             border-color: var(--primary) !important;
+        }
+
+        [data-theme="light"] .ts-wrapper.multi.focus .ts-control {
+            background-image: none !important;
         }
 
         [data-theme="light"] .ts-wrapper .ts-control input {
@@ -388,7 +434,8 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
         }
 
         [data-theme="light"] .ts-dropdown,
-        [data-theme="light"] .ts-dropdown.single {
+        [data-theme="light"] .ts-dropdown.single,
+        [data-theme="light"] .ts-dropdown.multi {
             background: #ffffff !important;
             border-color: #e2e8f0 !important;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
@@ -401,8 +448,14 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
         }
 
         [data-theme="light"] .ts-wrapper.multi .ts-control .item {
-            background: rgba(var(--primary-rgb), 0.1) !important;
+            background: rgba(var(--primary-rgb), 0.12) !important;
             color: var(--primary) !important;
+            border: 1px solid rgba(var(--primary-rgb), 0.25) !important;
+        }
+
+        [data-theme="light"] .ts-wrapper.multi .ts-control .item .remove {
+            color: var(--primary) !important;
+            border-left: 1px solid rgba(var(--primary-rgb), 0.25) !important;
         }
 
         [data-theme="light"] .ts-wrapper.single .ts-control .item {
@@ -427,6 +480,142 @@ if (!in_array($currentTheme, ['dark', 'light'])) {
         }
         [data-theme="dark"] .tox .tox-tbtn--enabled, [data-theme="dark"] .tox .tox-tbtn--enabled:hover {
             background: rgba(var(--primary-rgb), 0.2) !important;
+        }
+
+        /* Prevent Raw Select / Textarea Flash Before Alpine & TinyMCE Init */
+        .premium-select-wrapper select,
+        .premium-multiselect-wrapper select {
+            opacity: 0 !important;
+            height: 38px !important;
+            display: block !important;
+        }
+        .premium-select-wrapper .ts-wrapper,
+        .premium-multiselect-wrapper .ts-wrapper {
+            opacity: 1 !important;
+        }
+        textarea.rich-editor:not(.tox-target) {
+            visibility: hidden !important;
+            height: 250px !important;
+        }
+
+        /* Global Page Preloader with Glass Blur */
+        #global-page-preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
+        }
+
+        [data-theme="light"] #global-page-preloader {
+            background: rgba(241, 245, 249, 0.78);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        #global-page-preloader.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .preloader-glow-wrapper {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Ambient Pulsing Aura Glow */
+        .preloader-aura {
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 104, 249, 0.45) 0%, rgba(99, 102, 241, 0.2) 50%, transparent 75%);
+            animation: preloader-aura-pulse 2s ease-in-out infinite;
+            filter: blur(8px);
+        }
+
+        [data-theme="light"] .preloader-aura {
+            background: radial-gradient(circle, rgba(0, 104, 249, 0.35) 0%, rgba(56, 189, 248, 0.2) 50%, transparent 75%);
+        }
+
+        /* Expanding Ripple Rings */
+        .preloader-ripple {
+            position: absolute;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 104, 249, 0.5);
+            animation: preloader-ripple-out 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+        }
+
+        .preloader-ripple.delay-1 {
+            animation-delay: -0.65s;
+        }
+
+        .preloader-ripple.delay-2 {
+            animation-delay: -1.3s;
+        }
+
+        /* Center Vibrant Blue Sphere */
+        .preloader-center-dot {
+            position: relative;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0077ff, #0056e0);
+            box-shadow: 0 0 25px rgba(0, 104, 249, 0.7),
+                        inset 0 2px 4px rgba(255, 255, 255, 0.4),
+                        inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+            animation: preloader-dot-breathe 2s ease-in-out infinite;
+            z-index: 2;
+        }
+
+        @keyframes preloader-aura-pulse {
+            0%, 100% {
+                transform: scale(0.9);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.3);
+                opacity: 1;
+            }
+        }
+
+        @keyframes preloader-ripple-out {
+            0% {
+                transform: scale(0.9);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(2.4);
+                opacity: 0;
+            }
+        }
+
+        @keyframes preloader-dot-breathe {
+            0%, 100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 20px rgba(0, 104, 249, 0.6);
+            }
+            50% {
+                transform: scale(1.06);
+                box-shadow: 0 0 35px rgba(0, 104, 249, 0.95);
+            }
         }
     </style>
 
@@ -956,6 +1145,16 @@ window.chatMessages = (wire, props) => ({
 </head>
 
 <body>
+    <!-- Global Page Preloader -->
+    <div id="global-page-preloader">
+        <div class="preloader-glow-wrapper">
+            <div class="preloader-aura"></div>
+            <div class="preloader-ripple"></div>
+            <div class="preloader-ripple delay-1"></div>
+            <div class="preloader-ripple delay-2"></div>
+            <div class="preloader-center-dot"></div>
+        </div>
+    </div>
     @php
     $notificationCount = Auth::check() ? Auth::user()->unreadNotifications->count() : 0;
     $globalActiveTimer = Auth::check() ? \App\Models\TimeLog::where('user_id', Auth::id())->whereNull('end_time')->first() : null;
@@ -1136,7 +1335,7 @@ Profile</a></li>
     <nav>
         @if (Auth::user()->hasPermission('dashboard.view') || Auth::user()->hasRole('super-admin'))
         <a href="{{ route('dashboard') }}"
-        class="nav-link-premium {{ request()->routeIs('dashboard') || request()->is('admin/tasks/dashboard') ? 'active' : '' }}">
+        class="nav-link-premium {{ request()->routeIs('dashboard') || request()->is('admin/dashboard') ? 'active' : '' }}">
         <i class="fas fa-chart-line"></i> Dashboard
     </a>
     @endif
@@ -1166,10 +1365,22 @@ $isMyTasksActive = request()->is('admin/tasks') || request()->is('admin/tasks/cr
 <div
 class="nav-submenu-premium {{ $isTasksActive ? 'show' : '' }}">
 
-@if (Auth::user()->hasPermission('tasks.my_tasks|tasks.view|tasks.create|tasks.edit') || Auth::user()->hasRole('super-admin'))
+@if (Auth::user()->hasPermission('tasks.my_tasks|tasks.view|tasks.create|tasks.edit|tasks.board|tasks.calendar|tasks.gantt') || Auth::user()->hasRole('super-admin'))
+@php
+$isTaskManagementActive = request()->routeIs('tasks.board*') 
+    || request()->routeIs('index') 
+    || request()->routeIs('tasks.calendar*') 
+    || request()->routeIs('tasks.gantt*') 
+    || request()->routeIs('create') 
+    || request()->routeIs('edit') 
+    || request()->routeIs('details')
+    || request()->is('admin/tasks/create')
+    || request()->is('admin/tasks/edit/*')
+    || request()->is('admin/tasks/details/*');
+@endphp
 <a href="{{ route('index') }}"
-class="nav-link-premium sub-link-premium {{ $isMyTasksActive ? 'active' : '' }}">
-<i class="fas fa-list"></i> My Tasks
+class="nav-link-premium sub-link-premium {{ $isTaskManagementActive ? 'active' : '' }}">
+<i class="fas fa-layer-group"></i> My Tasks
 </a>
 @endif
 @if (Auth::user()->hasPermission('tasks.todo') || Auth::user()->hasRole('super-admin'))
@@ -1182,24 +1393,6 @@ class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.todos.*') 
 <a href="{{ route('tasks.activity') }}"
 class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.activity*') || request()->is('admin/tasks/activity*') ? 'active' : '' }}">
 <i class="fas fa-stream"></i> My Task Activity
-</a>
-@endif
-@if (Auth::user()->hasPermission('tasks.board') || Auth::user()->hasRole('super-admin'))
-<a href="{{ route('tasks.board') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.board*') || request()->is('admin/tasks/board*') ? 'active' : '' }}">
-<i class="fas fa-columns"></i> Task Board
-</a>
-@endif
-@if (Auth::user()->hasPermission('tasks.calendar') || Auth::user()->hasRole('super-admin'))
-<a href="{{ route('tasks.calendar') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.calendar*') || request()->is('admin/tasks/calendar*') ? 'active' : '' }}">
-<i class="fas fa-calendar-alt"></i> Calendar
-</a>
-@endif
-@if (Auth::user()->hasPermission('tasks.gantt') || Auth::user()->hasRole('super-admin'))
-<a href="{{ route('tasks.gantt') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('tasks.gantt*') || request()->is('admin/tasks/gantt*') ? 'active' : '' }}">
-<i class="fas fa-chart-bar"></i> Gantt Chart
 </a>
 @endif
 </div>
@@ -1268,7 +1461,7 @@ class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.clients.em
 
 @if (Auth::user()->hasPermission('attendance.view') || Auth::user()->hasPermission('attendance.punch') || Auth::user()->hasPermission('attendance.daily') || Auth::user()->hasPermission('attendance.monthly') || Auth::user()->hasPermission('attendance.dashboard_overview') || Auth::user()->hasPermission('attendance.settings'))
 @php
-$isAttendanceActive = request()->routeIs('admin.attendance.*', 'admin.payroll.*');
+$isAttendanceActive = request()->routeIs('admin.attendance.*');
 @endphp
 <div class="nav-item">
     <a href="javascript:void(0)"
@@ -1286,99 +1479,61 @@ $isAttendanceActive = request()->routeIs('admin.attendance.*', 'admin.payroll.*'
 </a>
 @endif
 
-@if(Auth::user()->hasPermission('attendance.daily') || Auth::user()->hasPermission('attendance.approve') || Auth::user()->hasPermission('attendance.manage') || Auth::user()->hasRole('super-admin'))
+@if(Auth::user()->hasPermission('attendance.daily') || Auth::user()->hasPermission('attendance.approve') || Auth::user()->hasPermission('attendance.manage') || Auth::user()->hasPermission('attendance.submit') || Auth::user()->hasRole('super-admin'))
 <a href="{{ route('admin.attendance.daily') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.daily') ? 'active' : '' }}">
-<i class="fas fa-file-invoice"></i> Daily Work Reports
+class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.daily') || request()->routeIs('admin.attendance.myDaily') || request()->routeIs('admin.attendance.myMonthly') ? 'active' : '' }}">
+<i class="fas fa-file-invoice"></i> Work Reports
 </a>
 @endif
 
-@if(Auth::user()->hasPermission('attendance.monthly') || Auth::user()->hasPermission('attendance.report') || Auth::user()->hasPermission('attendance.manage') || Auth::user()->hasRole('super-admin'))
+@if(Auth::user()->hasPermission('attendance.monthly') || Auth::user()->hasPermission('attendance.report') || Auth::user()->hasPermission('attendance.punch') || Auth::user()->hasPermission('attendance.view') || Auth::user()->hasRole('super-admin'))
 <a href="{{ route('admin.attendance.monthly') }}"
 class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.monthly') ? 'active' : '' }}">
-<i class="fas fa-calendar-days"></i> Monthly Attendance
+<i class="fas fa-calendar-days"></i> Attendance Directory
 </a>
 @endif
 
-@if(Auth::user()->hasPermission('attendance.punch') || Auth::user()->hasPermission('attendance.submit') || Auth::user()->hasPermission('attendance.view'))
-<a href="{{ route('admin.attendance.myDaily') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.myDaily') ? 'active' : '' }}">
-<i class="fas fa-user-clock"></i> My Attendance
-</a>
-<a href="{{ route('admin.attendance.myMonthly') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.myMonthly') ? 'active' : '' }}">
-<i class="fas fa-user-check"></i> My Monthly Report
-</a>
-@endif
-
-
-{{-- Payroll Management Menu --}}
-@if(
-Auth::user()->hasRole('super-admin') ||
-Auth::user()->hasPermission('payroll.view') ||
-Auth::user()->hasPermission('payroll.salary_view') ||
-Auth::user()->hasPermission('payroll.generate')
-)
-<a href="{{ route('admin.payroll.index') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.payroll.*') && !request()->routeIs('admin.payroll.salaries*') ? 'active' : '' }}">
-<i class="fas fa-money-check-dollar"></i>
-<span>Payroll Management</span>
-</a>
-@endif
-
-{{-- Employee Salaries Menu --}}
-@if(
-Auth::user()->hasRole('super-admin') ||
-Auth::user()->hasPermission('payroll.salary_view') ||
-Auth::user()->hasPermission('payroll.salary_manage')
-)
-<a href="{{ route('admin.payroll.salaries') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.payroll.salaries*') ? 'active' : '' }}">
-<i class="fas fa-money-bill-wave"></i>
-<span>Employee Salaries</span>
-</a>
-@endif
-
-
-
-<!-- @if (Auth::user()->hasRole('super-admin'))
-<div class="nav-item">
-    <a href="{{ route('admin.holidays.index') }}"
-    class="nav-link-premium {{ request()->routeIs('admin.holidays.*') ? 'active' : '' }}">
-    <i class="fas fa-calendar-alt"></i>
-    <span>Company Holidays</span>
-</a>
-</div>
-@endif  -->
-
-
-@if(Auth::user()->hasPermission('attendance.calendar_all') || Auth::user()->hasPermission('attendance.view') || Auth::user()->hasRole('super-admin'))
-<a href="{{ route('admin.attendance.calendar') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.calendar') ? 'active' : '' }}">
-<i class="fas fa-calendar-alt"></i> Calendar
-</a>
-@endif
-
-@if(Auth::user()->hasPermission('attendance.requests_manage') || Auth::user()->hasPermission('attendance.view') || Auth::user()->hasPermission('hr.leave_requests') || Auth::user()->hasRole('super-admin'))
+@if(Auth::user()->hasPermission('attendance.calendar_all') || Auth::user()->hasPermission('attendance.requests_manage') || Auth::user()->hasPermission('attendance.view') || Auth::user()->hasPermission('hr.leave_requests') || Auth::user()->hasRole('super-admin'))
 <a href="{{ route('admin.attendance.requests') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.requests') ? 'active' : '' }}">
-<i class="fas fa-envelope-open-text"></i> Leave Requests
+class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.requests') || request()->routeIs('admin.attendance.calendar') ? 'active' : '' }}">
+<i class="fas fa-calendar-check"></i> Leaves & Calendar
 </a>
 @endif
 
-@if(Auth::user()->hasPermission('attendance.reports') || Auth::user()->hasPermission('attendance.report') || Auth::user()->hasPermission('attendance.export') || Auth::user()->hasRole('super-admin'))
-<a href="{{ route('admin.attendance.reports') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.reports') ? 'active' : '' }}">
-<i class="fas fa-file-export"></i> Reports
-</a>
-@endif
-
-@if(Auth::user()->hasPermission('attendance.settings') || Auth::user()->hasPermission('attendance.manage') || Auth::user()->hasRole('super-admin'))
+@if(Auth::user()->hasPermission('attendance.settings') || Auth::user()->hasPermission('attendance.reports') || Auth::user()->hasPermission('attendance.report') || Auth::user()->hasPermission('attendance.export') || Auth::user()->hasPermission('attendance.manage') || Auth::user()->hasRole('super-admin'))
 <a href="{{ route('admin.attendance.settings') }}"
-class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.settings') ? 'active' : '' }}">
-<i class="fas fa-business-time"></i> Attendance Settings
+class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.settings') || request()->routeIs('admin.attendance.reports') ? 'active' : '' }}">
+<i class="fas fa-sliders-h"></i> Settings & Reports
 </a>
 @endif
+</div>
+</div>
+@endif
+
+{{-- Payroll Mega Menu --}}
+@if (
+    Auth::user()->hasRole('super-admin') ||
+    Auth::user()->hasPermission('payroll.view') ||
+    Auth::user()->hasPermission('payroll.salary_view') ||
+    Auth::user()->hasPermission('payroll.salary_manage') ||
+    Auth::user()->hasPermission('payroll.generate')
+)
+@php
+$isPayrollActive = request()->routeIs('admin.payroll.*');
+@endphp
+<div class="nav-item">
+    <a href="javascript:void(0)"
+    class="nav-link-premium nav-dropdown {{ $isPayrollActive ? 'active' : '' }}"
+    onclick="toggleSubmenu(this)">
+    <i class="fas fa-money-check-dollar"></i>
+    <span>Payroll</span>
+    <i class="fas fa-chevron-right ms-auto toggle-icon-premium {{ $isPayrollActive ? 'rotate' : '' }}"></i>
+</a>
+<div class="nav-submenu-premium {{ $isPayrollActive ? 'show' : '' }}">
+    <a href="{{ route('admin.payroll.index') }}"
+    class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.payroll.*') && !request()->routeIs('admin.attendance.settings') ? 'active' : '' }}">
+    <i class="fas fa-file-invoice-dollar"></i> Payroll & Salaries
+    </a>
 </div>
 </div>
 @endif
@@ -1436,7 +1591,7 @@ $isSettingsActive = (request()->routeIs('admin.settings.*') && !request()->route
     class="nav-link-premium nav-dropdown {{ $isSettingsActive ? 'active' : '' }}"
     onclick="toggleSubmenu(this)">
     <i class="fas fa-cog"></i>
-    <span>Settings</span>
+    <span>App Settings</span>
     <i
     class="fas fa-chevron-right ms-auto toggle-icon-premium {{ $isSettingsActive ? 'rotate' : '' }}"></i>
 </a>
@@ -2656,6 +2811,30 @@ formAction="{{ route('profile.update') }}" enctype="multipart/form-data">
             .catch(err => console.warn('PWA ServiceWorker registration failed:', err));
         });
     }
+
+    // Dismiss Page Preloader smoothly once page and components finish loading
+    (function() {
+        const preloader = document.getElementById('global-page-preloader');
+        if (!preloader) return;
+
+        function hidePreloader() {
+            if (preloader.classList.contains('fade-out')) return;
+            preloader.classList.add('fade-out');
+            setTimeout(() => {
+                if (preloader && preloader.parentNode) {
+                    preloader.parentNode.removeChild(preloader);
+                }
+            }, 400);
+        }
+
+        // Hide when window loads or after max safety timeout (1.2s)
+        if (document.readyState === 'complete') {
+            setTimeout(hidePreloader, 200);
+        } else {
+            window.addEventListener('load', () => setTimeout(hidePreloader, 200));
+        }
+        setTimeout(hidePreloader, 1500); // Safety fallback
+    })();
 </script>
 </body>
 

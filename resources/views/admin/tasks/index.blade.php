@@ -4,17 +4,27 @@
             <h1 class="h3 fw-semibold mb-1 text-high">Administrative Tasks</h1>
             <p class="text-low mb-0" style="font-size: 0.9rem;">Global task repository and operational management.</p>
         </div>
-        <div class="d-flex gap-3">
-            <div class="d-flex bg-glass border border-main p-1" style="border-radius: var(--radius-md);">
-                <a href="{{ route('index') }}"
-                    class="btn-premium btn-premium-secondary btn-sm px-3 py-1 active"
-                    style="font-size: 0.75rem; border: none; border-radius: var(--radius-sm);">
-                    <i class="fas fa-list me-1"></i> List View
-                </a>
+        <div class="d-flex gap-3 align-items-center flex-wrap">
+            <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
                 <a href="{{ route('tasks.board') }}"
-                    class="btn-premium btn-premium-secondary btn-sm px-3 py-1"
-                    style="font-size: 0.75rem; border: none; border-radius: var(--radius-sm);">
+                    class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.board') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                    style="font-size: 0.8rem;">
                     <i class="fas fa-columns me-1"></i> Kanban
+                </a>
+                <a href="{{ route('index') }}"
+                    class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('index') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                    style="font-size: 0.8rem;">
+                    <i class="fas fa-list me-1"></i> List
+                </a>
+                <a href="{{ route('tasks.calendar') }}"
+                    class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.calendar') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                    style="font-size: 0.8rem;">
+                    <i class="fas fa-calendar-alt me-1"></i> Calendar
+                </a>
+                <a href="{{ route('tasks.gantt') }}"
+                    class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.gantt') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                    style="font-size: 0.8rem;">
+                    <i class="fas fa-project-diagram me-1"></i> Gantt
                 </a>
             </div>
             <a href="{{ route('create') }}" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm">

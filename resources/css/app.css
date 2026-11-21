@@ -893,8 +893,7 @@ select option,
 }
 
 .ts-control,
-.ts-wrapper.single .ts-control,
-.ts-wrapper.multi .ts-control {
+.ts-wrapper.single .ts-control {
     background-color: var(--bg-input) !important;
     background-image: var(--ts-arrow-bg) !important;
     background-repeat: no-repeat !important;
@@ -904,19 +903,24 @@ select option,
     box-sizing: border-box !important;
 }
 
-.ts-wrapper.single .ts-control {
-    height: 38px !important;
-    min-height: 38px !important;
-    max-height: 38px !important;
-    padding: 0 2rem 0 0.85rem !important;
-    line-height: 36px !important;
-    flex-wrap: nowrap !important;
-}
-
 .ts-wrapper.multi .ts-control {
+    background-color: var(--bg-input) !important;
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-high) !important;
     min-height: 38px !important;
     height: auto !important;
-    padding: 3px 2rem 3px 0.5rem !important;
+    padding: 3px 0.5rem !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 0.85rem !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
 }
 
 .ts-wrapper.dropdown-active .ts-control {
@@ -1038,10 +1042,9 @@ select option,
     pointer-events: none !important;
 }
 
-/* When focused / dropdown active: SHOW the input field so user can search options */
+/* When focused / dropdown active: SHOW input field only if empty or searching */
 .ts-wrapper.single.focus .ts-control>input,
 .ts-wrapper.single.dropdown-active .ts-control>input {
-    width: 100% !important;
     min-width: 60px !important;
     position: relative !important;
     opacity: 1 !important;
@@ -1051,10 +1054,20 @@ select option,
     flex: 1 1 auto !important;
 }
 
-/* When no option is selected (data-value="") or when typing (input-active): hide item so input field shows cleanly */
+/* If single select already has an item selected and is not actively typing a query, let item stay visible */
+.ts-wrapper.single.has-items .ts-control .item {
+    display: inline-block !important;
+}
+
+/* Hide placeholder item or empty option */
+.ts-wrapper.single .ts-control .item[data-value=""],
 .ts-wrapper.single.focus .ts-control .item[data-value=""],
-.ts-wrapper.single.dropdown-active .ts-control .item[data-value=""],
-.ts-wrapper.single.input-active .ts-control .item {
+.ts-wrapper.single.dropdown-active .ts-control .item[data-value=""] {
+    display: none !important;
+}
+
+/* Only hide selected item when user is actively typing a search filter query in the input */
+.ts-wrapper.single.input-active:not(.has-items) .ts-control .item {
     display: none !important;
 }
 
@@ -1240,8 +1253,19 @@ select option,
     background-image: var(--ts-arrow-light-up) !important;
 }
 
+[data-theme="light"] .ts-wrapper.multi .ts-control {
+    background-image: none !important;
+    background-color: #f8fafc !important;
+}
+
 [data-theme="light"] .ts-control,
-[data-theme="light"] .ts-wrapper.single .ts-control,
+[data-theme="light"] .ts-wrapper.single .ts-control {
+    border-color: rgba(0, 0, 0, 0.12) !important;
+    color: #0f172a !important;
+    background-image: var(--ts-arrow-light) !important;
+    background-color: #f8fafc !important;
+}
+
 [data-theme="light"] .ts-wrapper.multi .ts-control {
     border-color: rgba(0, 0, 0, 0.12) !important;
     color: #0f172a !important;
@@ -1250,6 +1274,10 @@ select option,
 [data-theme="light"] .ts-wrapper.focus .ts-control {
     background-color: #ffffff !important;
     border-color: var(--primary) !important;
+}
+
+[data-theme="light"] .ts-wrapper.multi.focus .ts-control {
+    background-image: none !important;
 }
 
 /* --- Premium Data Grid Customizations --- */

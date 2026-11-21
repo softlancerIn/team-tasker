@@ -103,9 +103,31 @@ $date = fn ($field) => old($field, $u?->{$field}?->format('Y-m-d'));
     </div>
 </div>
 
-{{-- Salary --}}
+{{-- Salary & Payable Status --}}
 @if ($canSalary)
-<h6 class="fw-bold text-high mb-3"><i class="fas fa-money-bill-wave me-2 text-low"></i>Salary</h6>
+<h6 class="fw-bold text-high mb-3"><i class="fas fa-money-bill-wave me-2 text-low"></i>Salary & Compensation</h6>
+
+{{-- Is Payable Toggle --}}
+<div class="glass-card p-3 mb-3 border-main" style="background: rgba(var(--primary-rgb, 14, 165, 233), 0.04);">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <label class="fw-bold text-high mb-1 d-block" for="is_payable_{{ $uid }}" style="cursor: pointer;">
+                Payable Employee
+            </label>
+            <small class="text-low d-block" style="font-size: 0.78rem;">
+                Enable if company is paying regular salary to this employee (User salary de rahe ya nahi). If disabled, user is excluded from Salary Directory & automatic payroll run.
+            </small>
+        </div>
+        <div class="form-check form-switch ms-3 mb-0">
+            <input type="hidden" name="is_payable" value="0">
+            <input class="form-check-input" type="checkbox" role="switch" name="is_payable" value="1"
+                   id="is_payable_{{ $uid }}"
+                   style="width: 2.75em; height: 1.4em; cursor: pointer;"
+                   @checked(old('is_payable', $u ? ($u->is_payable ?? true) : true))>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3 mb-2">
     <div class="col-md-6">
         <label class="heading-label mb-2" style="font-size: 0.7rem;">Monthly Salary (₹)</label>

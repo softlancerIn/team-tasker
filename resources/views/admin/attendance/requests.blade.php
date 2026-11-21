@@ -9,9 +9,16 @@
             <p class="text-low mb-0" style="font-size: 0.9rem;">Manage employee leave, overtime, and regularization requests.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('admin.attendance.calendar') }}" class="btn-premium btn-premium-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-1">
-                <i class="fas fa-calendar-alt me-1"></i> Calendar View
-            </a>
+            <!-- Odoo-style View Switcher -->
+            <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                <a href="{{ route('admin.attendance.requests') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.requests') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-list-alt me-1"></i> Leave Requests
+                </a>
+                <a href="{{ route('admin.attendance.calendar') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.calendar') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    <i class="fas fa-calendar-alt me-1"></i> Calendar View
+                </a>
+            </div>
+
             <button class="btn-premium btn-premium-primary px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#newRequestModal">
                 <i class="fas fa-plus-circle me-1"></i> New Request
             </button>

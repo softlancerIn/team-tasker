@@ -57,6 +57,28 @@ class AttendanceController extends Controller
         return $date;
     }
 
+    protected function resolveMonth(?string $month, ?int $userId = null): string
+    {
+        if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            return $month;
+        }
+
+        $query = Attendance::query();
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+        $latestRecord = $query->orderByDesc('attendance_date')->orderByDesc('date')->first();
+
+        if ($latestRecord) {
+            $date = $latestRecord->attendance_date ?? $latestRecord->date;
+            if ($date) {
+                return Carbon::parse($date)->format('Y-m');
+            }
+        }
+
+        return $this->attendanceService->today()->format('Y-m');
+    }
+
     /**
      * Attendance Dashboard.
      */
@@ -373,12 +395,13 @@ class AttendanceController extends Controller
     {
         Gate::authorize('viewReport', Attendance::class);
 
-        $month = $request->input('month', $this->attendanceService->today()->format('Y-m'));
-        $search = $request->input('search');
         $selectedUserId = $request->input('user_id');
         if (empty($selectedUserId)) {
             $selectedUserId = null;
         }
+
+        $month = $this->resolveMonth($request->input('month'), $selectedUserId ? (int)$selectedUserId : null);
+        $search = $request->input('search');
         $status = $request->input('status');
         if (empty($status)) {
             $status = null;
@@ -397,13 +420,28 @@ class AttendanceController extends Controller
         $selectedUser = null;
         $selectedUserCalendar = [];
         $selectedUserStats = null;
+        $selectedUserRecords = null;
         if ($selectedUserId && ! is_array($selectedUserId)) {
             $selectedUser = User::find($selectedUserId);
             if ($selectedUser) {
                 $selectedUserStats = $this->attendanceService->getMonthlyUserStats($selectedUser, $month);
                 $selectedUserCalendar = $this->attendanceService->getUserMonthlyCalendar($selectedUser->id, $month);
+
+                $startDate = Carbon::parse("{$month}-01")->startOfMonth();
+                $endDate = $startDate->copy()->endOfMonth();
+
+                $selectedUserRecords = Attendance::where('user_id', $selectedUser->id)
+                    ->where(function ($q) use ($startDate, $endDate) {
+                        $q->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                          ->orWhereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+                    })
+                    ->orderByDesc('attendance_date')
+                    ->orderByDesc('date')
+                    ->get();
             }
         }
+
+        $isSuperAdmin = $this->isSuperAdmin();
 
         return view('admin.attendance.monthly', compact(
             'users',
@@ -411,9 +449,51 @@ class AttendanceController extends Controller
             'selectedUser',
             'selectedUserStats',
             'selectedUserCalendar',
+            'selectedUserRecords',
             'teamStats',
-            'allUsers'
+            'allUsers',
+            'isSuperAdmin'
         ));
+    }
+
+    /**
+     * Super Admin approve all pending/submitted daily attendance reports for a user in a given month.
+     */
+    public function approveUserMonth(Request $request)
+    {
+        $this->ensureSuperAdmin();
+
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'month' => 'required|date_format:Y-m',
+        ]);
+
+        $admin = Auth::user();
+        $user = User::findOrFail($request->user_id);
+        $month = $request->month;
+
+        $startDate = Carbon::parse("{$month}-01")->startOfMonth()->format('Y-m-d');
+        $endDate = Carbon::parse("{$month}-01")->endOfMonth()->format('Y-m-d');
+
+        $attendances = Attendance::where('user_id', $user->id)
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('attendance_date', [$startDate, $endDate])
+                  ->orWhereBetween('date', [$startDate, $endDate]);
+            })
+            ->where('approval_status', '!=', 'approved')
+            ->get();
+
+        if ($attendances->isEmpty()) {
+            return redirect()->back()->with('info', "All attendance records for {$user->name} in " . Carbon::parse("{$month}-01")->format('F Y') . " are already approved.");
+        }
+
+        $approvedCount = 0;
+        foreach ($attendances as $att) {
+            $this->attendanceService->approveAttendance($att, $admin);
+            $approvedCount++;
+        }
+
+        return redirect()->back()->with('success', "Successfully approved {$approvedCount} attendance report(s) for {$user->name} for " . Carbon::parse("{$month}-01")->format('F Y') . ".");
     }
 
     /**
@@ -422,7 +502,7 @@ class AttendanceController extends Controller
     public function myMonthly(Request $request)
     {
         $user = Auth::user();
-        $month = $request->input('month', $this->attendanceService->today()->format('Y-m'));
+        $month = $this->resolveMonth($request->input('month'), $user?->id);
         $status = $request->input('status');
         $search = $request->input('search');
 
@@ -1050,10 +1130,21 @@ class AttendanceController extends Controller
 
         $officeStartTime = Setting::where('key', 'office_start_time')->value('value') ?? '09:15';
         $officeEndTime = Setting::where('key', 'office_end_time')->value('value') ?? '18:00';
+        $shiftHours = Setting::where('key', 'shift_hours')->value('value') ?? '8.75';
+        $weeklyWorkHours = Setting::where('key', 'weekly_work_hours')->value('value') ?? '40';
         $workingDays = Setting::where('key', 'working_days')->value('value') ?? '5';
         $allowedIps = Setting::where('key', 'allowed_ips')->value('value') ?? '';
+        $sandwichLeaveEnabled = Setting::where('key', 'sandwich_leave_enabled')->value('value') ?? '0';
 
-        return view('admin.attendance.settings', compact('officeStartTime', 'officeEndTime', 'workingDays', 'allowedIps'));
+        return view('admin.attendance.settings', compact(
+            'officeStartTime',
+            'officeEndTime',
+            'shiftHours',
+            'weeklyWorkHours',
+            'workingDays',
+            'allowedIps',
+            'sandwichLeaveEnabled'
+        ));
     }
 
     /**
@@ -1066,14 +1157,20 @@ class AttendanceController extends Controller
         $request->validate([
             'office_start_time' => 'required|date_format:H:i',
             'office_end_time' => 'required|date_format:H:i',
+            'shift_hours' => 'nullable|numeric|min:1|max:24',
+            'weekly_work_hours' => 'nullable|numeric|min:1|max:168',
             'working_days' => 'required|in:5,6',
             'allowed_ips' => 'nullable|string',
+            'sandwich_leave_enabled' => 'nullable|in:0,1',
         ]);
 
         Setting::updateOrCreate(['key' => 'office_start_time'], ['value' => $request->office_start_time]);
         Setting::updateOrCreate(['key' => 'office_end_time'], ['value' => $request->office_end_time]);
+        Setting::updateOrCreate(['key' => 'shift_hours'], ['value' => $request->shift_hours]);
+        Setting::updateOrCreate(['key' => 'weekly_work_hours'], ['value' => $request->weekly_work_hours]);
         Setting::updateOrCreate(['key' => 'working_days'], ['value' => $request->working_days]);
         Setting::updateOrCreate(['key' => 'allowed_ips'], ['value' => $request->allowed_ips]);
+        Setting::updateOrCreate(['key' => 'sandwich_leave_enabled'], ['value' => $request->has('sandwich_leave_enabled') ? '1' : '0']);
 
         return redirect()->back()->with('success', 'Settings updated successfully.');
     }

@@ -126,7 +126,7 @@ class PayrollCalculationService
             $attendanceRecords = Attendance::query()
                 ->where('user_id', $userId)
                 ->whereBetween('attendance_date', [$from, $to])
-                ->where('approval_status', 'approved')
+                ->whereIn('approval_status', ['approved', 'rejected'])
                 ->get()
                 ->keyBy(fn ($attendance) => Carbon::parse($attendance->attendance_date)->toDateString());
 
@@ -184,10 +184,16 @@ class PayrollCalculationService
                 $status = strtolower((string) ($attendance->attendance_status ?? ''));
                 $minutes = (int) ($attendance->working_minutes ?? 0);
                 $employed = $records->contains(fn ($r) => $this->covers($r, $date));
+                $isRejected = ($attendance && $attendance->approval_status === 'rejected');
 
                 if (! $employed) {
                     $type = 'unpaid_leave';
                     $row = $this->row($dateString, $type, null, 0, 0.0, 'Salary record was not active on this date (before joining / after exit).');
+                } elseif ($isRejected) {
+                    // Work report rejected: explicitly count as unpaid leave / absent deduction
+                    $type = 'unpaid_leave';
+                    $reasonText = $attendance->rejection_reason ? " (Reason: {$attendance->rejection_reason})" : '';
+                    $row = $this->row($dateString, $type, $attendance, 0, 0.0, 'Work report rejected by administrator; counted as leave' . $reasonText . '.');
                 } elseif ($isHoliday) {
                     $type = 'holiday';
                     $row = $this->row($dateString, $type, $attendance, $minutes, 0.0, 'Paid company holiday: ' . $holidays[$dateString]);
@@ -218,6 +224,62 @@ class PayrollCalculationService
                 throw ValidationException::withMessages([
                     'month' => 'There are no scheduled working days in the selected month.',
                 ]);
+            }
+
+            // ---- Sandwich Leave Policy (if enabled) ----
+            $sandwichLeaveEnabled = \App\Models\Setting::where('key', 'sandwich_leave_enabled')->value('value') === '1';
+            if ($sandwichLeaveEnabled && count($days) > 2) {
+                // Check blocks of non-working days (weekly_off / holiday) sandwiched between absences
+                $totalDaysCount = count($days);
+                $i = 0;
+                while ($i < $totalDaysCount) {
+                    if (in_array($days[$i]['day_type'], ['weekly_off', 'holiday'], true)) {
+                        $blockStart = $i;
+                        while ($i < $totalDaysCount && in_array($days[$i]['day_type'], ['weekly_off', 'holiday'], true)) {
+                            $i++;
+                        }
+                        $blockEnd = $i - 1;
+
+                        // Identify the working day immediately before the block
+                        $prevWorkingIdx = $blockStart - 1;
+                        while ($prevWorkingIdx >= 0 && in_array($days[$prevWorkingIdx]['day_type'], ['weekly_off'], true)) {
+                            $prevWorkingIdx--;
+                        }
+
+                        // Identify the working day immediately after the block
+                        $nextWorkingIdx = $blockEnd + 1;
+                        while ($nextWorkingIdx < $totalDaysCount && in_array($days[$nextWorkingIdx]['day_type'], ['weekly_off'], true)) {
+                            $nextWorkingIdx++;
+                        }
+
+                        if ($prevWorkingIdx >= 0 && $nextWorkingIdx < $totalDaysCount) {
+                            $prevType = $days[$prevWorkingIdx]['day_type'];
+                            $nextType = $days[$nextWorkingIdx]['day_type'];
+
+                            // Deductible/absence types that trigger the sandwich rule
+                            $absenceTypes = ['absent', 'unpaid_leave'];
+                            if (in_array($prevType, $absenceTypes, true) && in_array($nextType, $absenceTypes, true)) {
+                                for ($k = $blockStart; $k <= $blockEnd; $k++) {
+                                    $origType = $days[$k]['day_type'];
+                                    // If it was weekly_off, it wasn't counted in $scheduledDays. Count it now.
+                                    if ($origType === 'weekly_off') {
+                                        $scheduledDays++;
+                                    }
+                                    if (isset($counts[$origType])) {
+                                        $counts[$origType]--;
+                                    }
+                                    $counts['unpaid_leave'] = ($counts['unpaid_leave'] ?? 0) + 1;
+
+                                    $days[$k]['day_type'] = 'unpaid_leave';
+                                    $days[$k]['units'] = self::UNITS['unpaid_leave']; // 2 units = 1 full day
+                                    $days[$k]['remarks'] = 'Sandwich leave rule applied: absence on adjacent working days (' . $days[$prevWorkingIdx]['work_date'] . ' & ' . $days[$nextWorkingIdx]['work_date'] . '); counted as unpaid leave.';
+                                }
+                            }
+                        }
+                    } else {
+                        $i++;
+                    }
+                }
             }
 
             // ---- Katauti (paise mein) ----

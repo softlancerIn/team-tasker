@@ -7,13 +7,39 @@
 
         <div class="top-bar-premium">
             <div>
-                <h1 class="h3 fw-semibold mb-1 text-high">My Monthly Attendance</h1>
+                <h1 class="h3 fw-semibold mb-1 text-high">My Monthly Work Report</h1>
                 <p class="text-low mb-0" style="font-size: 0.9rem;">Review your attendance history, monthly working hours, and calendar breakdown.</p>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                <a href="{{ route('admin.attendance.myDaily') }}" class="btn-premium btn-premium-primary d-flex align-items-center gap-2 shadow-sm">
-                    <i class="fas fa-clock"></i> Today's Attendance
-                </a>
+                <!-- Odoo-style View Switcher -->
+                <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                    <a href="{{ route('admin.attendance.daily') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.daily') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                        <i class="fas fa-users me-1"></i> All Reports
+                    </a>
+                    <a href="{{ route('admin.attendance.myDaily') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.myDaily') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                        <i class="fas fa-user me-1"></i> My Report
+                    </a>
+                    <a href="{{ route('admin.attendance.myMonthly') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.myMonthly') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                        <i class="fas fa-calendar-alt me-1"></i> My Monthly
+                    </a>
+                </div>
+
+                <div class="d-flex align-items-center gap-1 bg-subtle p-1 rounded-3 border border-main">
+                    <form method="GET" action="{{ route('admin.attendance.myMonthly') }}" id="myMonthlyNavMonthForm" class="d-flex align-items-center m-0">
+                        @if(request('status'))
+                            <input type="hidden" name="status" value="{{ request('status') }}">
+                        @endif
+                        @if(request('search'))
+                            <input type="hidden" name="search" value="{{ request('search') }}">
+                        @endif
+                        <input type="month" name="month" value="{{ $month }}" class="form-control form-control-sm border-0 bg-transparent text-high fw-semibold py-1 px-2" style="font-size: 0.8rem; cursor: pointer;" onchange="this.form.submit()">
+                    </form>
+                </div>
+
+                <button type="button" class="btn-premium btn-premium-secondary d-flex align-items-center gap-1 shadow-sm" onclick="document.getElementById('filterSlideoverMonthly').classList.add('show')">
+                    <i class="fas fa-sliders-h"></i> Filters
+                </button>
+
                 <a href="{{ route('admin.attendance.calendar') }}" class="btn-premium btn-premium-secondary d-flex align-items-center gap-2 shadow-sm">
                     <i class="fas fa-calendar-alt"></i> Calendar View
                 </a>

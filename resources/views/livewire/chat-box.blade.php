@@ -19,6 +19,7 @@ new class extends Component {
     public $conversation;
     public $body = '';
     public $attachment;
+    public $attachments = [];
     public $messages = [];
     public $searchQuery = '';
     public $showSearch = false;
@@ -64,6 +65,28 @@ new class extends Component {
         $this->replyingToMessage = null;
     }
 
+    public function removeAttachment($index)
+    {
+        if (isset($this->attachments[$index])) {
+            unset($this->attachments[$index]);
+            $this->attachments = array_values($this->attachments);
+        }
+        if (empty($this->attachments)) {
+            $this->attachment = null;
+        } else {
+            $this->attachment = $this->attachments[0];
+        }
+    }
+
+    public function addUploadedAttachment($data)
+    {
+        if (!is_array($this->attachments)) {
+            $this->attachments = [];
+        }
+        $this->attachments[] = $data;
+        $this->attachment = $this->attachments[0] ?? null;
+    }
+
     public function updatedForwardSearchQuery()
     {
         $this->forwardLimit = 20;
@@ -97,7 +120,7 @@ new class extends Component {
 
         // 1. Existing conversations matching search
         $existingConversations = $user->conversations()
-            ->when($search, function($q) use ($search) {
+            ->when($search, function ($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%');
             })
             ->with(['participants', 'clientParticipants'])
@@ -137,7 +160,8 @@ new class extends Component {
             $existingConvClientIds = [];
             foreach ($user->conversations()->where('type', 'private')->with(['participants', 'clientParticipants'])->get() as $c) {
                 foreach ($c->participants as $p) {
-                    if ($p->id != $userId) $existingConvUserIds[] = $p->id;
+                    if ($p->id != $userId)
+                        $existingConvUserIds[] = $p->id;
                 }
                 foreach ($c->clientParticipants as $p) {
                     $existingConvClientIds[] = $p->id;
@@ -159,7 +183,7 @@ new class extends Component {
 
                 $staffQuery = \App\Models\User::whereNotIn('id', $existingConvUserIds)
                     ->when($search, fn($q) => $q->where('name', 'like', '%' . $search . '%'))
-                    ->where(function($q) use ($allowedStaffIds) {
+                    ->where(function ($q) use ($allowedStaffIds) {
                         $q->where('role_id', 1);
                         if (!empty($allowedStaffIds)) {
                             $q->orWhereIn('id', $allowedStaffIds);
@@ -252,17 +276,20 @@ new class extends Component {
 
     public function forwardMessageTo($targetKey)
     {
-        if (!$this->forwardMessageId) return;
+        if (!$this->forwardMessageId)
+            return;
 
         $originalMsg = Message::with(['attachments'])->find($this->forwardMessageId);
-        if (!$originalMsg) return;
+        if (!$originalMsg)
+            return;
 
         $isClientGuard = Auth::guard('client')->check();
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
 
         // Find selected item from userConversationsList
         $targetItem = collect($this->userConversationsList)->firstWhere('id', $targetKey);
-        if (!$targetItem) return;
+        if (!$targetItem)
+            return;
 
         $targetConv = null;
 
@@ -272,10 +299,10 @@ new class extends Component {
             $targetUserId = $targetItem['target_id'];
             // Find or create private conversation with user
             $targetConv = Conversation::where('type', 'private')
-                ->whereHas('participants', function($q) use ($targetUserId) {
+                ->whereHas('participants', function ($q) use ($targetUserId) {
                     $q->where('conversation_participants.user_id', $targetUserId);
                 })
-                ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function($q) use ($myId, $isClientGuard) {
+                ->whereHas($isClientGuard ? 'clientParticipants' : 'participants', function ($q) use ($myId, $isClientGuard) {
                     if ($isClientGuard) {
                         $q->where('conversation_participants.client_id', $myId);
                     } else {
@@ -296,10 +323,10 @@ new class extends Component {
             $targetClientId = $targetItem['target_id'];
             // Find or create private conversation with client
             $targetConv = Conversation::where('type', 'private')
-                ->whereHas('clientParticipants', function($q) use ($targetClientId) {
+                ->whereHas('clientParticipants', function ($q) use ($targetClientId) {
                     $q->where('conversation_participants.client_id', $targetClientId);
                 })
-                ->whereHas('participants', function($q) use ($myId) {
+                ->whereHas('participants', function ($q) use ($myId) {
                     $q->where('conversation_participants.user_id', $myId);
                 })->first();
 
@@ -356,7 +383,8 @@ new class extends Component {
     public function toggleReaction($messageId, $emoji)
     {
         $message = Message::find($messageId);
-        if (!$message) return;
+        if (!$message)
+            return;
 
         $isClientGuard = Auth::guard('client')->check();
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
@@ -426,14 +454,15 @@ new class extends Component {
         $myId = $isClientGuard ? Auth::guard('client')->id() : Auth::id();
 
         if ($this->conversation->type == 'private') {
-            $this->receiver = $this->conversation->participants->first(function($p) use ($myId, $isClientGuard) {
+            $this->receiver = $this->conversation->participants->first(function ($p) use ($myId, $isClientGuard) {
                 return !(!$isClientGuard && $p->id == $myId);
             });
             if (!$this->receiver) {
-                $this->receiver = $this->conversation->clientParticipants->first(function($cp) use ($myId, $isClientGuard) {
+                $this->receiver = $this->conversation->clientParticipants->first(function ($cp) use ($myId, $isClientGuard) {
                     return !($isClientGuard && $cp->id == $myId);
                 });
-                if ($this->receiver) $this->receiver->is_client = true;
+                if ($this->receiver)
+                    $this->receiver->is_client = true;
             }
             if (!$this->receiver) {
                 $this->receiver = $this->conversation->participants->first() ?? $this->conversation->clientParticipants->first();
@@ -462,6 +491,7 @@ new class extends Component {
         $this->showSearch = false;
         $this->searchQuery = '';
         $this->attachment = null;
+        $this->attachments = [];
     }
 
     public function checkBlockStatus()
@@ -507,17 +537,17 @@ new class extends Component {
             $isClientGuard = Auth::guard('client')->check();
             $user = $isClientGuard ? Auth::guard('client')->user() : Auth::user();
             $myId = $user->id;
-            
+
             $user->conversations()
                 ->updateExistingPivot($this->conversation->id, ['last_read_at' => now()]);
 
             $unreadQuery = $this->conversation->messages()->whereNull('read_at');
             if ($isClientGuard) {
-                $unreadQuery->where(function($q) use ($myId) {
+                $unreadQuery->where(function ($q) use ($myId) {
                     $q->where('client_id', '!=', $myId)->orWhereNull('client_id');
                 });
             } else {
-                $unreadQuery->where(function($q) use ($myId) {
+                $unreadQuery->where(function ($q) use ($myId) {
                     $q->where('user_id', '!=', $myId)->orWhereNull('user_id');
                 });
             }
@@ -550,7 +580,8 @@ new class extends Component {
             return;
         }
         $messageBody = $sentBody ?? $this->body;
-        if ((empty(trim($messageBody)) && !$this->attachment) || !$this->conversation) {
+        $hasAttachments = !empty($this->attachments) || !empty($this->attachment);
+        if ((empty(trim($messageBody)) && !$hasAttachments) || !$this->conversation) {
             return;
         }
 
@@ -577,29 +608,34 @@ new class extends Component {
         }
         $message = $this->conversation->messages()->create($messageData);
         $this->dispatch('message-sent-successfully', ['messageId' => $message->id]);
-        if ($this->attachment) {
-            if (is_array($this->attachment) && isset($this->attachment['path'])) {
-                // Handle chunked file upload array
+
+        $allAttachments = [];
+        if (!empty($this->attachments) && is_array($this->attachments)) {
+            $allAttachments = $this->attachments;
+        } elseif (!empty($this->attachment)) {
+            $allAttachments = is_array($this->attachment) && isset($this->attachment['path']) ? [$this->attachment] : (is_array($this->attachment) ? $this->attachment : [$this->attachment]);
+        }
+
+        foreach ($allAttachments as $att) {
+            if (is_array($att) && isset($att['path'])) {
                 $message->attachments()->create([
-                    'file_path' => $this->attachment['path'],
-                    'file_name' => $this->attachment['original_name'],
-                    'file_type' => $this->attachment['mime_type'],
-                    'file_size' => $this->attachment['size'],
+                    'file_path' => $att['path'],
+                    'file_name' => $att['original_name'] ?? basename($att['path']),
+                    'file_type' => $att['mime_type'] ?? 'application/octet-stream',
+                    'file_size' => $att['size'] ?? 0,
                 ]);
-            } else {
-                // Handle traditional single file upload (fallback)
-                $file = is_array($this->attachment) ? $this->attachment[0] : $this->attachment;
-    
-                $path = $file->store('chat-attachments', 'public');
+            } elseif (is_object($att) && method_exists($att, 'store')) {
+                $path = $att->store('chat-attachments', 'public');
                 $message->attachments()->create([
                     'file_path' => $path,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_type' => $file->getMimeType(),
-                    'file_size' => $file->getSize(),
+                    'file_name' => $att->getClientOriginalName(),
+                    'file_type' => $att->getMimeType(),
+                    'file_size' => $att->getSize(),
                 ]);
             }
-            $this->attachment = null;
         }
+        $this->attachment = null;
+        $this->attachments = [];
 
         $loadedMessage = $message->load(['user', 'client', 'replyTo', 'attachments'])->toArray();
 
@@ -618,7 +654,8 @@ new class extends Component {
     public function checkAndSendPushNotification($messageId)
     {
         $message = \App\Models\Message::with('conversation.participants')->find($messageId);
-        if (!$message || !$message->conversation) return;
+        if (!$message || !$message->conversation)
+            return;
 
         $participants = $message->conversation->participants;
         $isClientSender = \Illuminate\Support\Facades\Auth::guard('client')->check();
@@ -889,9 +926,9 @@ new class extends Component {
 
         $otherParticipant = null;
         if ($conversation && $conversation->type === 'private') {
-            $otherParticipant = $receiver ?? ($conversation->participants->first(function($p) use ($authId, $isClientGuard) {
+            $otherParticipant = $receiver ?? ($conversation->participants->first(function ($p) use ($authId, $isClientGuard) {
                 return !(!$isClientGuard && $p->id == $authId);
-            }) ?? $conversation->clientParticipants->first(function($cp) use ($authId, $isClientGuard) {
+            }) ?? $conversation->clientParticipants->first(function ($cp) use ($authId, $isClientGuard) {
                 return !($isClientGuard && $cp->id == $authId);
             }) ?? $conversation->participants->first() ?? $conversation->clientParticipants->first());
         }
@@ -903,143 +940,145 @@ new class extends Component {
     @if ($conversation)
 
         <!-- Header -->
-        <div class="position-relative sticky-top" style="position: sticky; top: 0; z-index: 100;" x-data="{ openMobileSearch: false }" @toggle-mobile-search.window="openMobileSearch = !openMobileSearch; if(openMobileSearch) $nextTick(() => $refs.mobileSearchInput?.focus())">
+        <div class="position-relative sticky-top" style="position: sticky; top: 0; z-index: 100;"
+            x-data="{ openMobileSearch: false }"
+            @toggle-mobile-search.window="openMobileSearch = !openMobileSearch; if(openMobileSearch) $nextTick(() => $refs.mobileSearchInput?.focus())">
             <div class="p-3 border-bottom border-main d-flex justify-content-between align-items-center"
                 wire:key="chat-header-{{ $conversation->id }}" style="min-height: 73px; background: var(--bg-surface);"
                 x-data="{
-                    status: '{{ $initialStatusText }}',
-                    statusText: '{{ addslashes($initialStatusText) }}',
-                    statusColor: '{{ $initialStatusText === 'Online' ? '#00a884' : 'var(--text-low)' }}',
-                    lastSeenAt: '{{ $targetLastSeenIso }}',
-                    isTyping: false,
-                    typingUser: '',
-                    typingTimeout: null,
-                    tickerInterval: null,
-                    userId: {{ $conversation->type == 'private' && $otherParticipant ? $otherParticipant->id : 'null' }},
-                    conversationId: '{{ $conversation->id }}',
-                    currentUserId: {{ $authId ?? 'null' }},
-                    isSelf: {{ ($otherParticipant && $otherParticipant->id == $authId) ? 'true' : 'false' }},
+                            status: '{{ $initialStatusText }}',
+                            statusText: '{{ addslashes($initialStatusText) }}',
+                            statusColor: '{{ $initialStatusText === 'Online' ? '#00a884' : 'var(--text-low)' }}',
+                            lastSeenAt: '{{ $targetLastSeenIso }}',
+                            isTyping: false,
+                            typingUser: '',
+                            typingTimeout: null,
+                            tickerInterval: null,
+                            userId: {{ $conversation->type == 'private' && $otherParticipant ? $otherParticipant->id : 'null' }},
+                            conversationId: '{{ $conversation->id }}',
+                            currentUserId: {{ $authId ?? 'null' }},
+                            isSelf: {{ ($otherParticipant && $otherParticipant->id == $authId) ? 'true' : 'false' }},
 
-                    formatWhatsApp(isoDate, isOnline) {
-                        if (isOnline) return 'Online';
-                        if (!isoDate) return 'last seen recently';
-                        const date = new Date(isoDate);
-                        if (isNaN(date.getTime())) return 'last seen recently';
-                        const now = new Date();
-                        const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
-                        if (diffSec >= 0 && diffSec < 120) {
-                            return 'Online';
-                        }
-                        const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-                        const isToday = date.toDateString() === now.toDateString();
-                        if (isToday) {
-                            return `last seen today at ${timeStr}`;
-                        }
-                        const yesterday = new Date(now);
-                        yesterday.setDate(now.getDate() - 1);
-                        const isYesterday = date.toDateString() === yesterday.toDateString();
-                        if (isYesterday) {
-                            return `last seen yesterday at ${timeStr}`;
-                        }
-                        const isSameYear = date.getFullYear() === now.getFullYear();
-                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                        if (isSameYear) {
-                            return `last seen ${date.getDate()} ${monthNames[date.getMonth()]} at ${timeStr}`;
-                        }
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        return `last seen ${day}/${month}/${date.getFullYear()} at ${timeStr}`;
-                    },
-
-                    updatePresence(users, statuses) {
-                        if (!this.userId) return;
-                        if (this.isSelf) {
-                            this.statusText = 'Message yourself';
-                            this.statusColor = 'var(--text-low)';
-                            return;
-                        }
-                        const normStatuses = statuses || window.userStatuses || {};
-                        const st = normStatuses[this.userId] || normStatuses[String(this.userId)];
-                        const normUsers = (users || window.onlineUsers || []).map(Number);
-                        const targetId = Number(this.userId);
-                        const isOnlineInSocket = normUsers.includes(targetId);
-
-                        if (st === 'away') { 
-                            this.statusText = 'Away'; 
-                            this.statusColor = '#f59e0b'; 
-                        } else if (st === 'busy') { 
-                            this.statusText = 'Busy'; 
-                            this.statusColor = '#ea4335'; 
-                        } else if (st === 'online' || isOnlineInSocket) { 
-                            this.statusText = 'Online'; 
-                            this.statusColor = '#00a884'; 
-                        } else {
-                            const formatted = this.formatWhatsApp(this.lastSeenAt, false);
-                            this.statusText = formatted;
-                            this.statusColor = (formatted === 'Online') ? '#00a884' : 'var(--text-low)';
-                        }
-                    },
-                    init() {
-                        if (this.userId) {
-                            this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
-
-                            window.addEventListener('online-users-updated', (e) => {
-                                this.updatePresence(e.detail, window.userStatuses || {});
-                            });
-                            window.addEventListener('all-user-statuses-updated', (e) => {
-                                this.updatePresence(window.onlineUsers || [], e.detail || {});
-                            });
-                            window.addEventListener('user-status-changed-event', (e) => {
-                                if (e.detail && Number(e.detail.userId) === Number(this.userId)) {
-                                    if (e.detail.status === 'offline') {
-                                        this.lastSeenAt = new Date().toISOString();
-                                    }
+                            formatWhatsApp(isoDate, isOnline) {
+                                if (isOnline) return 'Online';
+                                if (!isoDate) return 'last seen recently';
+                                const date = new Date(isoDate);
+                                if (isNaN(date.getTime())) return 'last seen recently';
+                                const now = new Date();
+                                const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+                                if (diffSec >= 0 && diffSec < 120) {
+                                    return 'Online';
                                 }
-                                this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
-                            });
+                                const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+                                const isToday = date.toDateString() === now.toDateString();
+                                if (isToday) {
+                                    return `last seen today at ${timeStr}`;
+                                }
+                                const yesterday = new Date(now);
+                                yesterday.setDate(now.getDate() - 1);
+                                const isYesterday = date.toDateString() === yesterday.toDateString();
+                                if (isYesterday) {
+                                    return `last seen yesterday at ${timeStr}`;
+                                }
+                                const isSameYear = date.getFullYear() === now.getFullYear();
+                                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                if (isSameYear) {
+                                    return `last seen ${date.getDate()} ${monthNames[date.getMonth()]} at ${timeStr}`;
+                                }
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                return `last seen ${day}/${month}/${date.getFullYear()} at ${timeStr}`;
+                            },
 
-                            if (this.tickerInterval) clearInterval(this.tickerInterval);
-                            this.tickerInterval = setInterval(() => {
-                                if (this.statusText !== 'Online' && !this.isSelf && this.statusText !== 'Away' && this.statusText !== 'Busy') {
+                            updatePresence(users, statuses) {
+                                if (!this.userId) return;
+                                if (this.isSelf) {
+                                    this.statusText = 'Message yourself';
+                                    this.statusColor = 'var(--text-low)';
+                                    return;
+                                }
+                                const normStatuses = statuses || window.userStatuses || {};
+                                const st = normStatuses[this.userId] || normStatuses[String(this.userId)];
+                                const normUsers = (users || window.onlineUsers || []).map(Number);
+                                const targetId = Number(this.userId);
+                                const isOnlineInSocket = normUsers.includes(targetId);
+
+                                if (st === 'away') { 
+                                    this.statusText = 'Away'; 
+                                    this.statusColor = '#f59e0b'; 
+                                } else if (st === 'busy') { 
+                                    this.statusText = 'Busy'; 
+                                    this.statusColor = '#ea4335'; 
+                                } else if (st === 'online' || isOnlineInSocket) { 
+                                    this.statusText = 'Online'; 
+                                    this.statusColor = '#00a884'; 
+                                } else {
                                     const formatted = this.formatWhatsApp(this.lastSeenAt, false);
                                     this.statusText = formatted;
                                     this.statusColor = (formatted === 'Online') ? '#00a884' : 'var(--text-low)';
                                 }
-                            }, 30000);
-                        }
+                            },
+                            init() {
+                                if (this.userId) {
+                                    this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
 
-                        window.addEventListener('user-typing-indicator', (event) => {
-                            const roomMatch = String(event.detail.room) === String(this.conversationId);
-                            const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
+                                    window.addEventListener('online-users-updated', (e) => {
+                                        this.updatePresence(e.detail, window.userStatuses || {});
+                                    });
+                                    window.addEventListener('all-user-statuses-updated', (e) => {
+                                        this.updatePresence(window.onlineUsers || [], e.detail || {});
+                                    });
+                                    window.addEventListener('user-status-changed-event', (e) => {
+                                        if (e.detail && Number(e.detail.userId) === Number(this.userId)) {
+                                            if (e.detail.status === 'offline') {
+                                                this.lastSeenAt = new Date().toISOString();
+                                            }
+                                        }
+                                        this.updatePresence(window.onlineUsers || [], window.userStatuses || {});
+                                    });
 
-                            if (roomMatch && isNotMe) {
-                                this.isTyping = true;
-                                this.typingUser = event.detail.userName;
+                                    if (this.tickerInterval) clearInterval(this.tickerInterval);
+                                    this.tickerInterval = setInterval(() => {
+                                        if (this.statusText !== 'Online' && !this.isSelf && this.statusText !== 'Away' && this.statusText !== 'Busy') {
+                                            const formatted = this.formatWhatsApp(this.lastSeenAt, false);
+                                            this.statusText = formatted;
+                                            this.statusColor = (formatted === 'Online') ? '#00a884' : 'var(--text-low)';
+                                        }
+                                    }, 30000);
+                                }
 
-                                if (this.typingTimeout) clearTimeout(this.typingTimeout);
-                                this.typingTimeout = setTimeout(() => {
-                                    this.isTyping = false;
-                                }, 3000);
+                                window.addEventListener('user-typing-indicator', (event) => {
+                                    const roomMatch = String(event.detail.room) === String(this.conversationId);
+                                    const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
+
+                                    if (roomMatch && isNotMe) {
+                                        this.isTyping = true;
+                                        this.typingUser = event.detail.userName;
+
+                                        if (this.typingTimeout) clearTimeout(this.typingTimeout);
+                                        this.typingTimeout = setTimeout(() => {
+                                            this.isTyping = false;
+                                        }, 3000);
+                                    }
+                                });
+
+                                window.addEventListener('user-stop-typing-indicator', (event) => {
+                                    const roomMatch = String(event.detail.room) === String(this.conversationId);
+                                    const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
+
+                                    if (roomMatch && isNotMe) {
+                                        this.isTyping = false;
+                                    }
+                                });
+
+                                window.addEventListener('message-sent-successfully', (event) => {
+                                    setTimeout(() => {
+                                        let msgId = event.detail[0]?.messageId || event.detail?.messageId;
+                                        @this.call('checkAndSendPushNotification', msgId);
+                                    }, 3000);
+                                });
                             }
-                        });
-
-                        window.addEventListener('user-stop-typing-indicator', (event) => {
-                            const roomMatch = String(event.detail.room) === String(this.conversationId);
-                            const isNotMe = String(event.detail.userId) !== String(this.currentUserId);
-
-                            if (roomMatch && isNotMe) {
-                                this.isTyping = false;
-                            }
-                        });
-
-                        window.addEventListener('message-sent-successfully', (event) => {
-                            setTimeout(() => {
-                                let msgId = event.detail[0]?.messageId || event.detail?.messageId;
-                                @this.call('checkAndSendPushNotification', msgId);
-                            }, 3000);
-                        });
-                    }
-                }">
+                        }">
                 <div class="d-flex align-items-center">
                     <!-- Mobile Back Button -->
                     <button class="btn btn-link p-0 me-3 d-md-none text-high" wire:click="$dispatch('backToUserList')"
@@ -1072,11 +1111,15 @@ new class extends Component {
                                 </div>
                                 <div class="ms-3">
                                     <h6 class="mb-0 fw-bold" style="color: var(--text-high);">
-                                        {{ $otherParticipant->name ?? 'User' }} {{ $otherParticipant->id == $authId ? '(You)' : '' }}</h6>
+                                        {{ $otherParticipant->name ?? 'User' }}
+                                        {{ $otherParticipant->id == $authId ? '(You)' : '' }}
+                                    </h6>
                                     <div class="d-flex align-items-center gap-1" style="min-height: 18px;">
-                                        <span class="rounded-circle" x-show="!isTyping && (statusText === 'Online' || statusText === 'Away' || statusText === 'Busy')"
+                                        <span class="rounded-circle"
+                                            x-show="!isTyping && (statusText === 'Online' || statusText === 'Away' || statusText === 'Busy')"
                                             :style="'width: 8px; height: 8px; background-color: ' + statusColor + '; flex-shrink: 0;'"></span>
-                                        <small x-show="!isTyping" :style="'font-size: 0.72rem; color: ' + statusColor" x-text="statusText"></small>
+                                        <small x-show="!isTyping" :style="'font-size: 0.72rem; color: ' + statusColor"
+                                            x-text="statusText"></small>
 
                                         <small x-show="isTyping" class="text-primary fw-bold"
                                             style="font-size: 0.75rem; font-style: italic;"
@@ -1093,32 +1136,28 @@ new class extends Component {
                 <div class="d-flex align-items-center gap-2">
                     @if (!$isClientGuard && Auth::user()?->hasPermission('meetings.join'))
                         @if ($conversation->type == 'private' && $receiver)
-                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
-                                type="button"
+                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" type="button"
                                 title="Audio Call"
                                 onclick="initiateDirectCall({{ $receiver->id }}, 'audio', '{{ addslashes($receiver->name) }}', {{ $conversation->id }})"
                                 style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
                                 <i class="fas fa-phone-alt" style="font-size: 0.85rem;"></i>
                             </button>
 
-                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" 
-                                type="button"
+                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" type="button"
                                 title="Video Call"
                                 onclick="initiateDirectCall({{ $receiver->id }}, 'video', '{{ addslashes($receiver->name) }}', {{ $conversation->id }})"
                                 style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
                                 <i class="fas fa-video" style="font-size: 0.85rem;"></i>
                             </button>
                         @elseif ($conversation->type == 'group' || $conversation->type == 'client_group')
-                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" 
-                                type="button"
+                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-success" type="button"
                                 title="Group Audio Call"
                                 onclick="initiateGroupCall({{ $conversation->id }}, 'audio', '{{ addslashes($conversation->name ?? 'Group') }}')"
                                 style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
                                 <i class="fas fa-phone-alt" style="font-size: 0.85rem;"></i>
                             </button>
 
-                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" 
-                                type="button"
+                            <button class="btn-premium btn-premium-secondary p-0 rounded-circle text-primary" type="button"
                                 title="Group Video Call"
                                 onclick="initiateGroupCall({{ $conversation->id }}, 'video', '{{ addslashes($conversation->name ?? 'Group') }}')"
                                 style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border: 1px solid var(--border-main);">
@@ -1132,7 +1171,7 @@ new class extends Component {
                         <input type="text" wire:model.live="searchQuery" class="form-premium-control ps-5 py-1"
                             placeholder="Search message..." style="font-size: 0.8rem;">
                     </div>
-                    
+
                     <div class="dropdown">
                         <button class="btn-premium btn-premium-secondary p-0 rounded-circle" type="button"
                             data-bs-toggle="dropdown"
@@ -1158,7 +1197,8 @@ new class extends Component {
                             @if ($conversation->type != 'private')
                                 <li>
                                     <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
-                                        wire:click.prevent="$dispatch('openEditGroupModal', { conversationId: {{ $conversation->id }} })" style="color: var(--text-high);">
+                                        wire:click.prevent="$dispatch('openEditGroupModal', { conversationId: {{ $conversation->id }} })"
+                                        style="color: var(--text-high);">
                                         <i class="fas fa-edit" style="font-size: 0.8rem;"></i> <span>Edit Group</span>
                                     </a>
                                 </li>
@@ -1171,22 +1211,21 @@ new class extends Component {
                                 </li>
                             @endif
                             @if (!$isClientGuard)
-                            <li>
-                                @if ($isBlocked)
-                                    <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
-                                        wire:click.prevent="unblockUser" style="color: var(--text-high);">
-                                        <i class="fas fa-user-check" style="font-size: 0.8rem;"></i> <span>Unblock
-                                            User</span>
-                                    </a>
-                                @else
-                                    <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
-                                        wire:click.prevent="blockUser"
-                                        wire:confirm="Are you sure you want to block this user?"
-                                        style="color: var(--text-high);">
-                                        <i class="fas fa-user-slash" style="font-size: 0.8rem;"></i> <span>Block User</span>
-                                    </a>
-                                @endif
-                            </li>
+                                <li>
+                                    @if ($isBlocked)
+                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                            wire:click.prevent="unblockUser" style="color: var(--text-high);">
+                                            <i class="fas fa-user-check" style="font-size: 0.8rem;"></i> <span>Unblock
+                                                User</span>
+                                        </a>
+                                    @else
+                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#"
+                                            wire:click.prevent="blockUser" wire:confirm="Are you sure you want to block this user?"
+                                            style="color: var(--text-high);">
+                                            <i class="fas fa-user-slash" style="font-size: 0.8rem;"></i> <span>Block User</span>
+                                        </a>
+                                    @endif
+                                </li>
                             @endif
                         </ul>
                     </div>
@@ -1194,11 +1233,17 @@ new class extends Component {
             </div>
 
             <!-- Mobile Search Bar Sub-Header Row -->
-            <div x-show="openMobileSearch" x-cloak class="p-2 border-bottom border-main shadow-sm d-md-none" style="background: var(--bg-surface);">
+            <div x-show="openMobileSearch" x-cloak class="p-2 border-bottom border-main shadow-sm d-md-none"
+                style="background: var(--bg-surface);">
                 <div class="search-container-premium w-100 position-relative">
-                    <i class="fas fa-search search-icon-premium" style="font-size: 0.8rem; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-low);"></i>
-                    <input type="text" x-ref="mobileSearchInput" wire:model.live="searchQuery" class="form-premium-control ps-5 py-1 pe-5" placeholder="Search message..." style="font-size: 0.85rem; width: 100%;">
-                    <button type="button" class="btn btn-sm text-low position-absolute end-0 top-50 translate-middle-y me-2 p-0 border-0 bg-transparent" @click="openMobileSearch = false; $wire.set('searchQuery', '')">
+                    <i class="fas fa-search search-icon-premium"
+                        style="font-size: 0.8rem; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-low);"></i>
+                    <input type="text" x-ref="mobileSearchInput" wire:model.live="searchQuery"
+                        class="form-premium-control ps-5 py-1 pe-5" placeholder="Search message..."
+                        style="font-size: 0.85rem; width: 100%;">
+                    <button type="button"
+                        class="btn btn-sm text-low position-absolute end-0 top-50 translate-middle-y me-2 p-0 border-0 bg-transparent"
+                        @click="openMobileSearch = false; $wire.set('searchQuery', '')">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -1206,12 +1251,12 @@ new class extends Component {
         </div>
         <!-- Messages Area -->
         <div class="flex-grow-1 p-3 overflow-auto" id="chat-messages"
-            style="scroll-behavior: smooth; background: transparent; min-height: 0;" wire:key="chat-messages-{{ $conversation->id }}"
-            x-data="chatMessages(@this, {
-                conversationId: '{{ $conversation->id }}',
-                userId: {{ $authId ?? 'null' }},
-                receiverId: {{ $receiver ? $receiver->id : 'null' }}
-            })">
+            style="scroll-behavior: smooth; background: transparent; min-height: 0;"
+            wire:key="chat-messages-{{ $conversation->id }}" x-data="chatMessages(@this, {
+                        conversationId: '{{ $conversation->id }}',
+                        userId: {{ $authId ?? 'null' }},
+                        receiverId: {{ $receiver ? $receiver->id : 'null' }}
+                    })">
 
             @if ($isBlocked)
                 <div class="alert alert-danger text-center mx-4 mt-3"
@@ -1230,19 +1275,19 @@ new class extends Component {
                     // Handle both array (from toArray()) and object (from persistent collection) if mixed
                     $isClientGuard = \Illuminate\Support\Facades\Auth::guard('client')->check();
                     $myGuardId = $isClientGuard ? \Illuminate\Support\Facades\Auth::guard('client')->id() : auth()->id();
-                    
+
                     $msgUserId = is_array($message) ? ($message['user_id'] ?? null) : $message->user_id;
                     $msgClientId = is_array($message) ? ($message['client_id'] ?? null) : $message->client_id;
-                    
+
                     $isMe = $isClientGuard ? ($msgClientId == $myGuardId) : ($msgUserId == $myGuardId);
-                    
+
                     $msgBody = is_array($message) ? $message['body'] : $message->body;
-                    
+
                     // msgUser can be either staff (user) or client (client)
-                    $msgUser = is_array($message) 
-                        ? ($message['user'] ?? $message['client'] ?? null) 
+                    $msgUser = is_array($message)
+                        ? ($message['user'] ?? $message['client'] ?? null)
                         : ($message->user ?? $message->client ?? null);
-                        
+
                     $msgAttachments = is_array($message) ? ($message['attachments'] ?? []) : $message->attachments;
                     $createdAt = is_array($message) ? $message['created_at'] : $message->created_at;
                     $isRead = is_array($message) ? ($message['is_read'] ?? false) : $message->is_read;
@@ -1290,9 +1335,11 @@ new class extends Component {
                                             style="width: 20px; height: 20px; background: rgba(0,0,0,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-premium border-main p-1" style="background: var(--bg-surface); min-width: 150px; z-index: 1050;">
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-premium border-main p-1"
+                                            style="background: var(--bg-surface); min-width: 150px; z-index: 1050;">
                                             <li>
-                                                <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-high" type="button" wire:click="setReplyTo({{ $msgId }})">
+                                                <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-high"
+                                                    type="button" wire:click="setReplyTo({{ $msgId }})">
                                                     <i class="fas fa-reply text-success" style="font-size: 0.85rem;"></i>
                                                     <span>Reply</span>
                                                 </button>
@@ -1305,7 +1352,8 @@ new class extends Component {
                                                         $attName = is_array($attItem) ? $attItem['file_name'] ?? '' : $attItem->file_name;
                                                     @endphp
                                                     <li>
-                                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-high" href="{{ asset('storage/' . $attPath) }}" download="{{ $attName }}">
+                                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-high"
+                                                            href="{{ asset('storage/' . $attPath) }}" download="{{ $attName }}">
                                                             <i class="fas fa-download text-info" style="font-size: 0.85rem;"></i>
                                                             <span>Download</span>
                                                         </a>
@@ -1313,15 +1361,20 @@ new class extends Component {
                                                 @endforeach
                                             @endif
                                             <li>
-                                                <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-high" type="button" wire:click="openForwardModal({{ $msgId }})">
+                                                <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-high"
+                                                    type="button" wire:click="openForwardModal({{ $msgId }})">
                                                     <i class="fas fa-share text-primary" style="font-size: 0.85rem;"></i>
                                                     <span>Forward</span>
                                                 </button>
                                             </li>
                                             @if ($isMe)
-                                                <li><hr class="dropdown-divider border-main my-1"></li>
                                                 <li>
-                                                    <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" type="button" wire:click="deleteMessage({{ $msgId }})" wire:confirm="Are you sure you want to delete this message?">
+                                                    <hr class="dropdown-divider border-main my-1">
+                                                </li>
+                                                <li>
+                                                    <button class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger"
+                                                        type="button" wire:click="deleteMessage({{ $msgId }})"
+                                                        wire:confirm="Are you sure you want to delete this message?">
                                                         <i class="fas fa-trash-alt" style="font-size: 0.85rem;"></i>
                                                         <span>Delete</span>
                                                     </button>
@@ -1331,15 +1384,16 @@ new class extends Component {
                                     </div>
 
                                     @if ($isForwarded)
-                                        <div class="fst-italic mb-1 d-flex align-items-center gap-1" style="font-size: 0.72rem; opacity: 0.8;">
+                                        <div class="fst-italic mb-1 d-flex align-items-center gap-1"
+                                            style="font-size: 0.72rem; opacity: 0.8;">
                                             <i class="fas fa-share" style="font-size: 0.65rem;"></i> Forwarded
                                         </div>
                                     @endif
 
                                     @if ($replyTo)
                                         @php
-                                            $replySender = is_array($replyTo) 
-                                                ? ($replyTo['user']['name'] ?? $replyTo['client']['name'] ?? 'User') 
+                                            $replySender = is_array($replyTo)
+                                                ? ($replyTo['user']['name'] ?? $replyTo['client']['name'] ?? 'User')
                                                 : ($replyTo->user->name ?? $replyTo->client->name ?? 'User');
                                             $replyBody = is_array($replyTo) ? $replyTo['body'] : $replyTo->body;
                                         @endphp
@@ -1364,15 +1418,14 @@ new class extends Component {
                                             @endphp
                                             @if (str_starts_with($fileType, 'image/'))
                                                 <div class="position-relative d-inline-block group-hover-show-download mb-2">
-                                                    <img alt="team-tasker" src="{{ asset('storage/' . $filePath) }}"
-                                                        class="img-fluid rounded" style="max-height: 200px;">
-                                                    
+                                                    <img alt="team-tasker" src="{{ asset('storage/' . $filePath) }}" class="img-fluid rounded"
+                                                        style="max-height: 200px;">
+
                                                 </div>
                                             @else
                                                 <div class="d-flex align-items-center mb-2 pe-4">
                                                     <a href="{{ asset('storage/' . $filePath) }}" target="_blank" rel="noopener noreferrer"
-                                                        class="text-decoration-none"
-                                                        style="color: {{ $isMe ? 'white' : 'var(--text-main)' }};">
+                                                        class="text-decoration-none" style="color: {{ $isMe ? 'white' : 'var(--text-main)' }};">
                                                         <i class="fas fa-file me-1"></i> {{ $fileName }}
                                                     </a>
                                                 </div>
@@ -1406,14 +1459,14 @@ new class extends Component {
                                     $groupedReactions = array_count_values(array_values($reactions));
                                 @endphp
                                 @foreach ($groupedReactions as $emojiVal => $countVal)
-                                    <span class="badge rounded-pill bg-dark border border-secondary px-2 py-1" style="font-size: 0.7rem; color: #fff;">
+                                    <span class="badge rounded-pill bg-dark border border-secondary px-2 py-1"
+                                        style="font-size: 0.7rem; color: #fff;">
                                         {{ $emojiVal }} {{ $countVal > 1 ? $countVal : '' }}
                                     </span>
                                 @endforeach
                             </div>
                         @endif
-                        <div class="d-flex align-items-center gap-2 mt-1"
-                            style="font-size: 0.65rem; color: var(--text-low);">
+                        <div class="d-flex align-items-center gap-2 mt-1" style="font-size: 0.65rem; color: var(--text-low);">
                             <span>{{ \Carbon\Carbon::parse($createdAt)->format('H:i') }}</span>
                             @if ($msgDeviceType === 'mobile')
                                 <i class="fas fa-mobile-alt" title="Sent from mobile" style="font-size: 0.72rem;"></i>
@@ -1433,74 +1486,84 @@ new class extends Component {
             @endforeach
 
             <!-- Typing Indicator -->
-            <div x-show="isTyping" x-transition class="ms-5 mb-3"
-                style="color: var(--text-low); font-size: 0.75rem;">
+            <div x-show="isTyping" x-transition class="ms-5 mb-3" style="color: var(--text-low); font-size: 0.75rem;">
                 <span class="fw-bold" x-text="typingUser"></span> <span class="fst-italic">is typing...</span>
             </div>
         </div>
 
         <!-- Input Area -->
         <div class="p-3 pb-4 pb-md-3 border-top border-main" wire:key="chat-input-{{ $conversation->id }}"
-            style="background: var(--bg-surface);"
-            x-data="{
-                uploadProgress: 0,
-                isUploading: false,
-                async uploadFile(event) {
-                    const file = event.target.files[0];
-                    if(!file) return;
-                    
-                    this.isUploading = true;
-                    this.uploadProgress = 0;
-                    
-                    const chunkSize = 2 * 1024 * 1024; // 2MB
-                    const totalChunks = Math.ceil(file.size / chunkSize);
-                    const fileId = Date.now() + '-' + Math.floor(Math.random() * 1000);
-                    
-                    for (let i = 0; i < totalChunks; i++) {
-                        const start = i * chunkSize;
-                        const end = Math.min(start + chunkSize, file.size);
-                        const chunk = file.slice(start, end);
-                        
-                        const formData = new FormData();
-                        formData.append('file', chunk);
-                        formData.append('chunkIndex', i);
-                        formData.append('totalChunks', totalChunks);
-                        formData.append('fileName', file.name);
-                        formData.append('fileId', fileId);
-                        formData.append('mimeType', file.type || 'application/octet-stream');
-                        
-                        let token = document.querySelector('meta[name=\'csrf-token\']');
-                        if (token) {
-                            formData.append('_token', token.content);
-                        } else {
-                            formData.append('_token', '{{ csrf_token() }}');
-                        }
-                        
-                        try {
-                            const response = await fetch('{{ route('upload.chunk') }}', {
-                                method: 'POST',
-                                body: formData
-                            });
-                            const data = await response.json();
-                            
-                            this.uploadProgress = Math.round(((i + 1) / totalChunks) * 100);
-                            
-                            if (data.status === 'completed') {
-                                @this.set('attachment', data);
-                                this.isUploading = false;
-                                event.target.value = '';
-                                break;
+            style="background: var(--bg-surface);" x-data="{
+                        uploadProgress: 0,
+                        isUploading: false,
+                        uploadStatusText: '',
+                        async uploadSingleFile(file) {
+                            const chunkSize = 2 * 1024 * 1024; // 2MB
+                            const totalChunks = Math.ceil(file.size / chunkSize);
+                            const fileId = Date.now() + '-' + Math.floor(Math.random() * 1000);
+
+                            for (let i = 0; i < totalChunks; i++) {
+                                const start = i * chunkSize;
+                                const end = Math.min(start + chunkSize, file.size);
+                                const chunk = file.slice(start, end);
+
+                                const formData = new FormData();
+                                formData.append('file', chunk);
+                                formData.append('chunkIndex', i);
+                                formData.append('totalChunks', totalChunks);
+                                formData.append('fileName', file.name);
+                                formData.append('fileId', fileId);
+                                formData.append('mimeType', file.type || 'application/octet-stream');
+
+                                let token = document.querySelector('meta[name=\'csrf-token\']');
+                                if (token) {
+                                    formData.append('_token', token.content);
+                                } else {
+                                    formData.append('_token', '{{ csrf_token() }}');
+                                }
+
+                                const response = await fetch('{{ route('upload.chunk') }}', {
+                                    method: 'POST',
+                                    body: formData
+                                });
+                                const data = await response.json();
+
+                                if (data.status === 'completed') {
+                                    return data;
+                                }
                             }
-                        } catch (e) {
-                            console.error(e);
-                            this.isUploading = false;
-                            alert('Upload failed!');
-                            event.target.value = '';
-                            break;
+                            return null;
+                        },
+                        async uploadFile(event) {
+                            const files = Array.from(event.target.files || []);
+                            if (!files.length) return;
+
+                            this.isUploading = true;
+                            this.uploadProgress = 0;
+
+                            try {
+                                for (let fIndex = 0; fIndex < files.length; fIndex++) {
+                                    const currentFile = files[fIndex];
+                                    this.uploadStatusText = `Uploading ${fIndex + 1} of ${files.length}: ${currentFile.name}`;
+                                    
+                                    const completedData = await this.uploadSingleFile(currentFile);
+                                    if (completedData) {
+                                        await @this.call('addUploadedAttachment', completedData);
+                                    }
+                                    
+                                    this.uploadProgress = Math.round(((fIndex + 1) / files.length) * 100);
+                                }
+                            } catch (e) {
+                                console.error(e);
+                                alert('One or more files failed to upload.');
+                            } finally {
+                                this.isUploading = false;
+                                this.uploadProgress = 0;
+                                this.uploadStatusText = '';
+                                event.target.value = '';
+                            }
                         }
-                    }
-                }
-            }">
+                    }">
             @if ($isBlocked || $isBlockedBy)
                 <div class="text-center py-3 text-low" style="font-size: 0.85rem;">
                     <i class="fas fa-lock me-2"></i> Chat is disabled.
@@ -1523,35 +1586,39 @@ new class extends Component {
                     </div>
                 @endif
 
-                @if ($attachment)
+                @php
+                    $displayFiles = [];
+                    if (!empty($attachments) && is_array($attachments)) {
+                        $displayFiles = $attachments;
+                    } elseif (!empty($attachment)) {
+                        $displayFiles = is_array($attachment) && isset($attachment['path']) ? [$attachment] : (is_array($attachment) ? $attachment : [$attachment]);
+                    }
+                @endphp
+
+                @if (!empty($displayFiles))
                     <div class="chat-media-preview d-flex flex-wrap gap-2 mb-3 p-2 border-main rounded-premium"
                         style="background: var(--bg-input);">
-                        @php
-                            if (is_array($attachment) && isset($attachment['path'])) {
-                                $files = [$attachment];
-                            } else {
-                                $files = is_array($attachment) ? $attachment : [$attachment];
-                            }
-                        @endphp
-                        @foreach ($files as $file)
+                        @foreach ($displayFiles as $index => $file)
                             <div class="position-relative d-inline-block border-main rounded-premium"
                                 style="width: 70px; height: 70px; background: var(--bg-surface); overflow: hidden;">
                                 @if (is_object($file) && method_exists($file, 'temporaryUrl') && str_starts_with($file->getMimeType(), 'image/'))
                                     <img alt="team-tasker" src="{{ $file->temporaryUrl() }}"
                                         style="width: 100%; height: 100%; object-fit: cover;">
                                 @elseif(is_array($file) && isset($file['url']) && str_starts_with($file['mime_type'] ?? '', 'image/'))
-                                    <img alt="team-tasker" src="{{ $file['url'] }}"
-                                        style="width: 100%; height: 100%; object-fit: cover;">
+                                    <img alt="team-tasker" src="{{ $file['url'] }}" style="width: 100%; height: 100%; object-fit: cover;">
                                 @else
-                                    <div class="d-flex align-items-center justify-content-center h-100 w-100">
-                                        <i class="fas fa-file-alt fa-lg text-low"></i>
+                                    <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100 p-1 text-center">
+                                        <i class="fas fa-file-alt fa-lg text-low mb-1"></i>
+                                        <span class="text-low" style="font-size: 0.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60px;">
+                                            {{ is_array($file) ? ($file['original_name'] ?? 'File') : (is_object($file) ? $file->getClientOriginalName() : 'File') }}
+                                        </span>
                                     </div>
                                 @endif
 
                                 <button type="button"
                                     class="btn-premium btn-premium-secondary p-0 rounded-circle position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center shadow-premium"
                                     style="width: 20px; height: 20px; background: var(--bg-surface); font-size: 0.6rem;"
-                                    wire:click="$set('attachment', null)">
+                                    wire:click="removeAttachment({{ $index }})">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
@@ -1561,18 +1628,25 @@ new class extends Component {
 
                 <form wire:submit.prevent="sendMessage">
                     <!-- Progress Bar -->
-                    <div x-show="isUploading" style="display: none;" class="progress mb-2" style="height: 5px; border-radius: 5px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" :style="'width: ' + uploadProgress + '%'"></div>
+                    <div x-show="isUploading" style="display: none;" class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-low small" x-text="uploadStatusText || 'Uploading...'" style="font-size: 0.72rem;"></span>
+                            <span class="text-high small fw-bold" x-text="uploadProgress + '%'" style="font-size: 0.72rem;"></span>
+                        </div>
+                        <div class="progress" style="height: 5px; border-radius: 5px; background: var(--bg-input);">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar"
+                                :style="'width: ' + uploadProgress + '%'"></div>
+                        </div>
                     </div>
-                    
+
                     <div class="d-flex align-items-end gap-2">
                         <div class="flex-grow-1 position-relative" style="min-width: 0;">
                             <div wire:ignore wire:key="editor-{{ $conversation->id }}" x-data="chatEditor(@this, {
-                                editorId: 'message-editor-{{ $conversation->id }}',
-                                conversationId: '{{ $conversation->id }}',
-                                userId: {{ $authId ?? 'null' }},
-                                userName: '{{ addslashes($authName) }}'
-                            })">
+                                                editorId: 'message-editor-{{ $conversation->id }}',
+                                                conversationId: '{{ $conversation->id }}',
+                                                userId: {{ $authId ?? 'null' }},
+                                                userName: '{{ addslashes($authName) }}'
+                                            })">
                                 <textarea id="message-editor-{{ $conversation->id }}" class="form-premium-control py-3" rows="1"
                                     style="resize: none; min-height: 52px;" placeholder="Type a message..."></textarea>
                             </div>
@@ -1582,7 +1656,7 @@ new class extends Component {
                                 <label class="btn btn-link text-low p-1 mb-0 hover-text-high" style="cursor: pointer;"
                                     title="Attach file">
                                     <i class="fas fa-paperclip"></i>
-                                    <input type="file" @change="uploadFile" class="d-none" :disabled="isUploading">
+                                    <input type="file" @change="uploadFile" class="d-none" :disabled="isUploading" multiple>
                                 </label>
 
                                 <div class="position-relative" x-data="{ showEmojiPicker: false }"
@@ -1598,21 +1672,20 @@ new class extends Component {
                                         <emoji-picker
                                             data-source="https://cdn.jsdelivr.net/npm/emoji-picker-element-data@1/en/emojibase/data.json"
                                             @emoji-click="
-                                                let editor = tinymce.get('message-editor-{{ $conversation->id }}');
-                                                if(editor) {
-                                                    editor.insertContent($event.detail.unicode);
-                                                }
-                                                showEmojiPicker = false;
-                                            "
-                                            style="width: 100%; height: 100%; 
-                                            --background: var(--bg-surface); 
-                                            --border-color: var(--border-main);
-                                            --input-border-color: var(--border-subtle);
-                                            --input-font-color: var(--text-high);
-                                            --button-hover-background: var(--bg-input);
-                                            --category-font-color: var(--text-low);
-                                            --indicator-color: var(--primary);
-                                            --emoji-font-family: 'Outfit', sans-serif;">
+                                                                let editor = tinymce.get('message-editor-{{ $conversation->id }}');
+                                                                if(editor) {
+                                                                    editor.insertContent($event.detail.unicode);
+                                                                }
+                                                                showEmojiPicker = false;
+                                                            " style="width: 100%; height: 100%; 
+                                                            --background: var(--bg-surface); 
+                                                            --border-color: var(--border-main);
+                                                            --input-border-color: var(--border-subtle);
+                                                            --input-font-color: var(--text-high);
+                                                            --button-hover-background: var(--bg-input);
+                                                            --category-font-color: var(--text-low);
+                                                            --indicator-color: var(--primary);
+                                                            --emoji-font-family: 'Outfit', sans-serif;">
                                         </emoji-picker>
                                     </div>
                                 </div>
@@ -1621,19 +1694,18 @@ new class extends Component {
 
                         <button type="button"
                             class="btn-premium btn-premium-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                            style="width: 52px; height: 52px;"
-                            @click="
-                                let editor = tinymce.get('message-editor-{{ $conversation->id }}');
-                                if(editor) {
-                                    let content = editor.getContent();
-                                    const hasAttachment = document.querySelector('.chat-media-preview') !== null;
-                                    if ((content && content.trim() !== '') || hasAttachment) {
-                                        const isMobileClient = window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                                        $wire.sendMessage(content, isMobileClient ? 'mobile' : 'desktop');
-                                        editor.resetContent();
-                                    }
-                                }
-                            ">
+                            style="width: 52px; height: 52px;" @click="
+                                                let editor = tinymce.get('message-editor-{{ $conversation->id }}');
+                                                if(editor) {
+                                                    let content = editor.getContent();
+                                                    const hasAttachment = document.querySelector('.chat-media-preview') !== null;
+                                                    if ((content && content.trim() !== '') || hasAttachment) {
+                                                        const isMobileClient = window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                                                        $wire.sendMessage(content, isMobileClient ? 'mobile' : 'desktop');
+                                                        editor.resetContent();
+                                                    }
+                                                }
+                                            ">
                             <i class="fas fa-paper-plane" style="font-size: 1.1rem;"></i>
                         </button>
                     </div>
@@ -1682,7 +1754,8 @@ new class extends Component {
                     </span>
                 </div>
 
-                <div class="heading-label mb-2 d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
+                <div class="heading-label mb-2 d-flex justify-content-between align-items-center"
+                    style="font-size: 0.7rem;">
                     <span>Participants ({{ $totalMembers }})</span>
                     <span style="font-size: 0.65rem; color: var(--text-low); text-transform: none;">Click to chat</span>
                 </div>
@@ -1692,13 +1765,13 @@ new class extends Component {
                             $isMe = (!$isClientGuard && $participant->id == $authId);
                         @endphp
                         <div class="d-flex align-items-center justify-content-between p-2 rounded-premium transition-base hover-bg-input cursor-pointer"
-                            wire:click="openDirectChatWith({{ $participant->id }}, false)"
-                            style="cursor: pointer;"
+                            wire:click="openDirectChatWith({{ $participant->id }}, false)" style="cursor: pointer;"
                             title="{{ $isMe ? 'Message yourself' : 'Send direct chat to ' . $participant->name }}">
                             <div class="d-flex align-items-center overflow-hidden">
                                 <div class="avatar-premium flex-shrink-0" style="width: 38px; height: 38px;">
                                     @if ($participant->profile_image)
-                                        <img alt="team-tasker" src="{{ asset('storage/' . $participant->profile_image) }}" alt="Avatar">
+                                        <img alt="team-tasker" src="{{ asset('storage/' . $participant->profile_image) }}"
+                                            alt="Avatar">
                                     @else
                                         {{ substr($participant->name, 0, 1) }}
                                     @endif
@@ -1708,7 +1781,8 @@ new class extends Component {
                                         style="color: var(--text-high); font-size: 0.85rem;">
                                         <span>{{ $participant->name }}</span>
                                         @if ($isMe)
-                                            <span class="badge bg-secondary-subtle text-secondary py-0 px-1" style="font-size: 0.65rem;">You</span>
+                                            <span class="badge bg-secondary-subtle text-secondary py-0 px-1"
+                                                style="font-size: 0.65rem;">You</span>
                                         @endif
                                     </div>
                                     <div class="text-truncate" style="color: var(--text-low); font-size: 0.72rem;">
@@ -1716,7 +1790,8 @@ new class extends Component {
                                     </div>
                                 </div>
                             </div>
-                            <button class="btn btn-sm btn-link p-1 text-primary opacity-75 hover-opacity-100" style="border: none;" title="Send direct chat">
+                            <button class="btn btn-sm btn-link p-1 text-primary opacity-75 hover-opacity-100"
+                                style="border: none;" title="Send direct chat">
                                 <i class="fas fa-comment-dots" style="font-size: 0.95rem;"></i>
                             </button>
                         </div>
@@ -1727,13 +1802,13 @@ new class extends Component {
                             $isMe = ($isClientGuard && $participant->id == $authId);
                         @endphp
                         <div class="d-flex align-items-center justify-content-between p-2 rounded-premium transition-base hover-bg-input cursor-pointer"
-                            wire:click="openDirectChatWith({{ $participant->id }}, true)"
-                            style="cursor: pointer;"
+                            wire:click="openDirectChatWith({{ $participant->id }}, true)" style="cursor: pointer;"
                             title="{{ $isMe ? 'Message yourself' : 'Send direct chat to ' . $participant->name }}">
                             <div class="d-flex align-items-center overflow-hidden">
                                 <div class="avatar-premium flex-shrink-0" style="width: 38px; height: 38px;">
                                     @if ($participant->profile_image)
-                                        <img alt="team-tasker" src="{{ asset('storage/' . $participant->profile_image) }}" alt="Avatar">
+                                        <img alt="team-tasker" src="{{ asset('storage/' . $participant->profile_image) }}"
+                                            alt="Avatar">
                                     @else
                                         {{ substr($participant->name, 0, 1) }}
                                     @endif
@@ -1742,9 +1817,11 @@ new class extends Component {
                                     <div class="fw-bold text-truncate d-flex align-items-center gap-1"
                                         style="color: var(--text-high); font-size: 0.85rem;">
                                         <span>{{ $participant->name }}</span>
-                                        <span class="badge bg-info-subtle text-info py-0 px-1" style="font-size: 0.65rem;">Client</span>
+                                        <span class="badge bg-info-subtle text-info py-0 px-1"
+                                            style="font-size: 0.65rem;">Client</span>
                                         @if ($isMe)
-                                            <span class="badge bg-secondary-subtle text-secondary py-0 px-1" style="font-size: 0.65rem;">You</span>
+                                            <span class="badge bg-secondary-subtle text-secondary py-0 px-1"
+                                                style="font-size: 0.65rem;">You</span>
                                         @endif
                                     </div>
                                     <div class="text-truncate" style="color: var(--text-low); font-size: 0.72rem;">
@@ -1752,7 +1829,8 @@ new class extends Component {
                                     </div>
                                 </div>
                             </div>
-                            <button class="btn btn-sm btn-link p-1 text-primary opacity-75 hover-opacity-100" style="border: none;" title="Send direct chat">
+                            <button class="btn btn-sm btn-link p-1 text-primary opacity-75 hover-opacity-100"
+                                style="border: none;" title="Send direct chat">
                                 <i class="fas fa-comment-dots" style="font-size: 0.95rem;"></i>
                             </button>
                         </div>
@@ -1779,22 +1857,23 @@ new class extends Component {
                         <!-- User Search Input -->
                         <div class="search-container-premium mb-3" style="width: 100%;">
                             <i class="fas fa-search search-icon-premium" style="font-size: 0.85rem;"></i>
-                            <input type="text" wire:model.live="forwardSearchQuery" class="form-premium-control ps-5 py-2 w-100"
-                                placeholder="Search users or groups..." style="font-size: 0.85rem;">
+                            <input type="text" wire:model.live="forwardSearchQuery"
+                                class="form-premium-control ps-5 py-2 w-100" placeholder="Search users or groups..."
+                                style="font-size: 0.85rem;">
                         </div>
 
                         @php
-                            $filteredConversations = array_values(array_filter($userConversationsList, function($item) {
-                                if (empty($this->forwardSearchQuery)) return true;
+                            $filteredConversations = array_values(array_filter($userConversationsList, function ($item) {
+                                if (empty($this->forwardSearchQuery))
+                                    return true;
                                 return stripos($item['name'], $this->forwardSearchQuery) !== false;
                             }));
                             $totalFiltered = count($filteredConversations);
                             $paginatedConversations = array_slice($filteredConversations, 0, $this->forwardLimit);
                         @endphp
 
-                        <div class="d-flex flex-column gap-2 overflow-auto" 
-                             style="max-height: 320px;"
-                             x-on:scroll.debounce.150ms="if ($el.scrollTop + $el.clientHeight >= $el.scrollHeight - 20) { $wire.loadMoreForwardList(); }">
+                        <div class="d-flex flex-column gap-2 overflow-auto" style="max-height: 320px;"
+                            x-on:scroll.debounce.150ms="if ($el.scrollTop + $el.clientHeight >= $el.scrollHeight - 20) { $wire.loadMoreForwardList(); }">
                             @if (empty($paginatedConversations))
                                 <div class="text-center text-low py-4">
                                     <i class="fas fa-user-slash fa-2x mb-2 opacity-50"></i>
@@ -1802,12 +1881,15 @@ new class extends Component {
                                 </div>
                             @else
                                 @foreach ($paginatedConversations as $convItem)
-                                    <div class="d-flex align-items-center justify-content-between p-2 rounded-premium border-main hover-bg-input">
+                                    <div
+                                        class="d-flex align-items-center justify-content-between p-2 rounded-premium border-main hover-bg-input">
                                         <div class="d-flex align-items-center gap-2">
-                                            <div class="avatar-premium" style="width: 34px; height: 34px; font-size: 0.8rem; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
+                                            <div class="avatar-premium"
+                                                style="width: 34px; height: 34px; font-size: 0.8rem; background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
                                                 <i class="fas {{ $convItem['type'] === 'private' ? 'fa-user' : 'fa-users' }}"></i>
                                             </div>
-                                            <span class="fw-semibold text-high" style="font-size: 0.88rem;">{{ $convItem['name'] }}</span>
+                                            <span class="fw-semibold text-high"
+                                                style="font-size: 0.88rem;">{{ $convItem['name'] }}</span>
                                         </div>
                                         <button type="button" class="btn btn-primary btn-sm px-3 rounded-pill"
                                             wire:click="forwardMessageTo('{{ $convItem['id'] }}')">
@@ -1818,7 +1900,8 @@ new class extends Component {
 
                                 @if (count($paginatedConversations) < $totalFiltered)
                                     <div class="text-center py-2">
-                                        <button type="button" wire:click="loadMoreForwardList" class="btn btn-sm btn-link text-decoration-none" style="color: var(--primary);">
+                                        <button type="button" wire:click="loadMoreForwardList"
+                                            class="btn btn-sm btn-link text-decoration-none" style="color: var(--primary);">
                                             Load More ({{ $totalFiltered - count($paginatedConversations) }} remaining)
                                         </button>
                                     </div>
@@ -1877,13 +1960,16 @@ new class extends Component {
         #chat-messages::-webkit-scrollbar {
             width: 6px;
         }
+
         #chat-messages::-webkit-scrollbar-track {
             background: transparent;
         }
+
         #chat-messages::-webkit-scrollbar-thumb {
             background-color: rgba(156, 163, 175, 0.3);
             border-radius: 10px;
         }
+
         #chat-messages::-webkit-scrollbar-thumb:hover {
             background-color: rgba(156, 163, 175, 0.5);
         }

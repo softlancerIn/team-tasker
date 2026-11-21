@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'role_id',
         'is_approved',
+        'is_payable',
         'profile_image',
         'phone',
         'company',
@@ -68,6 +69,8 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
+        'is_payable' => 'boolean',
+        'is_approved' => 'boolean',
         'email_verified_at' => 'datetime',
         'last_seen_at' => 'datetime',
         'password' => 'hashed',
@@ -133,8 +136,21 @@ class User extends Authenticatable
     public function currentSalary(): HasOne
     {
         return $this->hasOne(EmployeeSalary::class)
-        ->where('is_active', true)
-        ->latestOfMany('effective_from');
+            ->ofMany([
+                'id' => 'max',
+            ], function ($query) {
+                $query->where('is_active', true);
+            });
+    }
+
+    public function payrolls(): HasMany
+    {
+        return $this->hasMany(Payroll::class);
+    }
+
+    public function attendanceRequests(): HasMany
+    {
+        return $this->hasMany(AttendanceRequest::class);
     }
 
     public function hasPermission($permission)
@@ -193,6 +209,11 @@ class User extends Authenticatable
         }
 
         return $roleSlug === $slug;
+    }
+
+    public function isSuperAdmin()
+    {
+        return $this->hasRole('super-admin');
     }
 
     // Relationships for Blocking
