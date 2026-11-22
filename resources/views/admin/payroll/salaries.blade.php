@@ -775,17 +775,21 @@ body.dark .sal-page .page-item.active .page-link {
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <!-- Odoo-style View Switcher -->
             <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('payroll.view') || Auth::user()->hasPermission('payroll.generate'))
                 <a href="{{ route('admin.payroll.index') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.index') && !request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
                     <i class="fas fa-file-invoice-dollar me-1"></i> Payroll Management
                 </a>
+                @endif
                 <a href="{{ route('admin.payroll.salaries') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
                     <i class="fas fa-wallet me-1"></i> Employee Salaries
                 </a>
             </div>
 
+            @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('users.view'))
             <a href="{{ route('admin.users.index') }}" class="btn-premium btn-premium-primary d-flex align-items-center gap-2 shadow-sm">
                 <i class="fas fa-users-cog"></i> Team Management
             </a>
+            @endif
         </div>
     </div>
 

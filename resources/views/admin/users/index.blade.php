@@ -8,9 +8,11 @@
             <h1 class="h3 fw-semibold mb-1 text-high">Team Management</h1>
             <p class="text-low mb-0" style="font-size: 0.9rem;">Manage internal staff and system users.</p>
         </div>
+        @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('users.create'))
         <button class="btn-premium btn-premium-primary px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
             <i class="fas fa-plus-circle me-1"></i> Add Team Member
         </button>
+        @endif
     </div>
 
     @if ($errors->any())

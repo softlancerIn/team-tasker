@@ -1,44 +1,43 @@
-
 {{-- resources/views/admin/payroll/index.blade.php --}}
 @php
-use Carbon\Carbon;
+    use Carbon\Carbon;
 
-$monthDate = Carbon::createFromFormat('!Y-m', $month);
-$prevMonth = $monthDate->copy()->subMonth()->format('Y-m');
-$nextMonth = $monthDate->copy()->addMonth()->format('Y-m');
-$lastDone = now()->subMonth()->format('Y-m');
+    $monthDate = Carbon::createFromFormat('!Y-m', $month);
+    $prevMonth = $monthDate->copy()->subMonth()->format('Y-m');
+    $nextMonth = $monthDate->copy()->addMonth()->format('Y-m');
+    $lastDone = now()->subMonth()->format('Y-m');
 
-$bulkMonth = $month <= $lastDone ? $month : $lastDone;
-$bulkLabel = Carbon::createFromFormat('!Y-m', $bulkMonth)->format('F Y');
-$activeStatus = request('status');
+    $bulkMonth = $month <= $lastDone ? $month : $lastDone;
+    $bulkLabel = Carbon::createFromFormat('!Y-m', $bulkMonth)->format('F Y');
+    $activeStatus = request('status');
 
-$statusMeta = [
-'draft'    => ['Draft', '#64748b', '#f1f5f9'],
-'pending'  => ['Pending approval', '#b45309', '#fef3c7'],
-'approved' => ['Approved', '#0369a1', '#e0f2fe'],
-'rejected' => ['Rejected', '#b91c1c', '#fee2e2'],
-'paid'     => ['Paid', '#15803d', '#dcfce7'],
-];
+    $statusMeta = [
+        'draft' => ['Draft', '#64748b', '#f1f5f9'],
+        'pending' => ['Pending approval', '#b45309', '#fef3c7'],
+        'approved' => ['Approved', '#0369a1', '#e0f2fe'],
+        'rejected' => ['Rejected', '#b91c1c', '#fee2e2'],
+        'paid' => ['Paid', '#15803d', '#dcfce7'],
+    ];
 
-$cards = [
-'total'    => ['Total'],
-'draft'    => ['Draft'],
-'pending'  => ['Pending'],
-'approved' => ['Approved'],
-'rejected' => ['Rejected'],
-'paid'     => ['Paid'],
-];
+    $cards = [
+        'total' => ['Total'],
+        'draft' => ['Draft'],
+        'pending' => ['Pending'],
+        'approved' => ['Approved'],
+        'rejected' => ['Rejected'],
+        'paid' => ['Paid'],
+    ];
 
-$netPayable = (float) ($stats['net_payable'] ?? 0);
-$netPaid = (float) ($stats['net_paid'] ?? 0);
-$paidPct = $netPayable > 0
-? min(100, round($netPaid / $netPayable * 100))
-: 0;
+    $netPayable = (float) ($stats['net_payable'] ?? 0);
+    $netPaid = (float) ($stats['net_paid'] ?? 0);
+    $paidPct = $netPayable > 0
+        ? min(100, round($netPaid / $netPayable * 100))
+        : 0;
 
-$hasBulk = Route::has('admin.payroll.bulk-generate');
-$hasDelete = Route::has('admin.payroll.destroy');
-$hasPayslip = Route::has('admin.payroll.payslip');
-$employees = $employees ?? collect();
+    $hasBulk = Route::has('admin.payroll.bulk-generate');
+    $hasDelete = Route::has('admin.payroll.destroy');
+    $hasPayslip = Route::has('admin.payroll.payslip');
+    $employees = $employees ?? collect();
 @endphp
 
 <x-admin>
@@ -377,7 +376,7 @@ $employees = $employees ?? collect();
                 gap: 12px;
             }
 
-            .pr-page .top-bar-premium > div:last-child {
+            .pr-page .top-bar-premium>div:last-child {
                 flex-wrap: wrap;
             }
 
@@ -403,7 +402,7 @@ $employees = $employees ?? collect();
         }
     </style>
 
-    <div class="container-fluid py-3 pr-page">
+    <div class="container-fluid pr-page">
 
         {{-- Header --}}
         <div class="top-bar-premium d-flex flex-wrap justify-content-between align-items-center gap-3">
@@ -416,73 +415,80 @@ $employees = $employees ?? collect();
 
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <!-- Odoo-style View Switcher -->
-                <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
-                    <a href="{{ route('admin.payroll.index') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.index') && !request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                <div class="btn-group p-1 rounded-pill"
+                    style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                    <a href="{{ route('admin.payroll.index') }}"
+                        class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.index') && !request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                        style="font-size: 0.8rem;">
                         <i class="fas fa-file-invoice-dollar me-1"></i> Payroll Management
                     </a>
-                    <a href="{{ route('admin.payroll.salaries') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
+                    @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('payroll.salary_view') || Auth::user()->hasPermission('payroll.salary_manage'))
+                    <a href="{{ route('admin.payroll.salaries') }}"
+                        class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.payroll.salaries*') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
+                        style="font-size: 0.8rem;">
                         <i class="fas fa-wallet me-1"></i> Employee Salaries
                     </a>
+                    @endif
                 </div>
 
                 <div class="month-nav">
                     <a href="{{ request()->fullUrlWithQuery(['month' => $prevMonth, 'page' => null]) }}"
-                       title="Previous month" aria-label="Previous month">&lsaquo;</a>
+                        title="Previous month" aria-label="Previous month">&lsaquo;</a>
                     <span>{{ $monthDate->format('F Y') }}</span>
                     <a href="{{ request()->fullUrlWithQuery(['month' => $nextMonth, 'page' => null]) }}"
-                       title="Next month" aria-label="Next month">&rsaquo;</a>
+                        title="Next month" aria-label="Next month">&rsaquo;</a>
                 </div>
             </div>
         </div>
 
-           {{-- Alerts --}}
-           @if(session('success'))
-           <div class="alert alert-success py-2 px-3 auto-dismiss">
-            {{ session('success') }}
-        </div>
+        {{-- Alerts --}}
+        @if(session('success'))
+            <div class="alert alert-success py-2 px-3 auto-dismiss">
+                {{ session('success') }}
+            </div>
         @endif
 
         @if(session('error'))
-        <div class="alert alert-danger py-2 px-3 auto-dismiss">
-            {{ session('error') }}
-        </div>
+            <div class="alert alert-danger py-2 px-3 auto-dismiss">
+                {{ session('error') }}
+            </div>
         @endif
 
         @if($errors->any())
-        <div class="alert alert-danger py-2 px-3">
-            <ul class="mb-0 ps-3">
-                @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
+            <div class="alert alert-danger py-2 px-3">
+                <ul class="mb-0 ps-3">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
         @endif
 
         {{-- Statistics --}}
         <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
             @foreach($cards as $key => $card)
-            @php
-            $isActive = ($key === 'total' && !$activeStatus)
-            || $key === $activeStatus;
-            @endphp
+                        @php
+                            $isActive = ($key === 'total' && !$activeStatus)
+                                || $key === $activeStatus;
+                        @endphp
 
-            <div class="col">
-                <a class="d-block h-100 text-decoration-none"
-                href="{{ request()->fullUrlWithQuery([
-                'status' => $key === 'total' ? null : $key,
-                'page' => null
+                        <div class="col">
+                            <a class="d-block h-100 text-decoration-none" href="{{ request()->fullUrlWithQuery([
+                    'status' => $key === 'total' ? null : $key,
+                    'page' => null
                 ]) }}">
-                    <div class="glass-card p-3 h-100 border-main {{ $isActive ? 'active-filter' : '' }}" style="{{ $isActive ? 'border-color: var(--primary) !important; background: rgba(var(--primary-rgb), 0.08) !important;' : '' }}">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-low d-block" style="font-size: 0.75rem;">{{ $card[0] }}</span>
-                            @if($isActive)
-                            <i class="fas fa-check-circle text-primary" style="font-size: 0.75rem;"></i>
-                            @endif
+                                <div class="glass-card p-3 h-100 border-main {{ $isActive ? 'active-filter' : '' }}"
+                                    style="{{ $isActive ? 'border-color: var(--primary) !important; background: rgba(var(--primary-rgb), 0.08) !important;' : '' }}">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-low d-block" style="font-size: 0.75rem;">{{ $card[0] }}</span>
+                                        @if($isActive)
+                                            <i class="fas fa-check-circle text-primary" style="font-size: 0.75rem;"></i>
+                                        @endif
+                                    </div>
+                                    <h4 class="fw-bold mb-0 text-high">{{ $stats[$key] ?? 0 }}</h4>
+                                </div>
+                            </a>
                         </div>
-                        <h4 class="fw-bold mb-0 text-high">{{ $stats[$key] ?? 0 }}</h4>
-                    </div>
-                </a>
-            </div>
             @endforeach
         </div>
 
@@ -491,14 +497,16 @@ $employees = $employees ?? collect();
             <div class="row g-3 align-items-center">
                 <div class="col-6 col-md-3">
                     <div class="money-box">
-                        <small class="text-low" style="font-size: 0.75rem; text-transform: uppercase;">Total Payable</small>
+                        <small class="text-low" style="font-size: 0.75rem; text-transform: uppercase;">Total
+                            Payable</small>
                         <b class="text-high fs-5 d-block mt-1">₹{{ number_format($netPayable, 2) }}</b>
                     </div>
                 </div>
 
                 <div class="col-6 col-md-3">
                     <div class="money-box">
-                        <small class="text-low" style="font-size: 0.75rem; text-transform: uppercase;">Paid So Far</small>
+                        <small class="text-low" style="font-size: 0.75rem; text-transform: uppercase;">Paid So
+                            Far</small>
                         <b class="text-success fs-5 d-block mt-1">₹{{ number_format($netPaid, 2) }}</b>
                     </div>
                 </div>
@@ -509,17 +517,16 @@ $employees = $employees ?? collect();
                         <strong class="text-high">{{ $paidPct }}%</strong>
                     </div>
 
-                    <div class="progress" style="height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px;">
-                        <div class="progress-bar bg-success"
-                        role="progressbar"
-                        style="width:{{ $paidPct }}%; border-radius: 999px;"
-                        aria-valuenow="{{ $paidPct }}"
-                        aria-valuemin="0"
-                        aria-valuemax="100"></div>
+                    <div class="progress"
+                        style="height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                            style="width:{{ $paidPct }}%; border-radius: 999px;" aria-valuenow="{{ $paidPct }}"
+                            aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
 
                     <div class="small text-low mt-2">
-                        Remaining: <span class="text-high fw-semibold">₹{{ number_format(max(0, $netPayable - $netPaid), 2) }}</span>
+                        Remaining: <span
+                            class="text-high fw-semibold">₹{{ number_format(max(0, $netPayable - $netPaid), 2) }}</span>
                     </div>
                 </div>
             </div>
@@ -527,9 +534,11 @@ $employees = $employees ?? collect();
 
         {{-- Generate payroll --}}
         <div class="glass-card mb-4 p-0 overflow-hidden border-main">
-            <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2" style="background: rgba(var(--primary-rgb), 0.04); border-color: var(--border-main) !important;">
+            <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2"
+                style="background: rgba(var(--primary-rgb), 0.04); border-color: var(--border-main) !important;">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="rounded p-2 text-primary d-inline-flex align-items-center justify-content-center" style="background: rgba(var(--primary-rgb), 0.12); width: 32px; height: 32px;">
+                    <span class="rounded p-2 text-primary d-inline-flex align-items-center justify-content-center"
+                        style="background: rgba(var(--primary-rgb), 0.12); width: 32px; height: 32px;">
                         <i class="fas fa-file-invoice-dollar"></i>
                     </span>
                     <h2 class="h6 fw-semibold text-high mb-0">Generate Payroll</h2>
@@ -540,351 +549,316 @@ $employees = $employees ?? collect();
             </div>
             <div class="p-4">
 
-            <form action="{{ route('admin.payroll.generate') }}"
-            method="POST"
-            class="js-once">
-            @csrf
+                <form action="{{ route('admin.payroll.generate') }}" method="POST" class="js-once">
+                    @csrf
 
-            <div class="row g-3 align-items-end">
-                <div class="col-md-5">
-                    <label for="user_id" class="form-label">Employee</label>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label for="user_id" class="form-label">Employee</label>
 
-                    @if(isset($employees) && $employees->isNotEmpty())
-                    <x-select name="user_id" id="user_id" placeholder="Select employee" :selected="old('user_id')">
-                        <option value="" class="bg-dark">Select employee</option>
-                        @foreach($employees as $emp)
-                        <option value="{{ $emp->id }}" @selected(old('user_id') == $emp->id) class="bg-dark">
-                            {{ $emp->name }} ({{ $emp->email }})
-                        </option>
-                        @endforeach
-                    </x-select>
-                    @else
-                    <input type="number"
-                    min="1"
-                    name="user_id"
-                    id="user_id"
-                    class="form-control"
-                    value="{{ old('user_id') }}"
-                    placeholder="Employee user ID"
-                    required>
-                    @endif
-                </div>
+                            @if(isset($employees) && $employees->isNotEmpty())
+                                <x-select name="user_id" id="user_id" placeholder="Select employee"
+                                    :selected="old('user_id')">
+                                    <option value="" class="bg-dark">Select employee</option>
+                                    @foreach($employees as $emp)
+                                        <option value="{{ $emp->id }}" @selected(old('user_id') == $emp->id) class="bg-dark">
+                                            {{ $emp->name }} ({{ $emp->email }})
+                                        </option>
+                                    @endforeach
+                                </x-select>
+                            @else
+                                <input type="number" min="1" name="user_id" id="user_id" class="form-control"
+                                    value="{{ old('user_id') }}" placeholder="Employee user ID" required>
+                            @endif
+                        </div>
 
-                <div class="col-md-3">
-                    <label for="generate_month" class="form-label">Payroll month</label>
-                    <input type="month"
-                    name="month"
-                    id="generate_month"
-                    class="form-control"
-                    value="{{ old('month', $month <= $lastDone ? $month : $lastDone) }}"
-                    max="{{ $lastDone }}"
-                    required>
-                </div>
+                        <div class="col-md-3">
+                            <label for="generate_month" class="form-label">Payroll month</label>
+                            <input type="month" name="month" id="generate_month" class="form-control"
+                                value="{{ old('month', $month <= $lastDone ? $month : $lastDone) }}"
+                                max="{{ $lastDone }}" required>
+                        </div>
 
-                <div class="col-md-4">
-                    <button type="submit"
-                    class="btn-premium btn-premium-primary px-4 py-2 w-100">
-                    <i class="fas fa-file-invoice-dollar me-1"></i>
-                    Generate Draft
-                </button>
-            </div>
-        </div>
-    </form>
-
-    @if($hasBulk)
-    <div class="border-top mt-3 pt-3">
-        <form action="{{ route('admin.payroll.bulk-generate') }}"
-        method="POST"
-        class="js-once d-flex flex-wrap align-items-center gap-2"
-        onsubmit="return confirm('Generate payroll for all employees for {{ $bulkLabel }}?')">
-        @csrf
-        <input type="hidden" name="month" value="{{ $bulkMonth }}">
-
-        <button type="submit"
-        class="btn-premium btn-premium-secondary px-3 py-2">
-        <i class="fas fa-users me-1"></i>
-        Generate for All Employees
-    </button>
-
-    <small class="text-low">
-        {{ $bulkLabel }} — existing payroll records will be skipped.
-    </small>
-</form>
-</div>
-@endif
-</div>
-</div>
-
-{{-- Payroll records --}}
-<div class="glass-card mb-4 p-0 overflow-hidden border-main">
-    <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2" style="background: rgba(var(--primary-rgb), 0.04); border-color: var(--border-main) !important;">
-        <div class="d-flex align-items-center gap-2">
-            <span class="rounded p-2 text-primary d-inline-flex align-items-center justify-content-center" style="background: rgba(var(--primary-rgb), 0.12); width: 32px; height: 32px;">
-                <i class="fas fa-list-check"></i>
-            </span>
-            <h2 class="h6 fw-semibold text-high mb-0">
-                Payroll Records — {{ $monthDate->format('F Y') }}
-            </h2>
-        </div>
-
-        <div class="pills">
-            <a class="pill {{ !$activeStatus ? 'on' : '' }}"
-            href="{{ request()->fullUrlWithQuery(['status' => null, 'page' => null]) }}">
-            All <em>{{ $stats['total'] ?? 0 }}</em>
-            </a>
-
-            @foreach($statusMeta as $key => $meta)
-            <a class="pill {{ $activeStatus === $key ? 'on' : '' }}"
-            href="{{ request()->fullUrlWithQuery(['status' => $key, 'page' => null]) }}">
-            {{ $meta[0] }} <em>{{ $stats[$key] ?? 0 }}</em>
-            </a>
-            @endforeach
-        </div>
-    </div>
-
-    <div class="p-3 border-bottom" style="border-color: var(--border-main) !important;">
-        <form method="GET"
-        action="{{ route('admin.payroll.index') }}"
-        id="filterForm">
-        @if($activeStatus)
-        <input type="hidden" name="status" value="{{ $activeStatus }}">
-        @endif
-
-        <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label for="month" class="heading-label mb-2" style="font-size: 0.75rem;">Month</label>
-                <input type="month"
-                name="month"
-                id="month"
-                class="form-premium-control"
-                value="{{ $month }}"
-                required
-                onchange="this.form.submit()">
-            </div>
-
-            <div class="col-md-5">
-                <label for="search" class="heading-label mb-2" style="font-size: 0.75rem;">Search Employee</label>
-                <input type="text"
-                name="search"
-                id="search"
-                class="form-premium-control"
-                value="{{ request('search') }}"
-                placeholder="Name or email">
-            </div>
-
-            <div class="col-md-4 d-flex gap-2">
-                <button type="submit"
-                class="btn-premium btn-premium-primary px-3 py-2">
-                <i class="fas fa-search me-1"></i> Search
-                </button>
-
-                <a href="{{ route('admin.payroll.index', ['month' => $month]) }}"
-                   class="btn-premium btn-premium-secondary px-3 py-2">
-                   Reset
-                </a>
-            </div>
-        </div>
-        </form>
-    </div>
-
-<div class="table-responsive">
-    <table class="table data-grid-table pr-table">
-        <thead>
-            <tr>
-                <th>EMPLOYEE</th>
-                <th>ATTENDANCE</th>
-                <th class="text-end">MONTHLY SALARY</th>
-                <th class="text-end">DEDUCTION</th>
-                <th class="text-end">FINAL SALARY</th>
-                <th>STATUS</th>
-                <th>APPROVED BY</th>
-                <th class="text-end">ACTIONS</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            @forelse($payrolls as $payroll)
-            @php
-            $name = $payroll->user?->name ?? 'Employee unavailable';
-            $init = mb_strtoupper(mb_substr($name, 0, 1));
-
-            [$sLabel, $sColor, $sBg] =
-            $statusMeta[$payroll->status]
-            ?? ['Unknown', '#64748b', '#f1f5f9'];
-
-            $ded = (float) $payroll->deduction_amount
-            + (float) $payroll->other_deductions;
-
-            $half = rtrim(
-            rtrim(number_format((float) $payroll->half_days, 2), '0'),
-            '.'
-            ) ?: '0';
-            @endphp
-
-            <tr>
-                <td>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="pr-avatar">{{ $init }}</span>
-                        <div>
-                            <div class="fw-semibold text-high">
-                                <a href="{{ route('admin.users.show', $payroll->user_id) }}"
-                                   class="text-high fw-semibold hover-primary text-decoration-none"
-                                   title="View Employee Profile & Analytics">
-                                    {{ $name }}
-                                </a>
-                            </div>
-                            <small class="text-low">
-                                {{ $payroll->user?->email }}
-                            </small>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn-premium btn-premium-primary px-4 py-2 w-100">
+                                <i class="fas fa-file-invoice-dollar me-1"></i>
+                                Generate Draft
+                            </button>
                         </div>
                     </div>
-                </td>
+                </form>
 
-                <td>
-                    <div class="att">
-                        <span style="background:#dcfce7;color:#166534"
-                        title="Present">
-                        P {{ $payroll->present_days }}
-                    </span>
-                    <span style="background:#fef3c7;color:#92400e"
-                    title="Half days">
-                    H {{ $half }}
-                </span>
-                <span style="background:#fee2e2;color:#991b1b"
-                title="Absent">
-                A {{ $payroll->absent_days }}
-            </span>
+                @if($hasBulk)
+                    <div class="border-top mt-3 pt-3">
+                        <form action="{{ route('admin.payroll.bulk-generate') }}" method="POST"
+                            class="js-once d-flex flex-wrap align-items-center gap-2"
+                            onsubmit="return confirm('Generate payroll for all employees for {{ $bulkLabel }}?')">
+                            @csrf
+                            <input type="hidden" name="month" value="{{ $bulkMonth }}">
+
+                            <button type="submit" class="btn-premium btn-premium-secondary px-3 py-2">
+                                <i class="fas fa-users me-1"></i>
+                                Generate for All Employees
+                            </button>
+
+                            <small class="text-low">
+                                {{ $bulkLabel }} — existing payroll records will be skipped.
+                            </small>
+                        </form>
+                    </div>
+                @endif
+            </div>
         </div>
-        <small class="text-low">
-            of {{ $payroll->scheduled_working_days }} days
-        </small>
-    </td>
 
-    <td class="text-end text-high text-nowrap">
-        ₹{{ number_format((float) $payroll->monthly_salary, 2) }}
-    </td>
+        {{-- Payroll records --}}
+        <div class="glass-card mb-4 p-0 overflow-hidden border-main">
+            <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2"
+                style="background: rgba(var(--primary-rgb), 0.04); border-color: var(--border-main) !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded p-2 text-primary d-inline-flex align-items-center justify-content-center"
+                        style="background: rgba(var(--primary-rgb), 0.12); width: 32px; height: 32px;">
+                        <i class="fas fa-list-check"></i>
+                    </span>
+                    <h2 class="h6 fw-semibold text-high mb-0">
+                        Payroll Records — {{ $monthDate->format('F Y') }}
+                    </h2>
+                </div>
 
-    <td class="text-end text-nowrap {{ $ded > 0 ? 'money-red' : 'text-low' }}">
-        {{ $ded > 0 ? '- ₹' . number_format($ded, 2) : '—' }}
-    </td>
+                <div class="pills">
+                    <a class="pill {{ !$activeStatus ? 'on' : '' }}"
+                        href="{{ request()->fullUrlWithQuery(['status' => null, 'page' => null]) }}">
+                        All <em>{{ $stats['total'] ?? 0 }}</em>
+                    </a>
 
-    <td class="text-end money-green text-nowrap">
-        ₹{{ number_format((float) $payroll->final_salary, 2) }}
-    </td>
+                    @foreach($statusMeta as $key => $meta)
+                        <a class="pill {{ $activeStatus === $key ? 'on' : '' }}"
+                            href="{{ request()->fullUrlWithQuery(['status' => $key, 'page' => null]) }}">
+                            {{ $meta[0] }} <em>{{ $stats[$key] ?? 0 }}</em>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
 
-    <td>
-        <span class="pr-badge"
-        style="background:{{ $sBg }};color:{{ $sColor }}">
-        <span class="pr-badge-dot"
-        style="background:{{ $sColor }}"></span>
-        {{ $sLabel }}
-    </span>
-</td>
+            <div class="p-3 border-bottom" style="border-color: var(--border-main) !important;">
+                <form method="GET" action="{{ route('admin.payroll.index') }}" id="filterForm">
+                    @if($activeStatus)
+                        <input type="hidden" name="status" value="{{ $activeStatus }}">
+                    @endif
 
-<td class="text-high">
-    {{ $payroll->approver?->name ?? '—' }}
-</td>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="month" class="heading-label mb-2" style="font-size: 0.75rem;">Month</label>
+                            <input type="month" name="month" id="month" class="form-premium-control"
+                                value="{{ $month }}" required onchange="this.form.submit()">
+                        </div>
 
-<td class="text-end text-nowrap">
-    <div class="pr-actions">
-        <a href="{{ route('admin.payroll.show', $payroll->id) }}"
-           class="pr-action-link"
-           title="View payroll">
-           <i class="fas fa-eye me-1"></i> View
-       </a>
+                        <div class="col-md-5">
+                            <label for="search" class="heading-label mb-2" style="font-size: 0.75rem;">Search
+                                Employee</label>
+                            <input type="text" name="search" id="search" class="form-premium-control"
+                                value="{{ request('search') }}" placeholder="Name or email">
+                        </div>
 
-       @if($hasPayslip && in_array($payroll->status, ['approved', 'paid'], true))
-       <a href="{{ route('admin.payroll.payslip', $payroll->id) }}"
-           target="_blank"
-           rel="noopener"
-           class="pr-action-link"
-           title="View payslip">
-           <i class="fas fa-file-invoice me-1"></i> Payslip
-       </a>
-       @endif
+                        <div class="col-md-4 d-flex gap-2">
+                            <button type="submit" class="btn-premium btn-premium-primary px-3 py-2">
+                                <i class="fas fa-search me-1"></i> Search
+                            </button>
 
-       @if($hasDelete && in_array($payroll->status, ['draft', 'rejected'], true))
-       <form action="{{ route('admin.payroll.destroy', $payroll->id) }}"
-          method="POST"
-          class="d-inline"
-          onsubmit="return confirm('Delete this {{ $payroll->status }} payroll?')">
-          @csrf
-          @method('DELETE')
+                            <a href="{{ route('admin.payroll.index', ['month' => $month]) }}"
+                                class="btn-premium btn-premium-secondary px-3 py-2">
+                                Reset
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
 
-          <button type="submit"
-          class="pr-action-link"
-          title="Delete payroll">
-          <i class="fas fa-trash"></i>
-      </button>
-  </form>
-  @endif
-</div>
-</td>
-</tr>
-@empty
-<tr>
-    <td colspan="8" class="pr-empty">
-        <strong>No payroll records found</strong>
-        No payroll records found for {{ $monthDate->format('F Y') }}.
-        Use Generate Draft to create a record.
-    </td>
-</tr>
-@endforelse
-</tbody>
-</table>
-</div>
+            <div class="table-responsive">
+                <table class="table data-grid-table pr-table">
+                    <thead>
+                        <tr>
+                            <th>EMPLOYEE</th>
+                            <th>ATTENDANCE</th>
+                            <th class="text-end">MONTHLY SALARY</th>
+                            <th class="text-end">DEDUCTION</th>
+                            <th class="text-end">FINAL SALARY</th>
+                            <th>STATUS</th>
+                            <th>APPROVED BY</th>
+                            <th class="text-end">ACTIONS</th>
+                        </tr>
+                    </thead>
 
-<div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2 p-3">
-    <small class="text-low">
-        @if($payrolls->total() > 0)
-        Showing {{ $payrolls->firstItem() }}–{{ $payrolls->lastItem() }}
-        of {{ $payrolls->total() }} records
-        @else
-        0 records
-        @endif
-    </small>
+                    <tbody>
+                        @forelse($payrolls as $payroll)
+                            @php
+                                $name = $payroll->user?->name ?? 'Employee unavailable';
+                                $init = mb_strtoupper(mb_substr($name, 0, 1));
 
-    {{ $payrolls->withQueryString()->links() }}
-</div>
-</div>
-</div>
+                                [$sLabel, $sColor, $sBg] =
+                                    $statusMeta[$payroll->status]
+                                    ?? ['Unknown', '#64748b', '#f1f5f9'];
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
+                                $ded = (float) $payroll->deduction_amount
+                                    + (float) $payroll->other_deductions;
+
+                                $half = rtrim(
+                                    rtrim(number_format((float) $payroll->half_days, 2), '0'),
+                                    '.'
+                                ) ?: '0';
+                            @endphp
+
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="pr-avatar">{{ $init }}</span>
+                                        <div>
+                                            <div class="fw-semibold text-high">
+                                                <a href="{{ route('admin.users.show', $payroll->user_id) }}"
+                                                    class="text-high fw-semibold hover-primary text-decoration-none"
+                                                    title="View Employee Profile & Analytics">
+                                                    {{ $name }}
+                                                </a>
+                                            </div>
+                                            <small class="text-low">
+                                                {{ $payroll->user?->email }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="att">
+                                        <span style="background:#dcfce7;color:#166534" title="Present">
+                                            P {{ $payroll->present_days }}
+                                        </span>
+                                        <span style="background:#fef3c7;color:#92400e" title="Half days">
+                                            H {{ $half }}
+                                        </span>
+                                        <span style="background:#fee2e2;color:#991b1b" title="Absent">
+                                            A {{ $payroll->absent_days }}
+                                        </span>
+                                    </div>
+                                    <small class="text-low">
+                                        of {{ $payroll->scheduled_working_days }} days
+                                    </small>
+                                </td>
+
+                                <td class="text-end text-high text-nowrap">
+                                    ₹{{ number_format((float) $payroll->monthly_salary, 2) }}
+                                </td>
+
+                                <td class="text-end text-nowrap {{ $ded > 0 ? 'money-red' : 'text-low' }}">
+                                    {{ $ded > 0 ? '- ₹' . number_format($ded, 2) : '—' }}
+                                </td>
+
+                                <td class="text-end money-green text-nowrap">
+                                    ₹{{ number_format((float) $payroll->final_salary, 2) }}
+                                </td>
+
+                                <td>
+                                    <span class="pr-badge" style="background:{{ $sBg }};color:{{ $sColor }}">
+                                        <span class="pr-badge-dot" style="background:{{ $sColor }}"></span>
+                                        {{ $sLabel }}
+                                    </span>
+                                </td>
+
+                                <td class="text-high">
+                                    {{ $payroll->approver?->name ?? '—' }}
+                                </td>
+
+                                <td class="text-end text-nowrap">
+                                    <div class="pr-actions">
+                                        <a href="{{ route('admin.payroll.show', $payroll->id) }}" class="pr-action-link"
+                                            title="View payroll">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </a>
+
+                                        @if($hasPayslip && in_array($payroll->status, ['approved', 'paid'], true))
+                                            <a href="{{ route('admin.payroll.payslip', $payroll->id) }}" target="_blank"
+                                                rel="noopener" class="pr-action-link" title="View payslip">
+                                                <i class="fas fa-file-invoice me-1"></i> Payslip
+                                            </a>
+                                        @endif
+
+                                        @if($hasDelete && in_array($payroll->status, ['draft', 'rejected'], true))
+                                            <form action="{{ route('admin.payroll.destroy', $payroll->id) }}" method="POST"
+                                                class="d-inline"
+                                                onsubmit="return confirm('Delete this {{ $payroll->status }} payroll?')">
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button type="submit" class="pr-action-link" title="Delete payroll">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="pr-empty">
+                                    <strong>No payroll records found</strong>
+                                    No payroll records found for {{ $monthDate->format('F Y') }}.
+                                    Use Generate Draft to create a record.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2 p-3">
+                <small class="text-low">
+                    @if($payrolls->total() > 0)
+                        Showing {{ $payrolls->firstItem() }}–{{ $payrolls->lastItem() }}
+                        of {{ $payrolls->total() }} records
+                    @else
+                        0 records
+                    @endif
+                </small>
+
+                {{ $payrolls->withQueryString()->links() }}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
             // Prevent accidental double submissions.
-        document.querySelectorAll('form.js-once').forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (event.defaultPrevented) return;
+            document.querySelectorAll('form.js-once').forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (event.defaultPrevented) return;
 
                     // Let browser validation and confirmation finish first.
-                if (!form.checkValidity()) return;
+                    if (!form.checkValidity()) return;
 
-                const submitter = event.submitter;
-                if (submitter && submitter.disabled) {
-                    event.preventDefault();
-                    return;
-                }
+                    const submitter = event.submitter;
+                    if (submitter && submitter.disabled) {
+                        event.preventDefault();
+                        return;
+                    }
 
-                if (submitter) {
-                    setTimeout(function () {
-                        submitter.disabled = true;
-                        submitter.textContent = 'Please wait...';
-                    }, 0);
-                }
+                    if (submitter) {
+                        setTimeout(function () {
+                            submitter.disabled = true;
+                            submitter.textContent = 'Please wait...';
+                        }, 0);
+                    }
+                });
             });
-        });
 
             // Auto-dismiss feedback alerts.
-        document.querySelectorAll('.auto-dismiss').forEach(function (element) {
-            setTimeout(function () {
-                element.style.transition = 'opacity .5s';
-                element.style.opacity = '0';
-
+            document.querySelectorAll('.auto-dismiss').forEach(function (element) {
                 setTimeout(function () {
-                    element.remove();
-                }, 500);
-            }, 6000);
+                    element.style.transition = 'opacity .5s';
+                    element.style.opacity = '0';
+
+                    setTimeout(function () {
+                        element.remove();
+                    }, 500);
+                }, 6000);
+            });
         });
-    });
-</script>
+    </script>
 </x-admin>

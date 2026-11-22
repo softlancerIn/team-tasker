@@ -14,7 +14,7 @@ class AttendancePolicy
      */
     public function viewAny(Authenticatable $user): bool
     {
-        return $this->isSuperAdminOrHasPermission($user, ['attendance.view', 'attendance.daily', 'attendance.monthly']);
+        return $this->isSuperAdminOrHasPermission($user, ['attendance.daily', 'attendance.monthly']);
     }
 
     /**

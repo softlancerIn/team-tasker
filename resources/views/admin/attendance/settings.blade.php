@@ -14,14 +14,18 @@
                 <a href="{{ route('admin.attendance.settings') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.settings') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
                     <i class="fas fa-sliders-h me-1"></i> Attendance Settings
                 </a>
+                @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('attendance.reports') || Auth::user()->hasPermission('attendance.report'))
                 <a href="{{ route('admin.attendance.reports') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.reports') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
                     <i class="fas fa-file-export me-1"></i> Reports & Exports
                 </a>
+                @endif
             </div>
 
+            @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('attendance.settings') || Auth::user()->hasPermission('attendance.manage'))
             <button type="submit" form="attendanceSettingsForm" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm d-flex align-items-center gap-2">
                 <i class="fas fa-save"></i> Save Settings
             </button>
+            @endif
         </div>
     </div>
 

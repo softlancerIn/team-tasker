@@ -11,9 +11,11 @@
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <!-- Odoo-style View Switcher -->
             <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('attendance.settings') || Auth::user()->hasPermission('attendance.manage'))
                 <a href="{{ route('admin.attendance.settings') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.settings') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
                     <i class="fas fa-sliders-h me-1"></i> Attendance Settings
                 </a>
+                @endif
                 <a href="{{ route('admin.attendance.reports') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.reports') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
                     <i class="fas fa-file-export me-1"></i> Reports & Exports
                 </a>

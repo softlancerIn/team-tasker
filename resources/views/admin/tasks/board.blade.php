@@ -19,21 +19,27 @@
                         style="font-size: 0.8rem;">
                         <i class="fas fa-list me-1"></i> List
                     </a>
+                    @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('tasks.calendar'))
                     <a href="{{ route('tasks.calendar') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.calendar') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
                         style="font-size: 0.8rem;">
                         <i class="fas fa-calendar-alt me-1"></i> Calendar
                     </a>
+                    @endif
+                    @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('tasks.gantt'))
                     <a href="{{ route('tasks.gantt') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.gantt') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
                         style="font-size: 0.8rem;">
                         <i class="fas fa-project-diagram me-1"></i> Gantt
                     </a>
+                    @endif
                 </div>
             </div>
         </div>
         <div class="d-flex align-items-center gap-2">
+            @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('tasks.create'))
             <a href="{{ route('create') }}" class="btn-premium btn-premium-primary px-4 py-2 shadow-sm">
                 <i class="fas fa-plus-circle me-1"></i> New Task
             </a>
+            @endif
         </div>
     </div>
 

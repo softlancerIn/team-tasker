@@ -1479,14 +1479,19 @@ $isAttendanceActive = request()->routeIs('admin.attendance.*');
 </a>
 @endif
 
-@if(Auth::user()->hasPermission('attendance.daily') || Auth::user()->hasPermission('attendance.approve') || Auth::user()->hasPermission('attendance.manage') || Auth::user()->hasPermission('attendance.submit') || Auth::user()->hasRole('super-admin'))
+@if(Auth::user()->hasPermission('attendance.daily') || Auth::user()->hasPermission('attendance.approve') || Auth::user()->hasPermission('attendance.manage') || Auth::user()->hasRole('super-admin'))
 <a href="{{ route('admin.attendance.daily') }}"
+class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.daily') || request()->routeIs('admin.attendance.myDaily') || request()->routeIs('admin.attendance.myMonthly') ? 'active' : '' }}">
+<i class="fas fa-file-invoice"></i> Work Reports
+</a>
+@else
+<a href="{{ route('admin.attendance.myDaily') }}"
 class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.daily') || request()->routeIs('admin.attendance.myDaily') || request()->routeIs('admin.attendance.myMonthly') ? 'active' : '' }}">
 <i class="fas fa-file-invoice"></i> Work Reports
 </a>
 @endif
 
-@if(Auth::user()->hasPermission('attendance.monthly') || Auth::user()->hasPermission('attendance.report') || Auth::user()->hasPermission('attendance.punch') || Auth::user()->hasPermission('attendance.view') || Auth::user()->hasRole('super-admin'))
+@if(Auth::user()->hasPermission('attendance.monthly') || Auth::user()->hasPermission('attendance.report') || Auth::user()->hasRole('super-admin'))
 <a href="{{ route('admin.attendance.monthly') }}"
 class="nav-link-premium sub-link-premium {{ request()->routeIs('admin.attendance.monthly') ? 'active' : '' }}">
 <i class="fas fa-calendar-days"></i> Attendance Directory

@@ -19,9 +19,11 @@
                 </a>
             </div>
 
+            @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('attendance.view') || Auth::user()->hasPermission('attendance.requests_manage'))
             <button class="btn-premium btn-premium-primary px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#newRequestModal">
                 <i class="fas fa-plus-circle me-1"></i> New Request
             </button>
+            @endif
         </div>
     </div>
 

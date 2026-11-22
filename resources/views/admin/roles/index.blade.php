@@ -9,12 +9,16 @@
             <p class="text-low mb-0" style="font-size: 0.9rem;">Manage user roles and permissions.</p>
         </div>
         <div class="d-flex gap-2">
+            @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('hr.manage') || Auth::user()->hasPermission('hr.view'))
             <a href="{{ route('admin.hr.settings') }}" class="btn-premium btn-premium-secondary px-3 py-2 text-decoration-none">
                 <i class="fas fa-user-gear me-1"></i> HR Settings
             </a>
+            @endif
+            @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('roles.create'))
             <button class="btn-premium btn-premium-primary px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addRoleModal">
                 <i class="fas fa-plus-circle me-1"></i> Add Role
             </button>
+            @endif
         </div>
     </div>
 

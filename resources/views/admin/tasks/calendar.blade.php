@@ -7,10 +7,12 @@
         <div class="d-flex align-items-center gap-3">
             <h3 class="mb-0 fw-bold text-high">Task Calendar</h3>
             <div class="btn-group p-1 rounded-pill ms-2" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('tasks.board'))
                 <a href="{{ route('tasks.board') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.board') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
                     style="font-size: 0.8rem;">
                     <i class="fas fa-columns me-1"></i> Kanban
                 </a>
+                @endif
                 <a href="{{ route('index') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('index') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
                     style="font-size: 0.8rem;">
                     <i class="fas fa-list me-1"></i> List
@@ -19,15 +21,19 @@
                     style="font-size: 0.8rem;">
                     <i class="fas fa-calendar-alt me-1"></i> Calendar
                 </a>
+                @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('tasks.gantt'))
                 <a href="{{ route('tasks.gantt') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('tasks.gantt') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}"
                     style="font-size: 0.8rem;">
                     <i class="fas fa-project-diagram me-1"></i> Gantt
                 </a>
+                @endif
             </div>
         </div>
+        @if(Auth::user()->hasRole('super-admin') || Auth::user()->hasPermission('tasks.create'))
         <a href="{{ route('create') }}" class="btn-premium btn-premium-primary">
             <i class="fas fa-plus me-1"></i> Create Task
         </a>
+        @endif
     </div>
 
     <div class="glass-card" style="border: 1px solid var(--border-main);">

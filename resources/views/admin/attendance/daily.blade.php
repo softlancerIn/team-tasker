@@ -57,9 +57,11 @@
         <div class="d-flex gap-2 flex-wrap align-items-center">
             <!-- Odoo-style View Switcher -->
             <div class="btn-group p-1 rounded-pill" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-main);">
+                @if(Gate::allows('viewAny', App\Models\Attendance::class))
                 <a href="{{ route('admin.attendance.daily') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.daily') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
                     <i class="fas fa-users me-1"></i> All Reports
                 </a>
+                @endif
                 <a href="{{ route('admin.attendance.myDaily') }}" class="btn btn-sm rounded-pill px-3 {{ request()->routeIs('admin.attendance.myDaily') ? 'btn-premium-primary text-white font-weight-bold shadow-sm' : 'text-low' }}" style="font-size: 0.8rem;">
                     <i class="fas fa-user me-1"></i> My Report
                 </a>
