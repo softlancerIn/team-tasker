@@ -21,22 +21,44 @@ class AutoStopTimers extends Command
         $todayStr = \Carbon\Carbon::today()->format('Y-m-d');
 
         // 1. Auto Punch-Out for Attendances
-        $attendances = \App\Models\Attendance::where('date', $todayStr)
-            ->whereNotNull('clock_in')
-            ->whereNull('clock_out')
+        $attendances = \App\Models\Attendance::where(function ($q) use ($todayStr) {
+                $q->where('attendance_date', $todayStr)
+                  ->orWhere('date', $todayStr);
+            })
+            ->where(function ($q) {
+                $q->whereNotNull('check_in')->orWhereNotNull('clock_in');
+            })
+            ->where(function ($q) {
+                $q->whereNull('check_out')->whereNull('clock_out');
+            })
             ->get();
 
         foreach ($attendances as $attendance) {
-            $clockIn = \Carbon\Carbon::parse($attendance->date.' '.$attendance->clock_in);
+            $datePart = $attendance->attendance_date?->format('Y-m-d') 
+                ?? $attendance->date?->format('Y-m-d') 
+                ?? $todayStr;
+
+            $timePart = $attendance->check_in ?? $attendance->clock_in;
+
+            // Handle potential full datetime or time string
+            if (strlen($timePart) > 8) {
+                $clockIn = \Carbon\Carbon::parse($timePart);
+            } else {
+                $clockIn = \Carbon\Carbon::parse($datePart.' '.$timePart);
+            }
 
             // If they clocked in after 6:30 PM, clock them out at their clock_in time (0 hours)
             $clockOut = $clockIn->greaterThan($autoTime) ? $clockIn : $autoTime;
-            $workHours = abs($clockIn->diffInMinutes($clockOut, false)) / 60;
+            $workingMinutes = abs($clockIn->diffInMinutes($clockOut, false));
+            $workHours = $workingMinutes / 60;
 
             $attendance->update([
+                'check_out' => $clockOut->format('H:i:s'),
                 'clock_out' => $clockOut->format('H:i:s'),
+                'working_minutes' => $workingMinutes,
                 'work_hours' => round($workHours, 2),
-                'notes' => ltrim($attendance->notes."\n[System: Auto clocked out at 6:30 PM]"),
+                'notes' => ltrim(($attendance->notes ?? $attendance->remarks ?? '')."\n[System: Auto clocked out at 6:30 PM]"),
+                'remarks' => ltrim(($attendance->remarks ?? $attendance->notes ?? '')."\n[System: Auto clocked out at 6:30 PM]"),
             ]);
         }
         $this->info('Auto clocked out '.$attendances->count().' users.');
